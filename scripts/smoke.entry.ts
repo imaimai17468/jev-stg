@@ -33,19 +33,6 @@ import type { Route, RouteResult } from "./smoke";
 
 const WORKER_CONFIG = "dist/server/wrangler.json";
 
-/**
- * Text bindings for the secrets the Worker requires before it answers a
- * request. Supplying them here keeps the run off any local env file.
- */
-const SECRET_ARGS = [
-  "--var",
-  "BETTER_AUTH_SECRET:smoke-run-placeholder-secret-0123456789",
-  "--var",
-  "GOOGLE_CLIENT_ID:smoke-run-placeholder-client-id",
-  "--var",
-  "GOOGLE_CLIENT_SECRET:smoke-run-placeholder-client-secret",
-];
-
 const BOOT_TIMEOUT_MS = 120_000;
 const REQUEST_TIMEOUT_MS = 30_000;
 const KILL_TIMEOUT_MS = 10_000;
@@ -148,7 +135,6 @@ const run = async (): Promise<number> => {
       "0",
       "--persist-to",
       stateDir,
-      ...SECRET_ARGS,
     ],
     { stdio: ["ignore", "pipe", "inherit"] }
   );

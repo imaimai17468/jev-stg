@@ -1,4 +1,3 @@
-import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
 
@@ -27,20 +26,11 @@ export const coverageExclude = [
   // `.claude/settings.json` の allow ルール `Bash(bun scripts/orchestrate.ts *)`
   // がこのパスを名指すので、改名はその設定ファイルの編集になる。
   "scripts/orchestrate.ts",
-  // ファイル名が URL を決めるファイルルートで、`auth.$` が `/api/auth/$` を
-  // 生む。改名するとその URL が変わる。
-  "src/routes/api/auth.$.ts",
 ];
 
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
-    alias: {
-      "cloudflare:workers": path.resolve(
-        import.meta.dirname,
-        "src/test/cloudflare-workers-stub.ts"
-      ),
-    },
   },
   plugins: [react()],
   test: {
