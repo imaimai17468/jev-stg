@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
 import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
@@ -13,7 +14,15 @@ const UNOWNED_NATION: Nation = {
   name: "",
 };
 
+/** How much brighter the nation the viewer picked is drawn. */
+const HIGHLIGHT_LIFT = 1.3;
+
 const CHANNEL_MAX = 255;
+
+const LIFT_FOR = {
+  false: 1,
+  true: HIGHLIGHT_LIFT,
+} satisfies Record<`${boolean}`, number>;
 const CHANNELS = 4;
 const OPAQUE = 255;
 
@@ -29,19 +38,23 @@ const shaded = (colour: Colour, factor: number): Colour => ({
  * Built once so the pass over the grid below is a table lookup per cell rather
  * than a walk through the province and the nation that holds it.
  */
-const provinceColours = (world: World): readonly Colour[] =>
+const provinceColours = (
+  world: World,
+  highlighted: Option.Option<number>
+): readonly Colour[] =>
   world.provinces.map((province) => {
     if (province.kind === "sea") {
       return MAP_COLOURS.sea;
     }
+    const nation = valueAt(world.owners, province.id);
     // An unowned province carries `UNASSIGNED`, and a negative index has to miss
     // rather than reach the last nation the way `Array.prototype.at` would.
-    const owner = itemAt(
-      world.nations,
-      valueAt(world.owners, province.id),
-      UNOWNED_NATION
-    );
-    return shaded(owner.colour, TERRAIN_SHADE[province.terrain]);
+    const owner = itemAt(world.nations, nation, UNOWNED_NATION);
+    // The comparison is on nation ids rather than through a sentinel, because
+    // the id an unowned province carries is itself negative and any sentinel
+    // would have to dodge it.
+    const lift = LIFT_FOR[`${Option.contains(highlighted, nation)}`];
+    return shaded(owner.colour, TERRAIN_SHADE[province.terrain] * lift);
   });
 
 /** The cells a border check compares against, so each border is drawn once. */
@@ -90,11 +103,14 @@ const cellColour = (
 /**
  * The world as RGBA pixels, one pixel per cell, ready for an `ImageData`.
  *
- * The caller scales it to the screen, so this runs once per world rather than
- * once per frame.
+ * The caller scales it to the screen, so this runs once per world and once per
+ * change of which nation is picked out, rather than once per frame.
  */
-export const paintWorld = (world: World): Uint8ClampedArray<ArrayBuffer> => {
-  const colours = provinceColours(world);
+export const paintWorld = (
+  world: World,
+  highlighted: Option.Option<number>
+): Uint8ClampedArray<ArrayBuffer> => {
+  const colours = provinceColours(world, highlighted);
   const pixels = new Uint8ClampedArray(world.cellProvince.length * CHANNELS);
   for (const [cell] of world.cellProvince.entries()) {
     const colour = cellColour(world, colours, cell);

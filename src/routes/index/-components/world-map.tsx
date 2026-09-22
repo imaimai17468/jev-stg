@@ -5,16 +5,21 @@ import type {
   RefCallback,
   WheelEvent,
 } from "react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
 import { drawMap } from "./draw-map";
 import { paintWorld } from "./map-bitmap";
 import { nationLabels } from "./nation-labels";
+import { nationAt } from "./pick-nation";
 import type { Surface, Viewport } from "./viewport";
 import { clamped, fitViewport, pannedBy, zoomedAt } from "./viewport";
 
 interface WorldMapProps {
   readonly world: World;
+  /** The nation drawn brighter than the rest, where one is picked. */
+  readonly highlighted: Option.Option<number>;
+  readonly onSelectNation: (nation: Option.Option<number>) => void;
+  readonly onTogglePause: () => void;
 }
 
 /** Where a drag was last seen, in client coordinates. */
@@ -37,6 +42,23 @@ const ZOOM_PER_PIXEL = 1.0018;
 /** What one key press moves the map, in screen pixels and in scale. */
 const KEY_PAN = 96;
 const KEY_ZOOM = 1.3;
+/**
+ * How far a pointer may travel and still count as a click rather than a drag.
+ *
+ * A finger resting on one province still reports a stream of moves, so touch is
+ * given more room than a mouse whose position holds still.
+ */
+const CLICK_SLACK = { mouse: 4, pen: 6, touch: 12 };
+
+const slackFor = (pointerType: string): number => {
+  if (pointerType === "touch") {
+    return CLICK_SLACK.touch;
+  }
+  if (pointerType === "pen") {
+    return CLICK_SLACK.pen;
+  }
+  return CLICK_SLACK.mouse;
+};
 
 const LABEL_FONT = "600 13px system-ui, sans-serif";
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
@@ -76,9 +98,16 @@ const zoomForKey = (key: string): number => {
   return 1;
 };
 
-export const WorldMap = ({ world }: WorldMapProps) => {
+const WorldMapSurface = ({
+  highlighted,
+  onSelectNation,
+  onTogglePause,
+  world,
+}: WorldMapProps) => {
   const canvas = useRef(NO_CANVAS);
   const dragFrom = useRef(NO_DRAG);
+  const dragTravel = useRef(0);
+  const dragSlack = useRef(CLICK_SLACK.mouse);
   const [surface, setSurface] = useState<Surface>(UNMEASURED);
   const [chosenView, setChosenView] = useState(NO_VIEW);
   // The element the ref was last handed. It is state as well as a ref so the
@@ -118,12 +147,16 @@ export const WorldMap = ({ world }: WorldMapProps) => {
       return Option.none<OffscreenCanvas>();
     }
     target.value.putImageData(
-      new ImageData(paintWorld(world), world.grid.width, world.grid.height),
+      new ImageData(
+        paintWorld(world, highlighted),
+        world.grid.width,
+        world.grid.height
+      ),
       0,
       0
     );
     return Option.some(offscreen);
-  }, [world]);
+  }, [world, highlighted]);
 
   const labels = useMemo(() => nationLabels(world), [world]);
 
@@ -194,6 +227,8 @@ export const WorldMap = ({ world }: WorldMapProps) => {
   const startDrag = (event: PointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
     dragFrom.current = Option.some({ x: event.clientX, y: event.clientY });
+    dragTravel.current = 0;
+    dragSlack.current = slackFor(event.pointerType);
   };
 
   // Every handler below folds the previous viewport rather than the one this
@@ -206,6 +241,7 @@ export const WorldMap = ({ world }: WorldMapProps) => {
     }
     const byX = event.clientX - from.value.x;
     const byY = event.clientY - from.value.y;
+    dragTravel.current += Math.abs(byX) + Math.abs(byY);
     setChosenView((chosen) =>
       Option.some(pannedBy(viewOf(chosen), world.grid, surface, byX, byY))
     );
@@ -214,6 +250,23 @@ export const WorldMap = ({ world }: WorldMapProps) => {
 
   const endDrag = () => {
     dragFrom.current = NO_DRAG;
+  };
+
+  // A pointer that went nowhere between down and up is a click on a country,
+  // where one that travelled was the viewer moving the map.
+  const pick = (event: PointerEvent<HTMLCanvasElement>) => {
+    // A release whose press landed somewhere else, such as a button in the HUD,
+    // is that control's gesture rather than a click on a country.
+    if (Option.isNone(dragFrom.current)) {
+      return;
+    }
+    if (dragTravel.current > dragSlack.current) {
+      return;
+    }
+    const box = event.currentTarget.getBoundingClientRect();
+    onSelectNation(
+      nationAt(world, view, event.clientX - box.left, event.clientY - box.top)
+    );
   };
 
   const zoom = (event: WheelEvent<HTMLCanvasElement>) => {
@@ -229,6 +282,16 @@ export const WorldMap = ({ world }: WorldMapProps) => {
   };
 
   const steer = (event: KeyboardEvent<HTMLCanvasElement>) => {
+    if (event.key === " ") {
+      // Every repeat still has to swallow the page scroll, and only the first
+      // of them is the viewer asking to pause.
+      event.preventDefault();
+      if (event.repeat) {
+        return;
+      }
+      onTogglePause();
+      return;
+    }
     const pan = panForKey(event.key);
     const factor = zoomForKey(event.key);
     if (pan.x === 0 && pan.y === 0 && factor === 1) {
@@ -251,16 +314,25 @@ export const WorldMap = ({ world }: WorldMapProps) => {
 
   return (
     <canvas
-      aria-label={`シード ${world.seed} の世界地図。矢印キーで移動、プラスとマイナスで拡大縮小`}
+      aria-label={`シード ${world.seed} の世界地図。クリックで国を選択、矢印キーで移動、プラスとマイナスで拡大縮小、スペースで一時停止`}
       className="size-full cursor-grab touch-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring active:cursor-grabbing"
       onKeyDown={steer}
       onPointerCancel={endDrag}
       onPointerDown={startDrag}
       onPointerMove={continueDrag}
-      onPointerUp={endDrag}
+      onPointerUp={(event) => {
+        pick(event);
+        endDrag();
+      }}
       onWheel={zoom}
       ref={attach}
       tabIndex={0}
     />
   );
 };
+
+/**
+ * The map redraws only when the world or the picked nation changes, so the
+ * calendar ticking beside it costs nothing here.
+ */
+export const WorldMap = memo(WorldMapSurface);

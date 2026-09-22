@@ -126,3 +126,32 @@
     line-height: 1.8;
   }
 }
+
+/* The three slabs the HUD is made of. Their geometry lives here rather than in
+   class strings because each of them reaches a viewport edge, so each has to
+   clear the safe area, and the side panel's ends are the other two's heights. */
+@layer components {
+  .hud-bar-top {
+    position: absolute;
+    inset-inline: 0;
+    top: 0;
+    height: calc(--spacing(12) + env(safe-area-inset-top));
+    padding-top: env(safe-area-inset-top);
+  }
+
+  .hud-bar-bottom {
+    position: absolute;
+    inset-inline: 0;
+    bottom: 0;
+    height: calc(--spacing(16) + env(safe-area-inset-bottom));
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+
+  .hud-panel-side {
+    position: absolute;
+    left: 0;
+    top: calc(--spacing(12) + env(safe-area-inset-top));
+    bottom: calc(--spacing(16) + env(safe-area-inset-bottom));
+    padding-left: env(safe-area-inset-left);
+  }
+}
