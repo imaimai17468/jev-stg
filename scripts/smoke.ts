@@ -39,7 +39,7 @@ export const EXPECTED_DOCUMENT_HEADERS = {
 export const ROUTES: readonly Route[] = [
   {
     headers: EXPECTED_DOCUMENT_HEADERS,
-    marker: "世界はまだ生成されていません",
+    marker: "世界を生成しています",
     path: "/",
     status: 200,
   },
