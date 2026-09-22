@@ -338,6 +338,22 @@ export default defineConfig({
         rules: { "effect/noDynamicImports": "off" },
       },
       {
+        // `unicorn/no-array-for-each` and `unicorn/no-array-reduce` are errors
+        // everywhere, so a pass that accumulates into a typed array or performs
+        // an effect per item has `for...of` as its only remaining form. That is
+        // the same bind `tools/oxlint-plugins` is exempted for above, so
+        // `no-loops` goes here too. The two generator files walk a lattice of
+        // 320,000 cells, where materialising an index array per pass is the
+        // cost this also avoids.
+        files: [
+          "src/shared/entities/world/**",
+          "src/routes/index/-components/map-bitmap.ts",
+          "src/routes/index/-components/nation-labels.ts",
+          "src/routes/index/-components/draw-map.ts",
+        ],
+        rules: { "style-rules/no-loops": "off" },
+      },
+      {
         // Effect declares a service and each failure it raises as a class, so
         // one module here holds a `Context.Service` plus a `Schema.TaggedError`
         // per failure. `throw-new-error` reads the
