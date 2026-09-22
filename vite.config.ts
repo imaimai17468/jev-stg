@@ -350,8 +350,17 @@ export default defineConfig({
           "src/routes/index/-components/map-bitmap.ts",
           "src/routes/index/-components/nation-labels.ts",
           "src/routes/index/-components/draw-map.ts",
+          "src/routes/index/-components/nation-summary.ts",
         ],
         rules: { "style-rules/no-loops": "off" },
+      },
+      {
+        // `effect/noGlobals`'s own message exempts a platform adapter, and this
+        // module is the one the app reaches the platform's timer through. The
+        // rule's alternative, `Effect.sleep`, needs a runtime this component
+        // tree does not have, and an animation frame stops in a hidden tab.
+        files: ["src/lib/schedule.ts"],
+        rules: { "effect/noGlobals": "off" },
       },
       {
         // Effect declares a service and each failure it raises as a class, so
