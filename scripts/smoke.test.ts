@@ -21,7 +21,7 @@ import type { Route, RouteResult } from "./smoke";
 
 const ROUTE: Route = {
   headers: {},
-  marker: "世界はまだ生成されていません",
+  marker: "世界を生成しています",
   path: "/",
   status: 200,
 };
@@ -46,19 +46,19 @@ const unanswered: RouteResult = {
 describe("smoke", () => {
   it("should find nothing missing when the body closes the document and holds the marker", () => {
     expect(
-      missingFrom("<html>世界はまだ生成されていません</html>", ROUTE)
+      missingFrom("<html>世界を生成しています</html>", ROUTE)
     ).toStrictEqual([]);
   });
 
   it("should find the closing tag missing when the body is cut short", () => {
-    expect(
-      missingFrom("<html>世界はまだ生成されていません", ROUTE)
-    ).toStrictEqual(["</html>"]);
+    expect(missingFrom("<html>世界を生成しています", ROUTE)).toStrictEqual([
+      "</html>",
+    ]);
   });
 
   it("should find the marker missing when the route's own content is absent", () => {
     expect(missingFrom("<html>elsewhere</html>", ROUTE)).toStrictEqual([
-      "世界はまだ生成されていません",
+      "世界を生成しています",
     ]);
   });
 
@@ -106,10 +106,8 @@ describe("smoke", () => {
 
   it("should name every missing part when the body lacks more than one", () => {
     expect(
-      report(answered({ missing: ["</html>", "世界はまだ生成されていません"] }))
-    ).toBe(
-      "/ -> 200 (expected 200, missing </html> and 世界はまだ生成されていません)"
-    );
+      report(answered({ missing: ["</html>", "世界を生成しています"] }))
+    ).toBe("/ -> 200 (expected 200, missing </html> and 世界を生成しています)");
   });
 
   it("should find nothing missing when the route renders no document", () => {
@@ -127,7 +125,7 @@ describe("smoke", () => {
     const route: Route = { ...ROUTE, headers: EXPECTED_DOCUMENT_HEADERS };
 
     expect(missedBy("<html></html>", new Headers(), route)).toStrictEqual([
-      "世界はまだ生成されていません",
+      "世界を生成しています",
       ...Object.entries(EXPECTED_DOCUMENT_HEADERS).map(
         ([name, value]) => `${name}: ${value}`
       ),
