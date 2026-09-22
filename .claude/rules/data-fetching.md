@@ -54,7 +54,7 @@ A `Schema` decodes a row, rather than a hand-written mapping. Decoding is what t
 - Invalidate in `onSuccess` by passing the same factory: `queryClient.invalidateQueries(currentUserQueryOptions())`. A write that leaves a row changed on any arm invalidates on every arm.
 - Where a refetch would be wasteful for a one-field change, `cancelQueries` first and then `setQueryData`. Skipping the cancel lets an in-flight fetch land after the write and overwrite it.
 
-## The client and the guard
+## The client
 
 - The `QueryClient` is built inside `getRouter()` in `src/router.tsx`. Start builds a router per SSR request and the Worker keeps the module between them, so a client at module scope serves one reader's rows in the next reader's HTML.
-- A signed-in area is a pathless layout route (`src/routes/_authed/route.tsx`) whose `beforeLoad` reads the query and fails with `redirect`. That read is served from the cache while it is fresh, so on a client navigation the guard can act on a value up to `staleTime` old; the gateway authorizes every read and write, and this guard decides which page to show rather than what the caller may reach. It returns nothing into the route context: a context value is captured when `beforeLoad` runs and does not follow an invalidation, so a page reading the user from context shows the value it had before the last write.
+
