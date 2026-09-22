@@ -1,5 +1,6 @@
 import type { Grid } from "./grid";
 import { cellCount, valueAt } from "./grid";
+import { sinkSmallIslands } from "./landmass";
 import type { Nation } from "./nations";
 import { buildNations, growOwners, pickCapitals } from "./nations";
 import type { Province } from "./provinces";
@@ -7,17 +8,19 @@ import { buildProvinces } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed } from "./random";
 import {
-  emptyRegions,
   fillUnassigned,
   growRegions,
   latticeSeeds,
   sinkUnreached,
 } from "./regions";
+import { unassignedBuffer } from "./spread";
 import type { Terrain } from "./terrain";
 import {
+  elevationAt,
   heightField,
   latitudeAt,
   moistureAt,
+  peakOf,
   seaLevelFor,
   terrainAt,
 } from "./terrain";
@@ -27,6 +30,15 @@ const WORLD_GRID: Grid = { height: 400, width: 800 };
 
 /** How much of the lattice ends up above sea level. */
 const LAND_FRACTION = 0.3;
+
+/**
+ * The smallest landmass a world keeps, which is about a thirty-five cell square.
+ *
+ * The coastline term sheds fragments of its own outline, and a map carrying them
+ * reads as an archipelago rather than as a world with continents. This is the
+ * floor at which six rendered seeds stopped reading that way.
+ */
+const MINIMUM_ISLAND_CELLS = 1200;
 
 /**
  * The lattice the province seeds are drawn from. Its points times the land
@@ -57,11 +69,17 @@ export interface World {
 const landMask = (heights: Float32Array, seaLevel: number): Uint8Array =>
   Uint8Array.from(heights, (height) => Number(height > seaLevel));
 
+/** Where the sea ends and how high the land goes, read once per world. */
+interface Relief {
+  readonly seaLevel: number;
+  readonly peak: number;
+}
+
 const terrainReader =
-  (grid: Grid, heights: Float32Array, seed: number) =>
+  (grid: Grid, heights: Float32Array, relief: Relief, seed: number) =>
   (cell: number): Terrain =>
     terrainAt(
-      valueAt(heights, cell),
+      elevationAt(valueAt(heights, cell), relief.seaLevel, relief.peak),
       moistureAt(grid, cell, seed),
       latitudeAt(grid, cell)
     );
@@ -110,10 +128,14 @@ export const generateWorld = (seed: number): World => {
   const grid = WORLD_GRID;
   const random = randomFromSeed(seed);
   const heights = heightField(grid, seed);
-  const seaLevel = seaLevelFor(heights, LAND_FRACTION);
-  const isLand = landMask(heights, seaLevel);
+  const relief: Relief = {
+    peak: peakOf(heights),
+    seaLevel: seaLevelFor(heights, LAND_FRACTION),
+  };
+  const isLand = landMask(heights, relief.seaLevel);
+  sinkSmallIslands(grid, isLand, MINIMUM_ISLAND_CELLS);
 
-  const regions = emptyRegions(cellCount(grid));
+  const regions = unassignedBuffer(cellCount(grid));
   const landSeeds = growOver(grid, regions, isLand, PROVINCE_LATTICE, {
     firstRegionId: 0,
     onLand: 1,
@@ -132,7 +154,7 @@ export const generateWorld = (seed: number): World => {
     regions,
     landSeeds,
     seaSeeds,
-    terrainReader(grid, heights, seed)
+    terrainReader(grid, heights, relief, seed)
   );
   const capitals = pickCapitals(provinces, NATION_COUNT, random);
   return {

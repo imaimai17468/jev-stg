@@ -11,14 +11,39 @@ export type Terrain =
   | "desert"
   | "tundra";
 
-const CONTINENT_FREQUENCY = 4;
-const DETAIL_FREQUENCY = 16;
-const CONTINENT_WEIGHT = 0.62;
+/** Cycles of the continent term across the map's short side. */
+const CONTINENT_FREQUENCY = 2.8;
+/** Cycles of the coastline term across the same side. */
+const DETAIL_FREQUENCY = 17;
+const CONTINENT_WEIGHT = 0.8;
+/** How far the warp drags a point, in the same units as the frequencies above. */
+const WARP_STRENGTH = 0.32;
+const WARP_FREQUENCY = 1.7;
 const MOISTURE_SEED_OFFSET = 7919;
 const DETAIL_SEED_OFFSET = 1013;
-const STRAIT_SEED_OFFSET = 4001;
-const STRAIT_FREQUENCY = 2.2;
-const STRAIT_DEPTH = 0.7;
+const WARP_SEED_OFFSET_ACROSS = 4001;
+const WARP_SEED_OFFSET_DOWN = 6131;
+/** Pulls the warp's two fields apart, so they do not drag in step. */
+const WARP_LANE = 5.2;
+
+/** Where a cell sits in units that measure the same distance on both axes. */
+interface Place {
+  readonly across: number;
+  readonly down: number;
+}
+
+/**
+ * A cell in noise coordinates.
+ *
+ * Both axes are divided by the same side, so a feature a third of the map tall
+ * is also a third of the map tall wide. Dividing each axis by its own side is
+ * what stretched every landmass into a slab as wide as the map is wider than it
+ * is tall.
+ */
+const placeOf = (grid: Grid, x: number, y: number): Place => ({
+  across: x / grid.height,
+  down: y / grid.height,
+});
 
 /**
  * How far into the world a point sits, 1 in the middle and 0 at the rim, so
@@ -31,58 +56,73 @@ const inland = (grid: Grid, x: number, y: number): number => {
 };
 
 /**
- * How much a point is cut by a strait: 0 along a winding line and 1 away from
- * it.
+ * The point the continent term is read at, dragged by a second noise field.
  *
- * Without this the top third of a smooth height field comes out as one
- * connected mass on most seeds, and a world with a single continent has no use
- * for a navy.
+ * Sampling the field straight gives contours that close into rounded blobs,
+ * because that is what a smooth field's level sets are. Dragging the sample
+ * point folds those contours into the inlets, peninsulas and offshore chains a
+ * coastline is made of, and it is the one change that makes the landmasses read
+ * as continents rather than as torn paper.
  */
-const strait = (acrossX: number, acrossY: number, seed: number): number =>
-  Math.abs(
+const warped = (place: Place, seed: number): Place => {
+  const across = place.across * WARP_FREQUENCY;
+  const down = place.down * WARP_FREQUENCY;
+  const dragAcross =
+    fractalNoise(across, down, seed + WARP_SEED_OFFSET_ACROSS, 3) - 0.5;
+  const dragDown =
     fractalNoise(
-      acrossX * STRAIT_FREQUENCY,
-      acrossY * STRAIT_FREQUENCY,
-      seed + STRAIT_SEED_OFFSET,
-      2
-    ) *
-      2 -
-      1
-  );
+      across + WARP_LANE,
+      down + WARP_LANE,
+      seed + WARP_SEED_OFFSET_DOWN,
+      3
+    ) - 0.5;
+  return {
+    across: place.across + WARP_STRENGTH * dragAcross,
+    down: place.down + WARP_STRENGTH * dragDown,
+  };
+};
 
 /**
  * The land height at a cell, in [0, 1).
  *
- * The low-frequency term is what gathers land into a handful of continents, and
- * the high-frequency one is what gives their coasts bays and peninsulas.
+ * The low-frequency term gathers land into a handful of continents and the
+ * high-frequency one gives their coasts bays and islands. Both are read at the
+ * warped point, so the detail follows the same folds the outline does.
  */
 export const heightAt = (grid: Grid, cell: number, seed: number): number => {
   const x = cellX(grid, cell);
   const y = cellY(grid, cell);
-  const acrossX = x / grid.width;
-  const acrossY = y / grid.height;
+  const place = warped(placeOf(grid, x, y), seed);
   const continents = fractalNoise(
-    acrossX * CONTINENT_FREQUENCY,
-    acrossY * CONTINENT_FREQUENCY,
+    place.across * CONTINENT_FREQUENCY,
+    place.down * CONTINENT_FREQUENCY,
     seed,
-    3
+    4
   );
   const detail = fractalNoise(
-    acrossX * DETAIL_FREQUENCY,
-    acrossY * DETAIL_FREQUENCY,
+    place.across * DETAIL_FREQUENCY,
+    place.down * DETAIL_FREQUENCY,
     seed + DETAIL_SEED_OFFSET,
-    5
+    4
   );
   const combined =
     continents * CONTINENT_WEIGHT + detail * (1 - CONTINENT_WEIGHT);
-  // Squaring pulls the middle of the range down harder than the top, which is
-  // what separates the landmasses instead of joining them by a shallow ridge.
-  const carved =
-    1 - STRAIT_DEPTH + STRAIT_DEPTH * strait(acrossX, acrossY, seed);
-  return combined ** 2 * inland(grid, x, y) * carved;
+  // Squaring stretches the top of the range against the rest, so the high
+  // ground gathers into a few ranges rather than spreading over every second
+  // province. It moves the coastline too: the sea level is a quantile of this
+  // whole product, and the per-cell `inland` factor means squaring reorders it.
+  // Changing the exponent redraws the map rather than only the mountains.
+  return combined ** 2 * inland(grid, x, y);
 };
 
-/** How wet a cell is, in [0, 1), drawn independently of its height. */
+/**
+ * How wet a cell is, in [0, 1), drawn independently of its height.
+ *
+ * This one keeps the per-axis units `placeOf` rejects for the coastline, so its
+ * bands come out wider than they are tall. That is the shape climate has: what
+ * decides whether a lowland is desert or forest runs with the latitude bands
+ * rather than in circles.
+ */
 export const moistureAt = (grid: Grid, cell: number, seed: number): number =>
   fractalNoise(
     (cellX(grid, cell) / grid.width) * 5,
@@ -117,20 +157,49 @@ export const seaLevelFor = (
 };
 
 /**
+ * The highest point of a height field, which is what a mountain is measured
+ * against.
+ */
+export const peakOf = (heights: Float32Array): number => {
+  let peak = 0;
+  for (const height of heights) {
+    peak = Math.max(peak, height);
+  }
+  return peak;
+};
+
+/**
+ * How far a cell rises from sea level towards the highest land, in [0, 1].
+ *
+ * Terrain is read off this rather than off the raw height, so retuning the
+ * height field moves every coastline without also turning every mountain into a
+ * plain.
+ */
+export const elevationAt = (
+  height: number,
+  seaLevel: number,
+  peak: number
+): number =>
+  Math.min(
+    1,
+    Math.max(0, (height - seaLevel) / Math.max(1e-6, peak - seaLevel))
+  );
+
+/**
  * Which terrain a land cell carries.
  *
- * Height decides first, because a mountain range reads as one whatever falls on
- * it, and latitude and moisture then split the lowland.
+ * Elevation decides first, because a mountain range reads as one whatever falls
+ * on it, and latitude and moisture then split the lowland.
  */
 export const terrainAt = (
-  height: number,
+  elevation: number,
   moisture: number,
   latitude: number
 ): Terrain => {
-  if (height > 0.78) {
+  if (elevation > 0.55) {
     return "mountains";
   }
-  if (height > 0.62) {
+  if (elevation > 0.36) {
     return "hills";
   }
   if (latitude > 0.82) {

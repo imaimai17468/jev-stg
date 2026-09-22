@@ -1,4 +1,5 @@
-import { valueAt } from "./grid";
+import type { Grid } from "./grid";
+import { valueAt, visitNeighbours } from "./grid";
 
 /** The marker a cell or a province carries until a region reaches it. */
 export const UNASSIGNED = -1;
@@ -42,3 +43,17 @@ export const spreadFrom = (
   }
   spreadFrom(assignments, neighbourhood, mayEnter, claimed);
 };
+
+/** The cell lattice as `spreadFrom` walks it. */
+export const overTheGrid =
+  (grid: Grid) =>
+  (from: number, visit: (neighbour: number) => void): void => {
+    visitNeighbours(grid, from, visit);
+  };
+
+/**
+ * A buffer of `count` entries, every one unassigned, which is what a spread
+ * fills.
+ */
+export const unassignedBuffer = (count: number): Int32Array =>
+  new Int32Array(count).fill(UNASSIGNED);
