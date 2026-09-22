@@ -1,13 +1,6 @@
 import type { Grid } from "./grid";
-import { visitNeighbours } from "./grid";
 import type { Random } from "./random";
-import { spreadFrom, UNASSIGNED } from "./spread";
-
-const overTheGrid =
-  (grid: Grid) =>
-  (from: number, visit: (neighbour: number) => void): void => {
-    visitNeighbours(grid, from, visit);
-  };
+import { overTheGrid, spreadFrom, UNASSIGNED } from "./spread";
 
 /**
  * Grows one region per seed outwards at equal speed, so each cell joins the
@@ -62,17 +55,10 @@ export const latticeSeeds = (
 };
 
 /**
- * A buffer of `count` cells, every one unassigned, which is what the growth
- * above fills.
- */
-export const emptyRegions = (count: number): Int32Array =>
-  new Int32Array(count).fill(UNASSIGNED);
-
-/**
  * Sinks the land no seed reached.
  *
- * An island smaller than the seed lattice's spacing can come out with no seed
- * on it at all, and leaving it unclaimed would put a hole in the map. It is
+ * A landmass the island floor kept can still be thin enough that every jittered
+ * seed misses it, and leaving it unclaimed would put a hole in the map. It is
  * shallower than the province around it either way, so it becomes water.
  */
 export const sinkUnreached = (

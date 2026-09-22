@@ -3,13 +3,12 @@ import type { Grid } from "./grid";
 import { cellX } from "./grid";
 import { randomFromSeed } from "./random";
 import {
-  emptyRegions,
   fillUnassigned,
   growRegions,
   latticeSeeds,
   sinkUnreached,
 } from "./regions";
-import { UNASSIGNED } from "./spread";
+import { UNASSIGNED, unassignedBuffer } from "./spread";
 
 const GRID: Grid = { height: 4, width: 4 };
 
@@ -19,14 +18,14 @@ const grown = (
   mayEnter: (cell: number) => boolean,
   seeds: readonly number[]
 ): Int32Array => {
-  const regions = emptyRegions(16);
+  const regions = unassignedBuffer(16);
   growRegions(GRID, regions, mayEnter, seeds, 0);
   return regions;
 };
 
-describe(emptyRegions, () => {
+describe(unassignedBuffer, () => {
   it("should leave every cell unassigned when the buffer is new", () => {
-    expect([...emptyRegions(3)]).toStrictEqual([
+    expect([...unassignedBuffer(3)]).toStrictEqual([
       UNASSIGNED,
       UNASSIGNED,
       UNASSIGNED,
@@ -42,7 +41,7 @@ describe(growRegions, () => {
   });
 
   it("should number the regions from the id it was given when the seeds are listed", () => {
-    const regions = emptyRegions(16);
+    const regions = unassignedBuffer(16);
     growRegions(GRID, regions, anywhere, [5, 10], 7);
 
     expect([regions[5], regions[10]]).toStrictEqual([7, 8]);

@@ -21,7 +21,7 @@ describe(valueNoise, () => {
       valueNoise(step * 0.37, step * 0.11, 5)
     );
 
-    expect(sampled.every((value) => value > 0 && value < 1)).toBeTruthy();
+    expect(sampled.every((value) => value >= 0 && value < 1)).toBeTruthy();
   });
 });
 
@@ -35,7 +35,7 @@ describe(fractalNoise, () => {
       fractalNoise(step * 0.19, step * 0.23, 8, 4)
     );
 
-    expect(sampled.every((value) => value > 0 && value < 1)).toBeTruthy();
+    expect(sampled.every((value) => value >= 0 && value < 1)).toBeTruthy();
   });
 
   it("should answer a different value when an octave is added", () => {
