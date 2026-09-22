@@ -21,4 +21,8 @@ describe(parseWorldSearch, () => {
   it("should carry no seed when the search holds the one value the generator cannot start from", () => {
     expect(parseWorldSearch({ seed: 0 })).toStrictEqual({});
   });
+
+  it("should carry no seed when the search holds one wider than the terrain can tell apart", () => {
+    expect(parseWorldSearch({ seed: 1e17 })).toStrictEqual({});
+  });
 });
