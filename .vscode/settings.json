@@ -1,0 +1,12 @@
+{
+  "cSpell.words": ["supabase", "signup", "plpgsql"],
+  "editor.defaultFormatter": "oxc.oxc-vscode",
+  "editor.formatOnSave": false,
+  "editor.codeActionsOnSave": {
+    "source.format.oxc": "always",
+    "source.fixAll.oxc": "always",
+    "source.organizeImports": "never"
+  },
+  "oxc.fmt.disableNestedConfig": true,
+  "oxc.disableNestedConfig": true
+}

@@ -1,0 +1,30 @@
+---
+name: dispatch-run
+description: "The two standing parts of a dispatch run: the brief every worker follows to carry its ticket to a merged pull request, and what the dispatching session does while they work (watch the run's pull requests with `scripts/orchestrate.ts watch-prs`, act on the line the watch exits with, clean the run's worktrees once every pull request is closed). A dispatching session names this skill in each worker prompt and invokes it itself right after dispatching one worker per ticket; a worker invokes it when its prompt names it."
+---
+
+# Dispatch run
+
+A dispatch names this skill, which hands the worker the Worker brief, so the prompt carries what belongs to its ticket alone: the change and why it is wanted, the files the ticket owns and the region of a file another ticket also edits, the branch name, and the user's own words wherever an action needs them (AGENTS.md's Degraded Environments says which actions those are). AGENTS.md's Instruction documents rule holds for the prompt as for any other text, and a premise the session cannot check reaches the worker as the question it is. In the 2026-09-08 run a worker found four of the premises it was handed false, and one of those had already shipped as a claim in a pull request body.
+
+A dispatch names `model`, and the value follows the ticket rather than the session. Where the `Agent` call omits it, the worker runs on the agent definition's model, or on the configured default subagent model, and where neither is set it runs on the dispatching session's own. A `subagent_type: "fork"` ignores `model` and always runs on the parent's. The dispatching session runs one context and each worker runs one of its own, so the model the workers run on decides most of a run's cost, and Claude Fable 5.1 (`fable`) costs more per token than Claude Opus 5 (`opus`) at the same 1M context window. Name `opus` for a ticket whose acceptance is a gate's exit code, and `fable` for a ticket whose work is finding what a gate cannot check. Closing the bypasses in `.claude/hooks/pre-bash-guard.sh` took more than one ticket, and the last worker's fix still left a spelling its reviewer caught, where a backslash inside the name made the matcher miss a file the shell still opens.
+
+## Worker brief
+
+AGENTS.md's Workflow section decides whether the ticket invokes `ticket-work`. A docs-only ticket does not, and takes this brief with the two `ticket-work` paragraphs it points at below.
+
+In a fresh worktree, run the setup `ticket-work`'s opening paragraph names before anything else. Create the ticket's branch, and push it with `-u`.
+
+Hold the pull request as `ticket-work` step 7 says, from the Draft opened after the first commit through `gh pr merge --squash` and the deletion of the remote branch. Writing that step's poll as `[ "$(gh pr checks …)" = pass ]` instead was refused, as AGENTS.md's Degraded Environments says of a worktree-isolated session's commands.
+
+While a subagent runs, waiting means ending the turn, because the `Agent` tool notifies you when one completes. A shell that sleeps to pass the time buys nothing, and when the dispatching session killed one worker's sleep shells in the 2026-09-08 run, the kill also stopped the background task carrying that worker's mutation runs, which it then re-ran. A wait on a condition nothing will make true never returns. Ending the turn waits only while something that will wake you is running, so where nothing is in flight and you still need a result, dispatch it again rather than end, as `ticket-work` step 7 says. The pull-request poll of that same step is the exception, because `gh pr checks` is not a subagent and nothing wakes you when `build` turns green.
+
+Name every scratch file after the ticket, `<branch>-pr-body.md` rather than `pr-body.md`. The workers of one run share one scratchpad directory, so a second worker writing the plain name overwrites the first worker's file.
+
+## Watching the run
+
+Watch the run with `bun scripts/orchestrate.ts watch-prs <branch>...` naming the branches you assigned at dispatch, as a Bash call with `run_in_background`, so a message from the user reaches the session while it waits. The watch resolves each branch's pull request once a minute and exits with one line: `conflict <branch>...` when an open pull request of the run turns CONFLICTING, `all-closed` once every named branch has a pull request that is no longer open, and `gh-failed <message>` when `gh` itself failed, in which case fix what the message names and start the watch again. A branch whose worker has not opened a pull request holds the watch as an open one does, so when a worker's `Agent` result arrives without one, start the watch again over the branches that remain.
+
+Its exit re-invokes the session, and the line is in the task's output file. The watch reports the state it finds each time it runs, so start it again when that file holds no line. `run_in_background` belongs to this session alone.
+
+On `conflict`, dispatch one worker per named branch with `isolation: worktree` that removes the worktree still holding that branch (`git worktree remove`, which refuses an unclean worktree unless `--force` is used, so leave that one in place and report it rather than forcing it), fetches and checks the branch out in its own worktree, resolves it as AGENTS.md's *Resolve a conflict by rebasing onto main* bullet says, and holds that branch's pull request from there as its author; then start the watch again without that branch, and name it again once that worker's `Agent` result arrives, because GitHub reports the pull request as CONFLICTING until the worker pushes and the watch would hand you the same branch a second time. Merging stays with each PR's author. On `all-closed`, run `bun scripts/orchestrate.ts clean-worktrees <branch>...` over every branch you assigned at dispatch, including any the watch stopped naming, because a branch the run does not name is kept untouched.

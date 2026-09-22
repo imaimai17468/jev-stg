@@ -1,0 +1,113 @@
+{
+  "permissions": {
+    "allow": [
+      "mcp__plugin_context7_context7__*",
+      "mcp__plugin_chrome-devtools-mcp_chrome-devtools__*",
+      "mcp__cloudflare-observability__*",
+      "WebSearch",
+      "WebFetch",
+      "Bash(bun scripts/orchestrate.ts *)",
+      "Bash(bun run setup)",
+      "Bash(bun run check)",
+      "Bash(bun run typecheck)",
+      "Bash(bun run test)",
+      "Bash(bun run lint)",
+      "Bash(bun run dead-code)",
+      "Bash(bun run dupes)",
+      "Bash(bun .claude/hooks/check-md-links.ts *)",
+      "Bash(memory_pressure)",
+      "Bash(gh pr merge --squash *)",
+      "Bash(bun run format)",
+      "Bash(git fetch *)",
+      "Bash(actionlint *)",
+      "Bash(gh pr view *)",
+      "Bash(gh pr checks *)"
+    ],
+    "deny": [
+      "Bash(rm -rf /)",
+      "Bash(rm -rf ~)",
+      "Bash(rm -rf .)",
+      "Bash(rm -rf .git)",
+      "Bash(rm -rf src)",
+      "Bash(rm -fr /)",
+      "Bash(rm -fr ~)",
+      "Bash(rm -fr .)",
+      "Bash(rm -fr .git)",
+      "Bash(rm -fr src)",
+      "Bash(sudo:*)",
+      "Read(./.env)",
+      "Read(./.env.local)",
+      "Read(./.env.development)",
+      "Read(./.env.production)",
+      "Edit(./.env)",
+      "Edit(./.env.local)",
+      "Edit(./.env.development)",
+      "Edit(./.env.production)"
+    ],
+    "ask": []
+  },
+  "enableAllProjectMcpServers": true,
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/session-start-env-check.sh",
+            "timeout": 15,
+            "statusMessage": "Env check: gate dependencies..."
+          }
+        ]
+      }
+    ],
+    "Stop": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/stop-gate.sh",
+            "timeout": 240,
+            "statusMessage": "Stop gate: typecheck / lint / format + tests + markdown links..."
+          },
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/reply-open-gate.sh",
+            "timeout": 15,
+            "statusMessage": "Reply gate: the first line is what the reader runs..."
+          }
+        ]
+      }
+    ],
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Shell",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/pre-bash-guard.sh",
+            "timeout": 30,
+            "statusMessage": "Bash guard: env-file protection + find gate + unnamed-changes gate..."
+          }
+        ]
+      },
+      {
+        "matcher": "Edit|MultiEdit|Write",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "$CLAUDE_PROJECT_DIR/.claude/hooks/effect-guidance-reminder.sh",
+            "timeout": 15,
+            "statusMessage": "Effect guidance: point the first edit of an Effect file at the pinned guide..."
+          }
+        ]
+      }
+    ]
+  },
+  "enabledPlugins": {
+    "chrome-devtools-mcp@claude-plugins-official": true,
+    "typescript-lsp@claude-plugins-official": true,
+    "context7@claude-plugins-official": true
+  },
+  "plansDirectory": "./.claude/plans",
+  "claudeMdExcludes": ["**/.claude/worktrees/**"]
+}

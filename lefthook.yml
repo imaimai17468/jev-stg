@@ -1,0 +1,64 @@
+# Check-only on pre-commit: auto-fix (--fix / --write + stage_fixed)
+# rewrote staged content at commit time, so the committed bytes could differ
+# from what the code-reviewer agent reviewed. A failing check tells the author
+# to run `bun run check:fix` and re-stage — the reviewed diff is what lands.
+pre-commit:
+  commands:
+    lint:
+      # `vp lint` exits 1 with "No files found to lint" when every path it gets
+      # is one it skips, so this lists only directories where it lints every
+      # matching file. Root-level files are covered by `bun run check` on
+      # pre-push, which lints and type-checks them.
+      glob:
+        - "src/*.{js,ts,jsx,tsx}"
+        - "tools/*.{js,ts,jsx,tsx}"
+        - ".claude/hooks/*.{js,ts,jsx,tsx}"
+      run: bunx vp lint {staged_files}
+    format:
+      # oxfmt exits 2 when every path it is handed is one `fmt.ignorePatterns`
+      # excludes, so a commit that stages only the vendored skill fails here on
+      # its `report-schema.json` without this exclude.
+      glob: "*.{js,ts,jsx,tsx,json,yml,yaml,toml}"
+      exclude:
+        - ".claude/skills/security-audit/**"
+      run: bunx vp fmt --check {staged_files}
+    # `--staged` reads the git index itself, so it needs no {staged_files}; the
+    # glob only keeps a docs-only commit from paying for the scan. `--no-score`
+    # drops the score API call, leaving the exit code the hook acts on.
+    doctor:
+      glob: "*.{js,ts,jsx,tsx}"
+      run: bun run doctor --staged --no-score
+pre-push:
+  commands:
+    check:
+      run: bun run check
+    cf-typegen-check:
+      run: bun run cf-typegen:check
+    # Vite+ bundles exact tool versions and package.json restates several of
+    # them; a bump that moves one side alone splits the dependency graph.
+    toolchain-pins:
+      run: bun run check:pins
+    # With no arguments actionlint walks .github/workflows itself. It goes
+    # through `mise exec` because mise reaches PATH through an rc file, which
+    # the shell lefthook spawns does not always read; a bare `actionlint` was
+    # not found there. The skip keeps a machine without mise from being unable
+    # to push (AGENTS.md, "Degraded Environments").
+    actionlint:
+      run: mise exec -- actionlint
+      skip:
+        - run: "! command -v mise"
+    # The shell counterpart of the step above, over every tracked `*.sh`: the
+    # PreToolUse, Stop and SessionStart hooks and the two setup scripts, which
+    # no other step here reads. It goes through `mise exec` for the same PATH
+    # reason, and skips on the same missing binary.
+    shellcheck:
+      run: mise exec -- bun run check:shell
+      skip:
+        - run: "! command -v mise"
+    # Clone detection over src/, failing on the first clone group the settings
+    # in .fallowrc.jsonc report. Those settings also turn on function-scoped
+    # near-miss detection, which reaches a copy whose identifiers were renamed.
+    # fallow is a devDependency, so this step runs wherever `bun install` ran
+    # and carries no skip.
+    dupes:
+      run: bun run dupes
