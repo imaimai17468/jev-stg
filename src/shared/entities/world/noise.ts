@@ -1,31 +1,35 @@
-const MODULUS = 2_147_483_647;
-const MULTIPLIER = 48_271;
-const X_STRIDE = 374_761_393;
-const Y_STRIDE = 668_265_263;
 /**
- * The seed folded into one Lehmer step.
+ * The three lanes a point is spread along before they are mixed.
  *
- * Multiplying the seed by a stride the way the coordinates are multiplied would
- * overflow 2^53 for a seed of any size, so the seed is reduced to the modulus
- * and spread by one step instead. Every seed the URL can carry then reaches a
- * different terrain, where taking the seed modulo a smaller span would have let
- * two addresses draw the same continents.
+ * They are close together and share no factor, so the three lanes drift apart
+ * along a line rather than advancing in step.
  */
-const seedTerm = (seed: number): number =>
-  ((seed % MODULUS) * MULTIPLIER) % MODULUS;
+const LANE_X = 0.1031;
+const LANE_Y = 0.103;
+const LANE_SEED = 0.0973;
+/** Lifts each lane clear of zero before they are multiplied together. */
+const LANE_LIFT = 33.33;
+
+/** The part of a number below the decimal point, for a negative one too. */
+const fract = (value: number): number => value - Math.floor(value);
 
 /**
- * A value in (0, 1) that depends on the three integers and nothing else.
+ * A value in [0, 1) that depends on the three integers and nothing else.
  *
- * The strides spread the coordinates across the modulus and the two Lehmer
- * steps that follow break the straight line they would otherwise lie on, which
- * is what keeps the noise from showing the lattice it is sampled from. Every
- * product stays under 2^53, so this needs no bitwise mixing.
+ * Multiplying the three lanes by each other is what makes this non-linear.
+ * A hash built only from `(x * A + y * B + seed * C) mod P` stays a linear
+ * function of x and y however many times it is multiplied afterwards, and the
+ * lattice that leaves shows up in the terrain as vertical striping.
  */
 const hashUnit = (x: number, y: number, seed: number): number => {
-  const base = (x * X_STRIDE + y * Y_STRIDE + seedTerm(seed)) % MODULUS;
-  const once = ((base + MODULUS) * MULTIPLIER) % MODULUS;
-  return ((once * MULTIPLIER) % MODULUS) / MODULUS;
+  const alongX = fract(x * LANE_X);
+  const alongY = fract(y * LANE_Y);
+  const alongSeed = fract(seed * LANE_SEED);
+  const mixed =
+    alongX * (alongY + LANE_LIFT) +
+    alongY * (alongSeed + LANE_LIFT) +
+    alongSeed * (alongX + LANE_LIFT);
+  return fract((alongX + mixed + (alongY + mixed)) * (alongSeed + mixed));
 };
 
 /** Smoothstep, so the lattice cells meet with no visible seam. */
@@ -34,7 +38,7 @@ const fade = (t: number): number => t * t * (3 - 2 * t);
 const mix = (from: number, to: number, at: number): number =>
   from + (to - from) * at;
 
-/** Smoothed value noise at a point, in (0, 1). */
+/** Smoothed value noise at a point, in [0, 1). */
 export const valueNoise = (x: number, y: number, seed: number): number => {
   const latticeX = Math.floor(x);
   const latticeY = Math.floor(y);
@@ -56,7 +60,7 @@ export const valueNoise = (x: number, y: number, seed: number): number => {
 /**
  * Value noise summed over `octaves`, each at twice the frequency and half the
  * weight of the one before, and divided by the total weight so the result stays
- * in (0, 1).
+ * in [0, 1).
  */
 export const fractalNoise = (
   x: number,
