@@ -183,12 +183,12 @@ describe("setup.sh", () => {
 
   it("should keep the existing values and report the skipped copy when the local env file is already there", () => {
     const dir = scratchCheckout();
-    writeFileSync(path.join(dir, LOCAL_ENV), "BETTER_AUTH_SECRET=mine\n");
+    writeFileSync(path.join(dir, LOCAL_ENV), "AI_GATEWAY_API_KEY=mine\n");
 
     const run = runSetup(dir, WITHOUT_MISE);
 
     expect({ body: localEnvBody(dir), steps: run.steps }).toStrictEqual({
-      body: "BETTER_AUTH_SECRET=mine\n",
+      body: "AI_GATEWAY_API_KEY=mine\n",
       steps: [
         TRUST_SKIPPED,
         ...STEPS_AFTER_TRUST,

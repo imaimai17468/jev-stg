@@ -2,16 +2,9 @@
  * The security headers the root route puts on every HTML document.
  *
  * The document is where these matter: it is the response a third-party page
- * can frame, the one that carries the signed-in user's name and address in its
- * markup and in the dehydrated query cache, and the one a shared cache is most
- * likely to consider storable. The framework sets none of them, and it merges
- * a route's headers over its own `Content-Type`.
- *
- * These reach a rendered document. A redirect answers before the framework
- * collects a route's headers, so the guard's 307 to /login carries none of
- * them, and `/api/avatars` builds its own `Response` and is not a rendered
- * match, so its stricter `Content-Security-Policy` and its `immutable`
- * `Cache-Control` stay as they are.
+ * can frame, and the one a shared cache is most likely to consider storable.
+ * The framework sets none of them, and it merges a route's headers over its
+ * own `Content-Type`.
  *
  * `Strict-Transport-Security` is deliberately absent: it belongs to every
  * response rather than to the rendered ones, which is the zone's setting and

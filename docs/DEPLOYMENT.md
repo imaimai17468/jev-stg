@@ -1,8 +1,6 @@
 # デプロイ・ロールバック・シークレット運用
 
 Cloudflare **Workers** へのデプロイと、その後の切り戻し・秘密情報の更新手順。
-リソース (D1 / R2) の作成と `wrangler.toml` の設定は
-[DATABASE_SETUP.md](./DATABASE_SETUP.md) を参照。
 
 ## デプロイ
 
@@ -18,7 +16,6 @@ bun run deploy
 
 - `bun run check` と `bun run test` が通っている
 - 本番の秘密情報が `wrangler secret` に登録済み（下記）
-- Google OAuth のリダイレクト URI が本番オリジンを含んでいる
 
 ## デプロイ状況の確認
 
@@ -53,17 +50,6 @@ wrangler rollback <VERSION_ID>     # 指定バージョンへ戻す
 `<VERSION_ID>` は `wrangler versions list` で確認する。引数を省略すると最新の
 1つ前が対象になる。
 
-**重要な限界**: ロールバックが戻すのは Worker のコードと設定だけで、**D1 の
-スキーマは戻らない**。破壊的なマイグレーション（列の削除・型変更・NOT NULL
-追加など）を含むデプロイを切り戻す場合は、コードを戻すだけでは不整合が残る。
-そうしたマイグレーションは、
-
-1. 先に後方互換な形（列追加のみ・NULL 許容）でデプロイし、
-2. コードを切り替え、
-3. 十分に安定してから旧列を削除する
-
-という順序に分けること。切り戻しが必要になった時点で選択肢を残すのが目的。
-
 ## 秘密の初期登録（デプロイより先に）
 
 `wrangler.toml` の `[secrets]` に列挙した名前は `required` 扱いなので、未登録の
@@ -75,9 +61,7 @@ Worker がまだ存在しない場合も同じ順序でよい。`wrangler secret
 それを作ってから登録する。デプロイを先に済ませる必要はない。
 
 ```bash
-wrangler secret put BETTER_AUTH_SECRET     # 値は対話的に入力する
-wrangler secret put GOOGLE_CLIENT_ID
-wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put <NAME>     # 値は対話的に入力する
 bun run deploy
 ```
 
@@ -94,41 +78,20 @@ bun run deploy
 
 ```bash
 wrangler secret list                        # 登録済みの名前を確認（値は出ない）
-wrangler secret put BETTER_AUTH_SECRET      # 対話的に新しい値を入力
-wrangler secret put GOOGLE_CLIENT_SECRET
+wrangler secret put <NAME>                  # 対話的に新しい値を入力
 wrangler secret delete <NAME>               # 不要になった名前を削除
 ```
 
-対象になる秘密情報:
+`wrangler secret put` は即時反映される（再デプロイ不要）。手順は「新しい値を
+登録 → 動作確認 → 発行元で旧い値を失効」の順にする。逆順にすると、失効から
+反映までの間その秘密を読む経路が落ちる。
 
-| 名前 | 発行元 | ローテーション時の注意 |
-|---|---|---|
-| `BETTER_AUTH_SECRET` | 自前生成 | 変更すると既存セッションが全て無効になる（再ログインが必要） |
-| `GOOGLE_CLIENT_SECRET` | Google Cloud Console | 先に新しいシークレットを発行し、登録後に旧シークレットを失効させる |
-
-`src/lib/auth/better-auth.ts` は `BETTER_AUTH_SECRET` / `GOOGLE_CLIENT_ID` /
-`GOOGLE_CLIENT_SECRET` を認証設定へ**明示的に渡している**。
-better-auth 自身のシークレットフォールバックは `process.env` を読み、
-Workers が `process.env` を埋めるのは `nodejs_compat_populate_process_env` が有効な
-場合（既定になるのは `compatibility_date` が 2025-04-01 以降）に限られる。現在の
-`compatibility_date` はこれを満たすが、明示的な配線はそのフラグの既定値に依存しない
-ので外さないこと。
+## compatibility_date
 
 `compatibility_date` は**インストール済みの `workerd` が対応する最新の日付**に固定する。
 今日の日付に更新しない。`wrangler` を上げるときに一緒に上げるもので、上限は日付を設定して
 `bun run dev` を走らせ、対応日付を名指しするエラーを読んで確かめる。変更後は
 `bun run cf-typegen` を走らせる。
-
-いずれかの値が未設定の場合、`buildAuth()` は**例外を投げる**（メッセージに対応する
-`wrangler secret put <NAME>` を明示）。つまり登録漏れの症状は、既定値や空の OAuth
-設定へのサイレントフォールバックではなく「認証経路が失敗する」。
-better-auth 自身の既定シークレット検出は本番判定に `NODE_ENV` を使うが、`NODE_ENV`
-は Worker の binding ではないため `process.env` が埋まっても現れず、全環境で作動
-しない。この throw が唯一の検出手段になる。
-
-`wrangler secret put` は即時反映される（再デプロイ不要）。手順は「新しい値を
-登録 → 動作確認 → 発行元で旧い値を失効」の順にする。逆順にすると失効から
-反映までの間に認証が落ちる。
 
 ローカル開発用の値は `.env.local`（gitignore 済み・エージェントからの読み取りも
 拒否設定）に置く。本番の値をローカルに置く運用にはしない。

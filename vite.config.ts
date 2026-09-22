@@ -278,9 +278,8 @@ export default defineConfig({
       },
       {
         // Effect's own rules. The scope is all of `src/` rather than the
-        // layers that hold Effect today, because `lib/auth/` and `routes/api/`
-        // hold some too and a glob naming layers leaves the next one outside
-        // without reporting it.
+        // layers that hold Effect today, so a layer added later is inside it
+        // without an edit here.
         files: ["src/**"],
         rules: {
           ...effectRules,
@@ -332,14 +331,6 @@ export default defineConfig({
         },
       },
       {
-        // The rule's own message exempts a platform adapter, and this module is
-        // the avatar directory's: it holds the R2 binding and is the single
-        // place `crypto` is read. Effect's `Random` reaches the same global for
-        // its seed, so no layer removes it.
-        files: ["src/shared/gateway/user/avatar/index.ts"],
-        rules: { "effect/noGlobals": "off" },
-      },
-      {
         // The one dynamic import here loads react-grab in dev only, so binding
         // it to a name would keep the dev tool reachable from the production
         // bundle's module graph.
@@ -355,7 +346,6 @@ export default defineConfig({
         // `extends` clause, which then does not compile.
         files: [
           "src/shared/gateway/**",
-          "src/lib/auth/sign-in/dev.ts",
           "src/lib/require-context.ts",
           "src/test/defect.ts",
         ],

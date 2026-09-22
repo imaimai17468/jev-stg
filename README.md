@@ -1,6 +1,8 @@
-# My App
+# Jev STG
 
-TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダンな Web アプリケーションテンプレートです。
+Jev が各国を動かす、HoI4 ライクなリアルタイム戦略シミュレーションの観戦アプリです。プレイヤーは操作しません。地図も国も自動生成され、宣戦布告・軍の移動・戦線の押し引きを地図の上で眺めます。
+
+Jev は [Vercel AI Gateway](https://ai-gateway.vercel.sh) 上の選択評価モデル (`typesafe-ai/jev`) で、状況と選択肢を渡すと選んだ選択肢と各選択肢の確率を返します。各国の意思決定はこれが担います。
 
 ## 技術スタック
 
@@ -9,9 +11,7 @@ TanStack Start + TypeScript + Tailwind CSS + shadcn/ui を使用したモダン�
 - **Language**: TypeScript 7 (native compiler)
 - **Styling**: Tailwind CSS v4
 - **UI Components**: shadcn/ui (Radix UI primitives)
-- **Authentication**: Better Auth (Google OAuth。dev ビルドに限り、固定ユーザーでワンクリックログインできる)
-- **Database**: Cloudflare D1 (SQLite) + Drizzle ORM
-- **Storage**: Cloudflare R2
+- **Decisions**: Vercel AI Gateway (`typesafe-ai/jev`)
 - **Hosting**: Cloudflare Workers (@cloudflare/vite-plugin)
 - **Code Quality**: Vite+ (`vp check` で format / lint / 型検査)
 - **Testing**: Vitest + Testing Library
@@ -34,9 +34,9 @@ bun run dev
 
 [mise](https://mise.jdx.dev/) を使わない場合は、`package.json` の `engines.node` を満たす Node と、`mise.toml` が指定する版の Bun を手動で用意してください。Cursor Cloud Agent 環境では `.cursor/environment.json` が `scripts/cloud-agent-install.sh` を自動実行し、mise と依存の導入から `generate-routes` / `cf-typegen` までを済ませます（`bun install` は `--ignore-scripts` なので lefthook の hook は入りません）。shims の PATH 追記は rc ファイルを読むシェルにしか効かないため、rc を読まない非対話シェルからは `mise exec -- <コマンド>` で実行してください。
 
-`bun run dev` は [portless](https://github.com/vercel-labs/portless) 経由で起動し、`http://my-app.localhost:1355` で開きます。linked worktree ではブランチ名の末尾がサブドメインとして前に付きます（ブランチ `fix-ui` なら `http://fix-ui.my-app.localhost:1355`）。付くのは末尾だけなので、`feat/x` と `fix/x` は同じ URL になり、`main` と `master` のブランチには何も付きません。dev サーバのポートは portless が空きから割り当てるので、worktree を並べて起動してもポートの取り合いは起きません。HTTPS が要るときは `bun run dev:https` を使います。443 を掴むので管理者権限が要ります。portless は前回のポートと TLS 設定を `~/.portless` に持っていてそちらを優先するので、どちらかへ切り替えるときは先に `bunx portless proxy stop` を実行してください。`@cloudflare/vite-plugin` により、`bun run dev` でも Cloudflare D1 / R2 バインディングが有効です。
+`bun run dev` は [portless](https://github.com/vercel-labs/portless) 経由で起動し、`http://my-app.localhost:1355` で開きます。linked worktree ではブランチ名の末尾がサブドメインとして前に付きます（ブランチ `fix-ui` なら `http://fix-ui.my-app.localhost:1355`）。付くのは末尾だけなので、`feat/x` と `fix/x` は同じ URL になり、`main` と `master` のブランチには何も付きません。dev サーバのポートは portless が空きから割り当てるので、worktree を並べて起動してもポートの取り合いは起きません。HTTPS が要るときは `bun run dev:https` を使います。443 を掴むので管理者権限が要ります。portless は前回のポートと TLS 設定を `~/.portless` に持っていてそちらを優先するので、どちらかへ切り替えるときは先に `bunx portless proxy stop` を実行してください。
 
-データベース・認証・ストレージのセットアップ手順は [docs/DATABASE_SETUP.md](./docs/DATABASE_SETUP.md)、デプロイ・ロールバック・シークレット運用は [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md)、このテンプレートを新規プロジェクトに使う手順は [docs/FORKING.md](./docs/FORKING.md)、サーバ境界を oRPC / BFF 構成へ動かす場合の前提は [docs/SERVER_BOUNDARY.md](./docs/SERVER_BOUNDARY.md) を参照。
+デプロイ・ロールバック・シークレット運用は [docs/DEPLOYMENT.md](./docs/DEPLOYMENT.md) を参照。
 
 ## Tools
 
@@ -63,27 +63,14 @@ bun run dev
 ```
 src/
 ├── routes/                 # TanStack Router file-based routes
-│   ├── __root.tsx          # Root route (head, headers, loader)
+│   ├── __root.tsx          # Root route (head, headers)
 │   ├── -components/        # Root route only (RootLayout, NotFound)
-│   ├── index/              # route.tsx と -components/
-│   ├── login/              # route.tsx と -components/
-│   ├── _authed/
-│   │   ├── route.tsx       # 配下をまとめて守る pathless layout
-│   │   └── profile/        # route.tsx と -components/
-│   ├── auth.auth-code-error/ # OAuth failure landing page (route.tsx と -components/)
-│   └── api/                # API routes (auth catch-all, avatars)
+│   └── index/              # route.tsx と -components/
 ├── shared/                 # 2 つ以上のルートが使うもの
 │   ├── components/         # 自前で書いたコンポーネント
-│   ├── ui/                 # shadcn/ui primitives
-│   ├── gateway/            # 認可境界と D1 / R2 アクセス
-│   └── entities/           # Domain types and schemas
-├── lib/
-│   ├── auth/               # Better Auth 設定
-│   ├── cloudflare/         # CloudflareEnv helper (cloudflare:workers)
-│   ├── drizzle/            # Drizzle ORM スキーマ
-│   ├── storage/            # R2 ストレージ
-│   └── utils.ts
-├── test/                   # Test helpers (router harness, cloudflare:workers stub)
+│   └── ui/                 # shadcn/ui primitives
+├── lib/                    # フレームワークと基盤のアダプタ
+├── test/                   # Test helpers (router harness)
 ├── router.tsx              # TanStack Router definition
 ├── ssr.tsx                 # Server entry (Cloudflare Worker handler)
 ├── test-setup.ts           # Vitest setup
@@ -116,9 +103,7 @@ bunx shadcn@latest add [component-name]
 - [TanStack Router](https://tanstack.com/router/)
 - [Tailwind CSS](https://tailwindcss.com/docs)
 - [shadcn/ui](https://ui.shadcn.com/)
-- [Better Auth](https://www.better-auth.com/)
-- [Cloudflare D1](https://developers.cloudflare.com/d1/)
-- [Cloudflare R2](https://developers.cloudflare.com/r2/)
+- [Vercel AI Gateway](https://vercel.com/docs/ai-gateway)
 - [@cloudflare/vite-plugin](https://developers.cloudflare.com/workers/vite-plugin/)
 - [oxc (oxlint/oxfmt)](https://oxc.rs/)
 - [oxlint-tailwindcss](https://oxlint-tailwindcss.pages.dev/)

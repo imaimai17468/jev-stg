@@ -72,7 +72,6 @@ else
 fi
 [ -f "$TREE/src/routeTree.gen.ts" ] || SETUP+=("src/routeTree.gen.ts absent (fix: bun run setup, or bun run generate-routes)")
 [ -f "$TREE/worker-configuration.d.ts" ] || SETUP+=("worker-configuration.d.ts absent (fix: bun run setup, or bun run cf-typegen)")
-[ -d "$TREE/.wrangler/state" ] || SETUP+=("local D1 not initialized — .wrangler/state absent (fix: bun run db:push:local before first bun run dev)")
 
 if [ "${#CREATED[@]}" -gt 0 ]; then
   printf '[env-check] %s\n' "${CREATED[@]}"

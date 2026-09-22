@@ -24,7 +24,7 @@ import { runBash } from "./run-bash";
 const HOOK = path.resolve(import.meta.dirname, "session-start-env-check.sh");
 const LOCAL_ENV = ".env.local";
 const EXAMPLE = ".env.local.example";
-const EXAMPLE_BODY = "BETTER_AUTH_SECRET=your_better_auth_secret\n";
+const EXAMPLE_BODY = "AI_GATEWAY_API_KEY=your_ai_gateway_api_key\n";
 
 const CREATED_LINE =
   "Created .env.local from .env.local.example, whose values are placeholders (edit them before pointing the tree at a real service).";
@@ -79,13 +79,12 @@ describe("session-start-env-check.sh", () => {
   });
 
   /**
-   * A checkout whose only open setup question is the local env file: the three
+   * A checkout whose only open setup question is the local env file: the two
    * other paths the hook's setup section names are present.
    */
   const scratchCheckout = (): string => {
     const dir = fs.mkdtempSync(path.join(scratchRoot, "checkout-"));
     fs.mkdirSync(path.join(dir, "src"), { recursive: true });
-    fs.mkdirSync(path.join(dir, ".wrangler", "state"), { recursive: true });
     fs.writeFileSync(path.join(dir, "src", "routeTree.gen.ts"), "");
     fs.writeFileSync(path.join(dir, "worker-configuration.d.ts"), "");
     fs.writeFileSync(path.join(dir, EXAMPLE), EXAMPLE_BODY);
@@ -113,12 +112,12 @@ describe("session-start-env-check.sh", () => {
 
   it("should leave the values in place and report no creation when the local env file already exists", async () => {
     const dir = scratchCheckout();
-    fs.writeFileSync(path.join(dir, LOCAL_ENV), "BETTER_AUTH_SECRET=mine\n");
+    fs.writeFileSync(path.join(dir, LOCAL_ENV), "AI_GATEWAY_API_KEY=mine\n");
 
     const { stdout } = await runHook(dir);
 
     expect({ body: localEnvBody(dir), ...report(stdout) }).toStrictEqual({
-      body: "BETTER_AUTH_SECRET=mine\n",
+      body: "AI_GATEWAY_API_KEY=mine\n",
       created: [],
       setup: [],
     });
