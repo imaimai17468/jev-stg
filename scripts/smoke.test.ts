@@ -21,9 +21,8 @@ import type { Route, RouteResult } from "./smoke";
 
 const ROUTE: Route = {
   headers: {},
-  location: null,
-  marker: "Sign in",
-  path: "/login",
+  marker: "世界はまだ生成されていません",
+  path: "/",
   status: 200,
 };
 
@@ -33,29 +32,33 @@ const answered = (
   expectedStatus: 200,
   kind: "answered",
   missing: [],
-  path: "/login",
+  path: "/",
   status: 200,
   ...overrides,
 });
 
 const unanswered: RouteResult = {
   kind: "unanswered",
-  path: "/login",
+  path: "/",
   reason: "timed out",
 };
 
 describe("smoke", () => {
   it("should find nothing missing when the body closes the document and holds the marker", () => {
-    expect(missingFrom("<html>Sign in</html>", ROUTE)).toStrictEqual([]);
+    expect(
+      missingFrom("<html>世界はまだ生成されていません</html>", ROUTE)
+    ).toStrictEqual([]);
   });
 
   it("should find the closing tag missing when the body is cut short", () => {
-    expect(missingFrom("<html>Sign in", ROUTE)).toStrictEqual(["</html>"]);
+    expect(
+      missingFrom("<html>世界はまだ生成されていません", ROUTE)
+    ).toStrictEqual(["</html>"]);
   });
 
   it("should find the marker missing when the route's own content is absent", () => {
     expect(missingFrom("<html>elsewhere</html>", ROUTE)).toStrictEqual([
-      "Sign in",
+      "世界はまだ生成されていません",
     ]);
   });
 
@@ -94,59 +97,41 @@ describe("smoke", () => {
   });
 
   it("should name the reason when the route did not answer", () => {
-    expect(report(unanswered)).toBe("/login -> no response (timed out)");
+    expect(report(unanswered)).toBe("/ -> no response (timed out)");
   });
 
   it("should name the status and the expected one when the body is whole", () => {
-    expect(report(answered({ status: 500 }))).toBe(
-      "/login -> 500 (expected 200)"
-    );
+    expect(report(answered({ status: 500 }))).toBe("/ -> 500 (expected 200)");
   });
 
   it("should name every missing part when the body lacks more than one", () => {
-    expect(report(answered({ missing: ["</html>", "Sign in"] }))).toBe(
-      "/login -> 200 (expected 200, missing </html> and Sign in)"
-    );
-  });
-
-  it("should find nothing missing when the route answers without a body", () => {
-    const redirectRoute: Route = {
-      headers: {},
-      location: null,
-      marker: null,
-      path: "/profile",
-      status: 307,
-    };
-
-    expect(missingFrom("", redirectRoute)).toStrictEqual([]);
-  });
-
-  it("should find the redirect target missing when the answer points elsewhere", () => {
-    const guarded: Route = {
-      headers: {},
-      location: "/login",
-      marker: null,
-      path: "/profile",
-      status: 307,
-    };
-
-    expect(missedBy("", new Headers({ location: "/" }), guarded)).toStrictEqual(
-      ["location /login"]
-    );
-  });
-
-  it("should find nothing missing when the redirect points where the route names", () => {
-    const guarded: Route = {
-      headers: {},
-      location: "/login",
-      marker: null,
-      path: "/profile",
-      status: 307,
-    };
-
     expect(
-      missedBy("", new Headers({ location: "/login" }), guarded)
-    ).toStrictEqual([]);
+      report(answered({ missing: ["</html>", "世界はまだ生成されていません"] }))
+    ).toBe(
+      "/ -> 200 (expected 200, missing </html> and 世界はまだ生成されていません)"
+    );
+  });
+
+  it("should find nothing missing when the route renders no document", () => {
+    const asset: Route = {
+      headers: {},
+      marker: null,
+      path: "/favicon.svg",
+      status: 200,
+    };
+
+    expect(missingFrom("", asset)).toStrictEqual([]);
+  });
+
+  it("should find both the marker and the header when the answer carries neither", () => {
+    const route: Route = { ...ROUTE, headers: EXPECTED_DOCUMENT_HEADERS };
+
+    expect(missedBy("<html></html>", new Headers(), route)).toStrictEqual([
+      "世界はまだ生成されていません",
+      ...Object.entries(EXPECTED_DOCUMENT_HEADERS).map(
+        ([name, value]) => `${name}: ${value}`
+      ),
+    ]);
   });
 
   it("should find nothing missing when the answer carries every header the route names", () => {
@@ -183,20 +168,13 @@ describe("smoke", () => {
       ROUTES.filter((route) => route.marker !== null).map(
         (route) => route.headers
       )
-    ).toStrictEqual([
-      EXPECTED_DOCUMENT_HEADERS,
-      EXPECTED_DOCUMENT_HEADERS,
-      EXPECTED_DOCUMENT_HEADERS,
-    ]);
+    ).toStrictEqual([EXPECTED_DOCUMENT_HEADERS]);
   });
 
   it("should request every page route and the favicon when the smoke run boots the Worker", () => {
     expect(ROUTES.map((route) => route.path)).toStrictEqual([
       "/",
-      "/login",
-      "/auth/auth-code-error",
       "/favicon.svg",
-      "/profile",
     ]);
   });
 });

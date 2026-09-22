@@ -19,8 +19,12 @@ const toasterTokens: React.CSSProperties & Record<`--${string}`, string> = {
 };
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  const { theme = "light" } = useTheme();
-  const resolvedTheme = Option.liftPredicate(theme, isValidTheme).pipe(
+  // `useTheme` carries the provider's `forcedTheme` in its own field, and
+  // leaves `theme` holding the stored or default value, which a forced shell
+  // never updates.
+  const { forcedTheme, theme } = useTheme();
+  const active = forcedTheme ?? theme ?? "light";
+  const resolvedTheme = Option.liftPredicate(active, isValidTheme).pipe(
     Option.getOrElse((): SonnerTheme => "light")
   );
 

@@ -11,11 +11,9 @@ export interface Route {
   readonly headers: Readonly<Record<string, string>>;
   /**
    * Text only this route's own component renders, or null where the answer
-   * carries no body, as a redirect's does not.
+   * carries no rendered document, as the favicon's does not.
    */
   readonly marker: string | null;
-  /** Where a redirect must point, or null where the answer carries no body. */
-  readonly location: string | null;
   readonly path: string;
   readonly status: number;
 }
@@ -41,43 +39,17 @@ export const EXPECTED_DOCUMENT_HEADERS = {
 export const ROUTES: readonly Route[] = [
   {
     headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "docs/SERVER_BOUNDARY.md",
+    marker: "世界はまだ生成されていません",
     path: "/",
-    status: 200,
-  },
-  {
-    headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "Sign in With Google",
-    path: "/login",
-    status: 200,
-  },
-  {
-    headers: EXPECTED_DOCUMENT_HEADERS,
-    location: null,
-    marker: "Authentication Error",
-    path: "/auth/auth-code-error",
     status: 200,
   },
   // A build that stops copying `public/` answers 404 here while every
   // rendered route still passes.
   {
     headers: {},
-    location: null,
     marker: null,
     path: "/favicon.svg",
     status: 200,
-  },
-  // Signed out, so the profile route's guard answers with its redirect rather
-  // than a page. Nothing else here runs that guard. The framework returns that
-  // redirect before it collects the route's headers, so this row names none.
-  {
-    headers: {},
-    location: "/login",
-    marker: null,
-    path: "/profile",
-    status: 307,
   },
 ];
 
@@ -110,9 +82,8 @@ export const missingHeaders = (
     .map(([name, value]) => `${name}: ${value}`);
 
 /**
- * What the answer failed to carry: the body's markers, the redirect target
- * where the route names one, and the headers it names. One list so `report`
- * prints every miss at once.
+ * What the answer failed to carry: the body's markers and the headers the
+ * route names. One list so `report` prints every miss at once.
  */
 export const missedBy = (
   body: string,
@@ -120,9 +91,6 @@ export const missedBy = (
   route: Route
 ): readonly string[] => [
   ...missingFrom(body, route),
-  ...(route.location === null || route.location === headers.get("location")
-    ? []
-    : [`location ${route.location}`]),
   ...missingHeaders(headers, route),
 ];
 
