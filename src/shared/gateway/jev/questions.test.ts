@@ -4,16 +4,25 @@ import type {
   NationBrief,
   PeaceTalks,
 } from "@/shared/entities/world/consultation";
+import type { Sighting } from "@/shared/entities/world/sightings";
 import { evaluationFor, verdictsFrom } from "./questions";
 
+/** A figure the government sees exactly, with every nation behind it in view. */
+const exactly = (estimate: number): Sighting => ({
+  estimate,
+  margin: 0,
+  unseen: 0,
+});
+
 const BRIEF: NationBrief = {
+  agencyProjects: [],
   atWar: true,
   civilianFactories: 20,
   convoys: 12.4,
   dockyards: 0,
-  enemyFleet: 30.6,
-  enemyPlanes: 480.6,
-  enemyStrength: 40_000,
+  enemyFleet: exactly(30.6),
+  enemyPlanes: exactly(480.6),
+  enemyStrength: exactly(40_000),
   equipment: 1500.4,
   factions: [{ faction: 0, strength: 60_000 }],
   fleet: 10.2,
@@ -23,15 +32,59 @@ const BRIEF: NationBrief = {
   manpower: 90_000.6,
   militaryFactories: 5,
   nation: 1,
+  operatives: 0,
   planes: 300.4,
   population: 3_000_000.2,
-  rivals: [{ nation: 2, strength: 20_000 }],
+  posted: false,
+  rivals: [{ nation: 2, strength: exactly(20_000) }],
   shortage: 0.126,
   skyLost: 0.334,
+  spyTargets: [],
   strength: 20_000,
   techs: [],
   undersupplied: 0.254,
 };
+
+/** What a test changes in the state row `BRIEF` gives Jev. */
+interface StatePatch {
+  readonly 宣戦できる国?: readonly unknown[];
+  readonly 戦争中?: boolean;
+  readonly 敵に対する兵力比?: string;
+  readonly 敵の兵力?: string;
+}
+
+/** The state row `BRIEF` gives Jev, with `patch` in place of what a test changed. */
+const stateWith = (patch: StatePatch) => ({
+  各国: [
+    {
+      人口: 3_000_000,
+      人的資源: 90_001,
+      国: "国1",
+      宣戦できる国: [
+        { こちらとの兵力比: 1, 国: "国2", 相手陣営の兵力: "20,000人" },
+      ],
+      工作員: 0,
+      工場: { 民需: 20, 軍需: 5 },
+      戦争中: true,
+      敵に制空権を握られている空の割合: 0.33,
+      敵に対する兵力比: 0.5,
+      敵の兵力: "40,000人",
+      敵の航空機: "481",
+      敵の艦隊の強さ: "31",
+      燃料の備蓄の割合: 0.73,
+      自陣営の兵力: 20_000,
+      航空機: 300,
+      艦隊の強さ: 10,
+      装備: 1500,
+      補給が足りない師団の割合: 0.25,
+      資源不足で落ちた軍需生産の割合: 0.13,
+      輸送船: 12,
+      造船所: 0,
+      ...patch,
+    },
+  ],
+  日付: "1936-03-01",
+});
 
 const COUNCIL: Council = {
   _tag: "council",
@@ -222,35 +275,7 @@ describe(evaluationFor, () => {
   });
 
   it("should hand Jev every government's numbers as the state when the council meets", () => {
-    expect(evaluationFor(COUNCIL).body.state).toStrictEqual({
-      各国: [
-        {
-          人口: 3_000_000,
-          人的資源: 90_001,
-          国: "国1",
-          宣戦できる国: [
-            { こちらとの兵力比: 1, 国: "国2", 相手陣営の兵力: 20_000 },
-          ],
-          工場: { 民需: 20, 軍需: 5 },
-          戦争中: true,
-          敵に制空権を握られている空の割合: 0.33,
-          敵に対する兵力比: 0.5,
-          敵の兵力: 40_000,
-          敵の航空機: 481,
-          敵の艦隊の強さ: 31,
-          燃料の備蓄の割合: 0.73,
-          自陣営の兵力: 20_000,
-          航空機: 300,
-          艦隊の強さ: 10,
-          装備: 1500,
-          補給が足りない師団の割合: 0.25,
-          資源不足で落ちた軍需生産の割合: 0.13,
-          輸送船: 12,
-          造船所: 0,
-        },
-      ],
-      日付: "1936-03-01",
-    });
+    expect(evaluationFor(COUNCIL).body.state).toStrictEqual(stateWith({}));
   });
 
   it("should ask the victor which terms to dictate when a nation has surrendered", () => {
@@ -282,35 +307,131 @@ describe("evaluationFor at peace", () => {
   it("should say the enemy fields nobody when the nation is at war with no one", () => {
     const peaceful: Council = {
       ...COUNCIL,
-      nations: [{ ...BRIEF, atWar: false, enemyStrength: 0, rivals: [] }],
+      nations: [
+        { ...BRIEF, atWar: false, enemyStrength: exactly(0), rivals: [] },
+      ],
     };
 
-    expect(evaluationFor(peaceful).body.state).toStrictEqual({
-      各国: [
+    expect(evaluationFor(peaceful).body.state).toStrictEqual(
+      stateWith({
+        宣戦できる国: [],
+        戦争中: false,
+        敵に対する兵力比: "相手は兵を出していない",
+        敵の兵力: "0人",
+      })
+    );
+  });
+
+  it("should say the enemy's men are unknown when no nation it fights is in view", () => {
+    const blind: Council = {
+      ...COUNCIL,
+      nations: [
+        { ...BRIEF, enemyStrength: { estimate: 0, margin: 0, unseen: 2 } },
+      ],
+    };
+
+    expect(evaluationFor(blind).body.state).toStrictEqual(
+      stateWith({
+        敵に対する兵力比: "相手の兵力がわからない",
+        敵の兵力: "不明（2国）",
+      })
+    );
+  });
+});
+
+describe("evaluationFor with sightings", () => {
+  it.each<{ condition: string; sighting: Sighting; words: string }>([
+    {
+      condition: "the government sees the rival's side exactly",
+      sighting: exactly(20_000),
+      words: "20,000人",
+    },
+    {
+      condition: "the government sees the rival's side within a margin",
+      sighting: { estimate: 20_000, margin: 0.5, unseen: 0 },
+      words: "約20,000人（±50%）",
+    },
+    {
+      condition: "part of the rival's side is blurred and part unseen",
+      sighting: { estimate: 20_000, margin: 0.8, unseen: 2 },
+      words: "約20,000人（±80%）、ほかに数のわからない国が2",
+    },
+    {
+      condition: "part of the rival's side is exact and part unseen",
+      sighting: { estimate: 20_000, margin: 0, unseen: 1 },
+      words: "20,000人、ほかに数のわからない国が1",
+    },
+    {
+      condition: "none of the rival's side is in view",
+      sighting: { estimate: 0, margin: 0, unseen: 3 },
+      words: "不明（3国）",
+    },
+  ])(
+    "should write the rival's men as $words when $condition",
+    ({ sighting, words }) => {
+      const sighted: Council = {
+        ...COUNCIL,
+        nations: [{ ...BRIEF, rivals: [{ nation: 2, strength: sighting }] }],
+      };
+
+      expect(evaluationFor(sighted).body.questions.n1_war?.criteria.n2).toBe(
+        `国2に宣戦する（相手陣営の兵力 ${words}）`
+      );
+    }
+  );
+});
+
+describe("evaluationFor for the intelligence service", () => {
+  it("should offer each agency project with what it costs and adds, or nothing, when the agency is free", () => {
+    const founding: Council = {
+      ...COUNCIL,
+      nations: [
         {
-          人口: 3_000_000,
-          人的資源: 90_001,
-          国: "国1",
-          宣戦できる国: [],
-          工場: { 民需: 20, 軍需: 5 },
-          戦争中: false,
-          敵に制空権を握られている空の割合: 0.33,
-          敵に対する兵力比: "相手は兵を出していない",
-          敵の兵力: 0,
-          敵の航空機: 481,
-          敵の艦隊の強さ: 31,
-          燃料の備蓄の割合: 0.73,
-          自陣営の兵力: 20_000,
-          航空機: 300,
-          艦隊の強さ: 10,
-          装備: 1500,
-          補給が足りない師団の割合: 0.25,
-          資源不足で落ちた軍需生産の割合: 0.13,
-          輸送船: 12,
-          造船所: 0,
+          ...BRIEF,
+          agencyProjects: [
+            "found",
+            "passive-defense",
+            "invisible-ink",
+            "cypher-school",
+          ],
         },
       ],
-      日付: "1936-03-01",
+    };
+
+    expect(evaluationFor(founding).body.questions.n1_agency).toStrictEqual({
+      criteria: {
+        "cypher-school":
+          "政府暗号学校（民需工場5つを30日使う、自国の暗号の強さ+1、全3段階）",
+        found:
+          "諜報機関を設立する（民需工場5つを30日使う。設立すると工作員を1人雇える）",
+        "invisible-ink":
+          "あぶり出しインク（民需工場5つを30日使う、工作員と潜入から得る諜報+20%・設計図を盗む作戦で捕まる危険-25%、全1段階）",
+        none: "今月は何も始めない",
+        "passive-defense":
+          "受動防御（民需工場5つを30日使う、防諜+1.5、全4段階）",
+      },
+      instructions:
+        "国1の諜報機関は今月、何に取り組みますか。設立も強化も30日かかり、そのあいだ民需工場を建設から外します。諜報が高いほど、敵の兵力・艦隊・航空機の数が正確にわかり、陸戦で相手より強く戦えます。",
+      type: "choice",
+    });
+  });
+
+  it("should offer counter-intelligence at home or each nation to send the operatives to when the agency has operatives", () => {
+    const spying: Council = {
+      ...COUNCIL,
+      nations: [
+        { ...BRIEF, operatives: 1, spyTargets: [{ known: 0.254, nation: 2 }] },
+      ],
+    };
+
+    expect(evaluationFor(spying).body.questions.n1_espionage).toStrictEqual({
+      criteria: {
+        home: "工作員を自国に置き、敵の工作員を捕まえる",
+        s2: "国2に工作員を送る（いまの諜報 25%）",
+      },
+      instructions:
+        "国1は工作員をどこに置きますか。送った国には諜報網が育ち、その国の軍や経済の数がわかるようになり、網が育つと潜入・暗号の奪取・設計図の窃取・抵抗運動の支援といった作戦を行います。送った先で捕まることもあります。",
+      type: "choice",
     });
   });
 });

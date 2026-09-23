@@ -23,15 +23,32 @@ const OCCUPIED: Compliance = {
 
 const OCCUPIED_OWNERS = Int32Array.from([0, 0, 0, 1, UNASSIGNED]);
 
-/** The level of province 2 after one day with `owners`. */
-const levelOfTwo = (compliance: Compliance, owners: Int32Array): number =>
-  compliedOneDay(compliance, owners).levels[2] ?? -1;
+/** No operatives stirring anything anywhere on the line. */
+const CALM = new Float32Array(5);
+
+/** Reach on the line for both nations, with `sabotage` keeping factories idle. */
+const lineReach = (
+  owners: Int32Array,
+  compliance: Compliance,
+  sabotage: Float32Array
+) =>
+  reachByNation(LINE_WORLD.provinces, owners, compliance, {
+    nations: 2,
+    sabotage,
+  });
+
+/** The level of province 2 after one day with `owners` and `resistance`. */
+const levelOfTwo = (
+  compliance: Compliance,
+  owners: Int32Array,
+  resistance: Float32Array = CALM
+): number => compliedOneDay(compliance, owners, resistance).levels[2] ?? -1;
 
 describe(compliedOneDay, () => {
   it("should leave every province fully compliant when nobody has taken anything", () => {
-    expect([...compliedOneDay(OPENED, LINE_OWNERS).levels]).toStrictEqual([
-      1, 1, 1, 1, 1,
-    ]);
+    expect([...compliedOneDay(OPENED, LINE_OWNERS, CALM).levels]).toStrictEqual(
+      [1, 1, 1, 1, 1]
+    );
   });
 
   it("should start a province at no compliance when it is taken from the nation it belongs to", () => {
@@ -40,6 +57,16 @@ describe(compliedOneDay, () => {
 
   it("should bring an occupied province a day further round when its occupier keeps it", () => {
     expect(levelOfTwo(OCCUPIED, OCCUPIED_OWNERS)).toBeCloseTo(0.500335, 6);
+  });
+
+  it("should slow an occupied province's gain by its resistance when operatives have stirred some", () => {
+    expect(
+      levelOfTwo(
+        OCCUPIED,
+        OCCUPIED_OWNERS,
+        Float32Array.from([0, 0, 0.5, 0, 0])
+      )
+    ).toBeCloseTo(0.49996, 6);
   });
 
   it("should halve an occupied province's compliance when one occupier hands it to another", () => {
@@ -53,13 +80,9 @@ describe(compliedOneDay, () => {
   });
 
   it("should record who each province's level is worked out for when a day passes", () => {
-    expect([...compliedOneDay(OPENED, OCCUPIED_OWNERS).holders]).toStrictEqual([
-      0,
-      0,
-      0,
-      1,
-      UNASSIGNED,
-    ]);
+    expect([
+      ...compliedOneDay(OPENED, OCCUPIED_OWNERS, CALM).holders,
+    ]).toStrictEqual([0, 0, 0, 1, UNASSIGNED]);
   });
 });
 
@@ -98,18 +121,14 @@ describe(reachUnder, () => {
 
 describe(reachByNation, () => {
   it("should draw on everything when a nation holds only its own ground", () => {
-    expect(
-      reachByNation(LINE_WORLD.provinces, LINE_OWNERS, OPENED, 2)
-    ).toStrictEqual([FULL_REACH, FULL_REACH]);
+    expect(lineReach(LINE_OWNERS, OPENED, CALM)).toStrictEqual([
+      FULL_REACH,
+      FULL_REACH,
+    ]);
   });
 
   it("should draw on occupied ground as far as its compliance goes when a nation holds some", () => {
-    const [occupier] = reachByNation(
-      LINE_WORLD.provinces,
-      OCCUPIED_OWNERS,
-      OCCUPIED,
-      2
-    );
+    const [occupier] = lineReach(OCCUPIED_OWNERS, OCCUPIED, CALM);
 
     expect(occupier).toStrictEqual({
       factories: 0.8583333333333333,
@@ -118,12 +137,7 @@ describe(reachByNation, () => {
   });
 
   it("should count ground as just taken when its level was worked out for another holder", () => {
-    const [occupier] = reachByNation(
-      LINE_WORLD.provinces,
-      OCCUPIED_OWNERS,
-      OPENED,
-      2
-    );
+    const [occupier] = lineReach(OCCUPIED_OWNERS, OPENED, CALM);
 
     expect(occupier).toStrictEqual({
       factories: (2 + 0.25) / 3,
@@ -131,13 +145,22 @@ describe(reachByNation, () => {
     });
   });
 
+  it("should work fewer factories when sabotage keeps some of a nation's idle", () => {
+    const [saboteur] = lineReach(
+      LINE_OWNERS,
+      OPENED,
+      Float32Array.from([0.5, 0, 0, 0, 0])
+    );
+
+    expect(saboteur).toStrictEqual({ factories: 0.75, manpower: 1 });
+  });
+
   it("should draw on everything when a nation holds nothing", () => {
     expect(
-      reachByNation(
-        LINE_WORLD.provinces,
+      lineReach(
         Int32Array.from([0, 0, 0, UNASSIGNED, UNASSIGNED]),
         OPENED,
-        2
+        CALM
       ).at(1)
     ).toStrictEqual(FULL_REACH);
   });

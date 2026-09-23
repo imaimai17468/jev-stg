@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { itemAt } from "./lookup";
 import type { Bonus } from "./modifiers";
 
 /** The part of the tree a technology sits in. */
@@ -370,10 +371,23 @@ const TECHS = {
 
 export const techOf = (tech: TechId): Tech => TECHS[tech];
 
-/** A technology on a slot, and the research-days put into it so far. */
+/**
+ * A technology on a slot, the research-days put into it so far, and the share
+ * a research bonus adds to every day of it.
+ */
 export interface Study {
   readonly tech: TechId;
   readonly progress: number;
+  readonly bonus: number;
+}
+
+/**
+ * A research bonus waiting for the next technology started in one of its
+ * branches, which it speeds up by `share` until that one is done.
+ */
+export interface Voucher {
+  readonly branches: readonly TechBranch[];
+  readonly share: number;
 }
 
 /** What a nation has researched and what its slots are working on. */
@@ -381,9 +395,15 @@ export interface Research {
   readonly researched: readonly TechId[];
   /** One study per busy slot, in the order they were started. */
   readonly studies: readonly Study[];
+  /** Research bonuses not yet used, the oldest first. */
+  readonly vouchers: readonly Voucher[];
 }
 
-export const START_RESEARCH: Research = { researched: [], studies: [] };
+export const START_RESEARCH: Research = {
+  researched: [],
+  studies: [],
+  vouchers: [],
+};
 
 /** How much longer a technology takes for each year it is researched early. */
 export const AHEAD_OF_TIME_PER_YEAR = 1;
@@ -421,15 +441,41 @@ export const availableTechs = (research: Research): readonly TechId[] => {
   );
 };
 
-/** The research with `tech` started on a free slot. */
-export const studyStarted = (research: Research, tech: TechId): Research => ({
-  ...research,
-  studies: [...research.studies, { progress: 0, tech }],
-});
+/** No research bonus, which a technology started without one runs on. */
+const NO_VOUCHER: Voucher = { branches: [], share: 0 };
 
 /**
- * The research after one day, with every slot putting `1 + speed` research-days
- * into its technology and every technology that reached its cost for `year`
+ * The research with `tech` started on a free slot, taking the oldest research
+ * bonus that covers its branch.
+ */
+export const studyStarted = (research: Research, tech: TechId): Research => {
+  const { branch } = techOf(tech);
+  const used = research.vouchers.findIndex((voucher) =>
+    voucher.branches.includes(branch)
+  );
+  return {
+    ...research,
+    studies: [
+      ...research.studies,
+      {
+        bonus: itemAt(research.vouchers, used, NO_VOUCHER).share,
+        progress: 0,
+        tech,
+      },
+    ],
+    vouchers: research.vouchers.filter((_, index) => index !== used),
+  };
+};
+
+/** The research with `voucher` waiting for the next technology in its branches. */
+export const voucherGranted = (
+  research: Research,
+  voucher: Voucher
+): Research => ({ ...research, vouchers: [...research.vouchers, voucher] });
+
+/**
+ * The research after one day, with every slot putting `1 + speed` research-days,
+ * and its research bonus on top, into its technology and every technology that reached its cost for `year`
  * moved to the researched list, which frees its slot.
  */
 export const researchedOneDay = (
@@ -439,10 +485,11 @@ export const researchedOneDay = (
 ): Research => {
   const advanced = research.studies.map((study) => ({
     ...study,
-    progress: study.progress + 1 + speed,
+    progress: study.progress + 1 + speed + study.bonus,
   }));
   const done = (study: Study) => study.progress >= costOf(study.tech, year);
   return {
+    ...research,
     researched: [
       ...research.researched,
       ...advanced.flatMap((study) => {

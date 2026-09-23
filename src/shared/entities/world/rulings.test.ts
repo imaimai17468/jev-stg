@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
+import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import type { AirForce } from "./air-force";
 import { NO_AIR_FORCE } from "./air-force";
 import { airspaceOf } from "./airspace";
@@ -16,8 +17,10 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import { HOME, serviceFor } from "./espionage";
 import { focusStarted, START_FOCUSES } from "./focus";
 import type { World } from "./index";
+import { replacedAt } from "./lookup";
 import { NO_NATION } from "./nations";
 import { NO_NAVY, openingNavy } from "./navy";
 import type { Province } from "./provinces";
@@ -65,10 +68,11 @@ const BUSY: Simulation = advancedTo({
   research: {
     researched: [],
     studies: [
-      { progress: 0, tech: "tools-1" },
-      { progress: 0, tech: "construction-1" },
-      { progress: 0, tech: "electronics-1" },
+      { bonus: 0, progress: 0, tech: "tools-1" },
+      { bonus: 0, progress: 0, tech: "construction-1" },
+      { bonus: 0, progress: 0, tech: "electronics-1" },
     ],
+    vouchers: [],
   },
 });
 
@@ -397,7 +401,7 @@ describe(ruled, () => {
     );
 
     expect(after.advancements[0]?.research.studies).toStrictEqual([
-      { progress: 0, tech: "tools-1" },
+      { bonus: 0, progress: 0, tech: "tools-1" },
     ]);
   });
 
@@ -564,5 +568,87 @@ describe(ruled, () => {
         byRules({ kind: "shipbuilding", nation: 2, order: "battleship" })
       )
     ).toBe(SUBJECTS);
+  });
+});
+
+/** The row with nation 0's operatives already working in nation 1. */
+const SPYING: Simulation = {
+  ...ROW_SIMULATION,
+  services: replacedAt(ROW_SIMULATION.services, 0, {
+    ...serviceFor(ROW_WORLD.nations.length),
+    target: 1,
+  }),
+};
+
+describe("ruled for the intelligence service", () => {
+  it("should set the agency to work on the project when it is on offer", () => {
+    const after = ruled(
+      ROW_WORLD,
+      ROW_SIMULATION,
+      byRules({ kind: "agency", nation: 0, project: "found" })
+    );
+
+    expect(after.services[0]?.agency).toStrictEqual({
+      ...NO_AGENCY,
+      work: { daysLeft: AGENCY_DAYS, kind: "working", project: "found" },
+    });
+  });
+
+  it("should change nothing when the agency project is not on offer", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "agency", nation: 0, project: "civilian-department" })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
+  it.each<{ condition: string; from: Simulation; target: number; to: number }>([
+    {
+      condition: "they go to another nation still standing",
+      from: ROW_SIMULATION,
+      target: 1,
+      to: 1,
+    },
+    {
+      condition: "they come home on counter-intelligence",
+      from: SPYING,
+      target: HOME,
+      to: HOME,
+    },
+  ])(
+    "should send the operatives where decided when $condition",
+    ({ from, target, to }) => {
+      expect(
+        ruled(
+          ROW_WORLD,
+          from,
+          byRules({ kind: "espionage", nation: 0, target })
+        ).services[0]?.target
+      ).toBe(to);
+    }
+  );
+
+  it.each<{ condition: string; from: Simulation; target: number }>([
+    {
+      condition: "the operatives are already home",
+      from: ROW_SIMULATION,
+      target: HOME,
+    },
+    {
+      condition: "the target is the nation itself",
+      from: ROW_SIMULATION,
+      target: 0,
+    },
+    {
+      condition: "the target has been annexed",
+      from: SUBJECTS,
+      target: 1,
+    },
+  ])("should change nothing when $condition", ({ from, target }) => {
+    expect(
+      ruled(ROW_WORLD, from, byRules({ kind: "espionage", nation: 0, target }))
+    ).toBe(from);
   });
 });

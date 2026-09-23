@@ -14,12 +14,23 @@ import {
 } from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import {
+  counterIntelligenceOf,
+  NO_SERVICE,
+  slotsOf,
+} from "@/shared/entities/world/espionage";
 import { valueAt } from "@/shared/entities/world/grid";
+import { intelOf } from "@/shared/entities/world/insight";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
+import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
-import { skiesOf } from "@/shared/entities/world/simulation";
+import {
+  espialOf,
+  skiesOf,
+  stirredIn,
+} from "@/shared/entities/world/simulation";
 import { superiorityOf } from "@/shared/entities/world/skies";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
@@ -28,6 +39,7 @@ import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
 import { airSummaryOf } from "./air-summary";
+import { intelSummaryOf } from "./intel-summary";
 import { navySummaryOf } from "./navy-summary";
 import { occupationSummaryOf } from "./occupation-summary";
 import type { Stat } from "./stat";
@@ -78,6 +90,7 @@ export interface NationSummary {
   readonly occupation: readonly Stat[];
   readonly navy: readonly Stat[];
   readonly air: readonly Stat[];
+  readonly intel: readonly Stat[];
   readonly trade: readonly Stat[];
 }
 
@@ -91,6 +104,7 @@ const EMPTY: NationSummary = {
   enemies: [],
   faction: Option.none(),
   id: -1,
+  intel: [],
   name: "",
   navy: [],
   neighbours: [],
@@ -220,10 +234,28 @@ export const summaryOf = (
       simulation.invasions.filter((crossing) => crossing.nation === nation)
     ),
     neighbours: [...neighbours].map(nameOf),
+    intel: intelSummaryOf({
+      agencies: simulation.services.map((service) => service.agency),
+      counterIntelligence: counterIntelligenceOf(
+        itemAt(simulation.services, nation, NO_SERVICE)
+      ),
+      intel: intelOf(espialOf(simulation, graphOf(world.provinces))),
+      nameOf,
+      nation,
+      service: itemAt(simulation.services, nation, NO_SERVICE),
+      slots: slotsOf(
+        nation,
+        itemAt(simulation.services, nation, NO_SERVICE).agency,
+        simulation
+      ),
+    }),
     occupation: occupationSummaryOf(
       world,
-      owners,
-      simulation.compliance,
+      {
+        compliance: simulation.compliance,
+        owners,
+        stirred: stirredIn(simulation),
+      },
       nation
     ),
     provinces,

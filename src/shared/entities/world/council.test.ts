@@ -2,6 +2,8 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
+import type { Agency } from "./agency";
+import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import { airForceOf, wing } from "./air-war-fixture";
 import { division } from "./army-fixture";
 import type { Negotiation } from "./chronicle";
@@ -26,11 +28,14 @@ import {
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_ECONOMY } from "./economy";
+import type { Service } from "./espionage";
+import { HOME, serviceFor } from "./espionage";
 import { FUEL_CAPACITY } from "./fuel";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
 import type { Random } from "./random";
+import type { Sighting } from "./sightings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { enemiesOf, warCount } from "./wars";
@@ -38,6 +43,25 @@ import { enemiesOf, warCount } from "./wars";
 const withDiplomacy = (diplomacy: Diplomacy): Simulation => ({
   ...ROW_SIMULATION,
   diplomacy,
+});
+
+/** Every nation knowing everything of every other, from captives that told all. */
+const KNOWING: Simulation["gleaned"] = {
+  ...ROW_SIMULATION.gleaned,
+  extracted: ROW_SIMULATION.gleaned.extracted.map(() => 1),
+};
+
+/** `simulation` with every nation knowing everything of every other. */
+const allKnown = (simulation: Simulation): Simulation => ({
+  ...simulation,
+  gleaned: KNOWING,
+});
+
+/** A figure seen exactly, with every nation behind it in view. */
+const exactly = (estimate: number): Sighting => ({
+  estimate,
+  margin: 0,
+  unseen: 0,
 });
 
 /** Nation 0 leading a faction, nation 3 answering to nation 2. */
@@ -51,15 +75,19 @@ const ORDERED: Simulation = withDiplomacy({
   ],
 });
 
+/** A sighting of one nation the government has no figure for. */
+const UNSEEN_ONE: Sighting = { estimate: 0, margin: 0, unseen: 1 };
+
 /** A brief with nothing in it, for the verdicts to be read against. */
 const BRIEF: NationBrief = {
+  agencyProjects: [],
   atWar: false,
   civilianFactories: 0,
   convoys: 0,
   dockyards: 0,
-  enemyFleet: 0,
-  enemyPlanes: 0,
-  enemyStrength: 0,
+  enemyFleet: exactly(0),
+  enemyPlanes: exactly(0),
+  enemyStrength: exactly(0),
   equipment: 0,
   factions: [{ faction: 0, strength: 0 }],
   fleet: 0,
@@ -69,11 +97,14 @@ const BRIEF: NationBrief = {
   manpower: 0,
   militaryFactories: 0,
   nation: 1,
+  operatives: 0,
   planes: 0,
   population: 0,
-  rivals: [{ nation: 2, strength: 0 }],
+  posted: false,
+  rivals: [{ nation: 2, strength: exactly(0) }],
   shortage: 0,
   skyLost: 0,
+  spyTargets: [],
   strength: 0,
   techs: [],
   undersupplied: 0,
@@ -140,7 +171,7 @@ const researchedAll = (
 ): Simulation =>
   advancedTo(simulation, {
     ...START_ADVANCEMENT,
-    research: { researched, studies: [] },
+    research: { researched, studies: [], vouchers: [] },
   });
 
 /** What the rules put on nation 0's slots, in the order they started. */
@@ -173,8 +204,8 @@ describe(councilOf, () => {
     }).toStrictEqual({
       factions: [{ faction: 0, strength: 0 }],
       rivals: [
-        { nation: 0, strength: 0 },
-        { nation: 2, strength: 0 },
+        { nation: 0, strength: UNSEEN_ONE },
+        { nation: 2, strength: { ...UNSEEN_ONE, unseen: 2 } },
       ],
     });
   });
@@ -208,16 +239,72 @@ describe(councilOf, () => {
     expect(brief?.factions).toStrictEqual([]);
   });
 
-  it("should count what its enemies have in the field when the nation is at war", () => {
+  it("should count what its enemies have in the field when the nation at war knows them fully", () => {
+    const fighting: Simulation = {
+      ...allKnown(withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1))),
+      divisions: [division({ nation: 1, province: 1 })],
+    };
+
+    expect(
+      briefOfFirst(councilOf(ROW_WORLD, fighting))?.enemyStrength
+    ).toStrictEqual(exactly(20_000));
+  });
+
+  it("should leave its enemy's men unseen when the nation at war knows nothing of its army", () => {
     const fighting: Simulation = {
       ...withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1)),
       divisions: [division({ nation: 1, province: 1 })],
     };
 
     expect(
-      councilOf(ROW_WORLD, fighting).nations.find((entry) => entry.nation === 0)
-        ?.enemyStrength
-    ).toBe(20_000);
+      briefOfFirst(councilOf(ROW_WORLD, fighting))?.enemyStrength
+    ).toStrictEqual(UNSEEN_ONE);
+  });
+
+  it("should blur its enemy's fleet by half when the nation at war sees only what its enemy's trade shows", () => {
+    const fighting = withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1));
+    const fleet = briefOfFirst(councilOf(ROW_WORLD, fighting))?.enemyFleet;
+
+    expect({ margin: fleet?.margin, unseen: fleet?.unseen }).toStrictEqual({
+      margin: 0.5,
+      unseen: 0,
+    });
+  });
+
+  it("should offer founding the agency and every other nation still standing to spy on when a nation has no agency yet", () => {
+    const brief = briefOfFirst(councilOf(ROW_WORLD, allKnown(ORDERED)));
+
+    expect({
+      agencyProjects: brief?.agencyProjects,
+      operatives: brief?.operatives,
+      spyTargets: brief?.spyTargets,
+    }).toStrictEqual({
+      agencyProjects: ["found"],
+      operatives: 0,
+      spyTargets: [
+        { known: 1, nation: 1 },
+        { known: 1, nation: 2 },
+        { known: 1, nation: 3 },
+      ],
+    });
+  });
+
+  it("should leave an annexed nation out of the ones to spy on when the council meets", () => {
+    const annexing = withDiplomacy({
+      ...ROW_SIMULATION.diplomacy,
+      standings: [
+        INDEPENDENT,
+        { by: 0, kind: "annexed" },
+        INDEPENDENT,
+        INDEPENDENT,
+      ],
+    });
+
+    expect(
+      briefOfFirst(councilOf(ROW_WORLD, annexing))?.spyTargets.map(
+        (target) => target.nation
+      )
+    ).toStrictEqual([2, 3]);
   });
 
   it("should offer the free slots every technology and focus without a prerequisite when a government has researched nothing", () => {
@@ -249,7 +336,7 @@ describe(councilOf, () => {
 
   it("should count its own convoys and fleet against only its enemies' fleets when the nation is at war", () => {
     const fleets: Simulation = {
-      ...withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1)),
+      ...allKnown(withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1))),
       economies: ROW_SIMULATION.economies.map((economy, nation) => ({
         ...economy,
         dockyards: 4 - nation,
@@ -266,14 +353,14 @@ describe(councilOf, () => {
     }).toStrictEqual({
       convoys: 40,
       dockyards: 4,
-      enemyFleet: fleetStrength(openingNavy(2, 4)),
+      enemyFleet: exactly(fleetStrength(openingNavy(2, 4))),
       fleet: fleetStrength(openingNavy(4, 4)),
     });
   });
 
   it("should count its planes, its enemies' planes, its fuel and the skies it has lost when the nation is at war", () => {
     const aloft: Simulation = {
-      ...withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1)),
+      ...allKnown(withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1))),
       airForces: replacedAt(
         replacedAt(
           ROW_SIMULATION.airForces,
@@ -303,7 +390,12 @@ describe(councilOf, () => {
       fuel: brief?.fuel,
       planes: brief?.planes,
       skyLost: brief?.skyLost,
-    }).toStrictEqual({ enemyPlanes: 25, fuel: 0.5, planes: 30, skyLost: 1 });
+    }).toStrictEqual({
+      enemyPlanes: exactly(25),
+      fuel: 0.5,
+      planes: 30,
+      skyLost: 1,
+    });
   });
 
   it("should offer no technology when every research slot is busy", () => {
@@ -312,10 +404,11 @@ describe(councilOf, () => {
       research: {
         researched: [],
         studies: [
-          { progress: 0, tech: "tools-1" },
-          { progress: 0, tech: "construction-1" },
-          { progress: 0, tech: "electronics-1" },
+          { bonus: 0, progress: 0, tech: "tools-1" },
+          { bonus: 0, progress: 0, tech: "construction-1" },
+          { bonus: 0, progress: 0, tech: "electronics-1" },
         ],
+        vouchers: [],
       },
     });
 
@@ -658,6 +751,166 @@ describe(ruledByRules, () => {
   });
 });
 
+/** Every upgrade the rules' order at peace names, with every level bought. */
+const PEACE_BOUGHT: Agency["upgrades"] = [
+  "civilian-department",
+  "passive-defense",
+  "passive-defense",
+  "passive-defense",
+  "passive-defense",
+  "cryptology-department",
+  "cypher-school",
+  "cypher-school",
+  "cypher-school",
+];
+
+/** A founded agency with `upgrades` bought and nothing under way. */
+const foundedWith = (upgrades: Agency["upgrades"]): Agency => ({
+  ...NO_AGENCY,
+  standing: "founded",
+  upgrades,
+});
+
+/** `simulation` with `nation`'s service patched by `patch`. */
+const servedBy = (
+  simulation: Simulation,
+  nation: number,
+  patch: Partial<Service>
+): Simulation => ({
+  ...simulation,
+  services: replacedAt(simulation.services, nation, {
+    ...serviceFor(ROW_WORLD.nations.length),
+    ...patch,
+  }),
+});
+
+/** The row with nation 0 at war with nation 1. */
+const ROW_AT_WAR = withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1));
+
+describe("ruledByRules for the intelligence services", () => {
+  it.each<{ condition: string; simulation: Simulation; agency: Agency }>([
+    {
+      agency: {
+        ...NO_AGENCY,
+        work: { daysLeft: AGENCY_DAYS, kind: "working", project: "found" },
+      },
+      condition: "a nation has no agency yet",
+      simulation: ROW_SIMULATION,
+    },
+    {
+      agency: {
+        ...foundedWith([]),
+        work: {
+          daysLeft: AGENCY_DAYS,
+          kind: "working",
+          project: "civilian-department",
+        },
+      },
+      condition: "a nation at peace has a new agency",
+      simulation: servedBy(ROW_SIMULATION, 0, { agency: foundedWith([]) }),
+    },
+    {
+      agency: {
+        ...foundedWith([]),
+        work: {
+          daysLeft: AGENCY_DAYS,
+          kind: "working",
+          project: "army-department",
+        },
+      },
+      condition: "a nation at war has a new agency",
+      simulation: servedBy(ROW_AT_WAR, 0, { agency: foundedWith([]) }),
+    },
+    {
+      agency: {
+        ...foundedWith(PEACE_BOUGHT),
+        work: {
+          daysLeft: AGENCY_DAYS,
+          kind: "working",
+          project: "army-department",
+        },
+      },
+      condition: "a nation at peace has bought everything its order names",
+      simulation: servedBy(ROW_SIMULATION, 0, {
+        agency: foundedWith(PEACE_BOUGHT),
+      }),
+    },
+    {
+      agency: {
+        ...NO_AGENCY,
+        work: { daysLeft: 3, kind: "working", project: "found" },
+      },
+      condition: "a nation's agency is still at work",
+      simulation: servedBy(ROW_SIMULATION, 0, {
+        agency: {
+          ...NO_AGENCY,
+          work: { daysLeft: 3, kind: "working", project: "found" },
+        },
+      }),
+    },
+  ])(
+    "should have the agency working on $agency.work.project when $condition",
+    ({ agency, simulation }) => {
+      expect(
+        ruledByRules(ROW_WORLD, simulation, COUNCIL_DAY).services[0]?.agency
+      ).toStrictEqual(agency);
+    }
+  );
+
+  it.each<{ condition: string; simulation: Simulation; target: number }>([
+    {
+      condition: "a nation at war fights two enemies",
+      simulation: {
+        ...withDiplomacy(
+          warDeclared(warDeclared(ROW_SIMULATION.diplomacy, 1, 0), 1, 2)
+        ),
+        divisions: [division({ nation: 2, province: 2 })],
+      },
+      target: 2,
+    },
+    {
+      condition: "a nation at peace borders two neighbours",
+      simulation: {
+        ...ROW_SIMULATION,
+        divisions: [division({ nation: 2, province: 2 })],
+      },
+      target: 2,
+    },
+    {
+      condition: "a nation's operatives already work in a neighbour",
+      simulation: {
+        ...servedBy(ROW_SIMULATION, 1, { target: 0 }),
+        divisions: [division({ nation: 2, province: 2 })],
+      },
+      target: 0,
+    },
+    {
+      condition:
+        "a nation's operatives work in a nation it neither borders nor fights",
+      simulation: servedBy(ROW_SIMULATION, 1, { target: 3 }),
+      target: 0,
+    },
+  ])(
+    "should send nation 1's operatives to nation $target when $condition",
+    ({ simulation, target }) => {
+      expect(
+        ruledByRules(ROW_WORLD, simulation, COUNCIL_DAY).services[1]?.target
+      ).toBe(target);
+    }
+  );
+
+  it("should keep the operatives home when a nation neither borders nor fights anyone", () => {
+    const stranded: Simulation = {
+      ...servedBy(ROW_SIMULATION, 3, { target: 1 }),
+      owners: Int32Array.from([0, 1, 2, UNASSIGNED, UNASSIGNED]),
+    };
+
+    expect(
+      ruledByRules(ROW_WORLD, stranded, COUNCIL_DAY).services[3]?.target
+    ).toBe(HOME);
+  });
+});
+
 const fromJev = (probability: number) => ({ kind: "jev", probability });
 
 describe(rulingsFrom, () => {
@@ -890,6 +1143,47 @@ describe(rulingsFrom, () => {
     ).toStrictEqual([]);
   });
 
+  it("should start the project Jev picked when an agency verdict names one it is unsure of", () => {
+    const founding: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, agencyProjects: ["found"] }],
+    };
+
+    expect(
+      rulingsFrom(
+        founding,
+        [verdict({ choice: "found", probability: 0.2, question: "agency" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { kind: "agency", nation: 1, project: "found" },
+        source: fromJev(0.2),
+      },
+    ]);
+  });
+
+  it.each([
+    { decided: 1, posted: false },
+    { decided: 0, posted: true },
+  ])(
+    "should carry out $decided espionage rulings for a pick Jev is unsure of when the operatives are posted is $posted",
+    ({ decided, posted }) => {
+      const sending: Council = {
+        ...COUNCIL,
+        nations: [{ ...BRIEF, posted, spyTargets: [{ known: 0, nation: 2 }] }],
+      };
+
+      expect(
+        rulingsFrom(
+          sending,
+          [verdict({ choice: "s2", probability: 0.3, question: "espionage" })],
+          ANY_DRAW
+        )
+      ).toHaveLength(decided);
+    }
+  );
+
   it("should pursue the focus Jev picked when a focus verdict names one", () => {
     const choosing: Council = {
       ...COUNCIL,
@@ -950,6 +1244,71 @@ describe("rulingsFrom for the air force", () => {
     ({ choice, decided, question }) => {
       expect(
         rulingsFrom(COUNCIL, [verdict({ choice, question })], ANY_DRAW)
+      ).toStrictEqual(decided);
+    }
+  );
+});
+
+/** A council whose one brief offers founding the agency and spying on nation 2. */
+const INTELLIGENCE_COUNCIL: Council = {
+  ...COUNCIL,
+  nations: [
+    {
+      ...BRIEF,
+      agencyProjects: ["found"],
+      operatives: 1,
+      spyTargets: [{ known: 0, nation: 2 }],
+    },
+  ],
+};
+
+describe("rulingsFrom for the intelligence service", () => {
+  it.each<{
+    question: "agency" | "espionage";
+    choice: string;
+    decided: readonly unknown[];
+  }>([
+    {
+      choice: "found",
+      decided: [
+        {
+          decision: { kind: "agency", nation: 1, project: "found" },
+          source: fromJev(0.7),
+        },
+      ],
+      question: "agency",
+    },
+    { choice: "civilian-department", decided: [], question: "agency" },
+    {
+      choice: "home",
+      decided: [
+        {
+          decision: { kind: "espionage", nation: 1, target: HOME },
+          source: fromJev(0.7),
+        },
+      ],
+      question: "espionage",
+    },
+    {
+      choice: "s2",
+      decided: [
+        {
+          decision: { kind: "espionage", nation: 1, target: 2 },
+          source: fromJev(0.7),
+        },
+      ],
+      question: "espionage",
+    },
+    { choice: "s3", decided: [], question: "espionage" },
+  ])(
+    "should decide $decided.length ruling when an $question verdict names $choice",
+    ({ choice, decided, question }) => {
+      expect(
+        rulingsFrom(
+          INTELLIGENCE_COUNCIL,
+          [verdict({ choice, question })],
+          ANY_DRAW
+        )
       ).toStrictEqual(decided);
     }
   );

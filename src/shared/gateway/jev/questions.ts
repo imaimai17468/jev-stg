@@ -1,5 +1,14 @@
 import "@tanstack/react-start/server-only";
 import { Option } from "effect";
+import type {
+  AgencyModifiers,
+  AgencyProject,
+} from "@/shared/entities/world/agency";
+import {
+  AGENCY_DAYS,
+  factoriesFor,
+  upgradeTermsOf,
+} from "@/shared/entities/world/agency";
 import type { Aircraft, Aviation } from "@/shared/entities/world/aircraft";
 import {
   AIRCRAFT,
@@ -16,9 +25,11 @@ import type {
   Verdict,
 } from "@/shared/entities/world/consultation";
 import {
+  COUNTER_INTELLIGENCE_CHOICE,
   factionChoice,
   NO_CHOICE,
   rivalChoice,
+  spyChoice,
 } from "@/shared/entities/world/consultation";
 import type {
   ConscriptionLaw,
@@ -26,6 +37,7 @@ import type {
 } from "@/shared/entities/world/economy";
 import type { FocusId, Grants } from "@/shared/entities/world/focus";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
+import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
@@ -40,6 +52,7 @@ import {
   orderOf,
   SHIPYARD_ORDERS,
 } from "@/shared/entities/world/ships";
+import type { Sighting } from "@/shared/entities/world/sightings";
 import type { Stance } from "@/shared/entities/world/stance";
 import type { TradeLaw } from "@/shared/entities/world/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
@@ -251,6 +264,94 @@ const focusLabel = (focus: FocusId): string => {
 const men = (count: number): string =>
   `${Math.round(count).toLocaleString("ja-JP")}人`;
 
+/** What an agency upgrade's first level adds, by what it changes, and whether it counts points rather than a share. */
+const AGENCY_GAIN_WORDS = {
+  airIntel: { label: "空軍の諜報", points: false },
+  armyIntel: { label: "陸軍の諜報", points: false },
+  assets: { label: "工作員と潜入から得る諜報", points: false },
+  blueprintRisk: { label: "設計図を盗む作戦で捕まる危険", points: false },
+  blueprints: { label: "盗んだ設計図の研究ボーナス", points: false },
+  capture: { label: "敵の工作員を捕まえる確率", points: false },
+  civilianIntel: { label: "経済の諜報", points: false },
+  counterIntelligence: { label: "防諜", points: true },
+  cryptology: { label: "自国の暗号の強さ", points: true },
+  decryption: { label: "1日の解読力", points: true },
+  extraction: { label: "捕らえた工作員から得る諜報", points: false },
+  navyIntel: { label: "海軍の諜報", points: false },
+  resistance: { label: "抵抗運動を強める作戦の効果", points: false },
+} satisfies Readonly<
+  Record<
+    keyof AgencyModifiers,
+    { readonly label: string; readonly points: boolean }
+  >
+>;
+
+const AGENCY_GAINS = Object.keys(AGENCY_GAIN_WORDS).filter(
+  (key): key is keyof AgencyModifiers => Object.hasOwn(AGENCY_GAIN_WORDS, key)
+);
+
+/** The sign an amount is written with, which a negative amount already carries. */
+const signOf = (amount: number): string =>
+  itemAt(["+", ""], Number(amount < 0), "+");
+
+/** A signed amount, as a share or as points. */
+const signed = (amount: number, points: boolean): string => {
+  if (points) {
+    return `${signOf(amount)}${amount}`;
+  }
+  return `${signOf(amount)}${Math.round(amount * PERCENT)}%`;
+};
+
+/** What founding the agency or buying one of its upgrades does and costs, in words. */
+const agencyLabel = (project: AgencyProject): string => {
+  const cost = `民需工場${factoriesFor(project)}つを${AGENCY_DAYS}日使う`;
+  if (project === "found") {
+    return `諜報機関を設立する（${cost}。設立すると工作員を1人雇える）`;
+  }
+  const { levels, name } = upgradeTermsOf(project);
+  const first: Partial<AgencyModifiers> = itemAt(levels, 0, {});
+  const words = AGENCY_GAINS.flatMap((key) => {
+    const amount = first[key] ?? 0;
+    if (amount === 0) {
+      return [];
+    }
+    return [
+      `${AGENCY_GAIN_WORDS[key].label}${signed(amount, AGENCY_GAIN_WORDS[key].points)}`,
+    ];
+  });
+  return `${name}（${cost}、${words.join("・")}、全${levels.length}段階）`;
+};
+
+/** The nations a figure leaves out, in words, or nothing where it leaves none out. */
+const unseenWords = (unseen: number): string => {
+  if (unseen === 0) {
+    return "";
+  }
+  return `、ほかに数のわからない国が${unseen}`;
+};
+
+/**
+ * What a government believes an amount comes to, in words: the figure
+ * itself where it sees every nation exactly, and otherwise its estimate with
+ * the widest error and the nations it has no figure for.
+ */
+const sightingWords = (
+  sighting: Sighting,
+  unit: (amount: number) => string
+): string => {
+  const unseen = unseenWords(sighting.unseen);
+  if (sighting.estimate === 0 && sighting.unseen > 0) {
+    return `不明（${sighting.unseen}国）`;
+  }
+  if (sighting.margin === 0) {
+    return `${unit(sighting.estimate)}${unseen}`;
+  }
+  return `約${unit(sighting.estimate)}（±${Math.round(sighting.margin * PERCENT)}%）${unseen}`;
+};
+
+const counted = (amount: number): string =>
+  Math.round(amount).toLocaleString("ja-JP");
+
 /** The key a question about `nation` goes under, unique within one request. */
 const keyOf = (nation: number, question: Question): string =>
   `n${nation}_${question}`;
@@ -259,11 +360,14 @@ const keyOf = (nation: number, question: Question): string =>
  * How many times over `other` the nation's men outnumber, or a word for a
  * nation facing nobody under arms.
  */
-const ratioTo = (strength: number, other: number): number | string => {
-  if (other <= 0) {
+const ratioTo = (strength: number, other: Sighting): number | string => {
+  if (other.estimate <= 0 && other.unseen > 0) {
+    return "相手の兵力がわからない";
+  }
+  if (other.estimate <= 0) {
     return "相手は兵を出していない";
   }
-  return Math.round((strength / other) * 100) / 100;
+  return Math.round((strength / other.estimate) * 100) / 100;
 };
 
 /**
@@ -278,15 +382,16 @@ const stateOf = (brief: NationBrief) => ({
   宣戦できる国: brief.rivals.map((rival) => ({
     こちらとの兵力比: ratioTo(brief.strength, rival.strength),
     国: `国${rival.nation}`,
-    相手陣営の兵力: Math.round(rival.strength),
+    相手陣営の兵力: sightingWords(rival.strength, men),
   })),
+  工作員: brief.operatives,
   工場: { 民需: brief.civilianFactories, 軍需: brief.militaryFactories },
   戦争中: brief.atWar,
   敵に制空権を握られている空の割合: Math.round(brief.skyLost * 100) / 100,
   敵に対する兵力比: ratioTo(brief.strength, brief.enemyStrength),
-  敵の兵力: Math.round(brief.enemyStrength),
-  敵の航空機: Math.round(brief.enemyPlanes),
-  敵の艦隊の強さ: Math.round(brief.enemyFleet),
+  敵の兵力: sightingWords(brief.enemyStrength, men),
+  敵の航空機: sightingWords(brief.enemyPlanes, counted),
+  敵の艦隊の強さ: sightingWords(brief.enemyFleet, counted),
   燃料の備蓄の割合: Math.round(brief.fuel * 100) / 100,
   自陣営の兵力: Math.round(brief.strength),
   航空機: Math.round(brief.planes),
@@ -331,7 +436,7 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
         [NO_CHOICE, "どこにも宣戦しない"],
         ...brief.rivals.map((rival): [string, string] => [
           rivalChoice(rival.nation),
-          `国${rival.nation}に宣戦する（相手陣営の兵力 ${men(rival.strength)}）`,
+          `国${rival.nation}に宣戦する（相手陣営の兵力 ${sightingWords(rival.strength, men)}）`,
         ]),
       ]),
       instructions: `${name}は今月、陸で接する国か、艦隊で海を渡れる国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。`,
@@ -395,6 +500,39 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       key: keyOf(nation, "focus"),
       nation,
       question: "focus",
+    });
+  }
+  if (brief.agencyProjects.length > 0) {
+    asked.push({
+      criteria: Object.fromEntries([
+        [NO_CHOICE, "今月は何も始めない"],
+        ...brief.agencyProjects.map((project): [string, string] => [
+          project,
+          agencyLabel(project),
+        ]),
+      ]),
+      instructions: `${name}の諜報機関は今月、何に取り組みますか。設立も強化も${AGENCY_DAYS}日かかり、そのあいだ民需工場を建設から外します。諜報が高いほど、敵の兵力・艦隊・航空機の数が正確にわかり、陸戦で相手より強く戦えます。`,
+      key: keyOf(nation, "agency"),
+      nation,
+      question: "agency",
+    });
+  }
+  if (brief.operatives > 0) {
+    asked.push({
+      criteria: Object.fromEntries([
+        [
+          COUNTER_INTELLIGENCE_CHOICE,
+          "工作員を自国に置き、敵の工作員を捕まえる",
+        ],
+        ...brief.spyTargets.map((option): [string, string] => [
+          spyChoice(option.nation),
+          `国${option.nation}に工作員を送る（いまの諜報 ${percentOf(option.known)}）`,
+        ]),
+      ]),
+      instructions: `${name}は工作員をどこに置きますか。送った国には諜報網が育ち、その国の軍や経済の数がわかるようになり、網が育つと潜入・暗号の奪取・設計図の窃取・抵抗運動の支援といった作戦を行います。送った先で捕まることもあります。`,
+      key: keyOf(nation, "espionage"),
+      nation,
+      question: "espionage",
     });
   }
   if (brief.factions.length > 0) {

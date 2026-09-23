@@ -12,11 +12,12 @@ const BUSY: Advancement = {
   research: {
     researched: ["tools-1"],
     studies: [
-      { progress: 50, tech: "artillery-1" },
-      { progress: 30, tech: "tools-2" },
-      { progress: 0, tech: "construction-1" },
-      { progress: 99.9, tech: "electronics-1" },
+      { bonus: 0, progress: 50, tech: "artillery-1" },
+      { bonus: 0, progress: 30, tech: "tools-2" },
+      { bonus: 0, progress: 0, tech: "construction-1" },
+      { bonus: 0, progress: 99.9, tech: "electronics-1" },
     ],
+    vouchers: [],
   },
 };
 

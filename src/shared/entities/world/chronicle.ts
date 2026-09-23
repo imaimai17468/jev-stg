@@ -1,6 +1,8 @@
+import type { AgencyProject } from "./agency";
 import type { Aircraft, Aviation } from "./aircraft";
 import type { ConscriptionLaw, IndustryPlan } from "./economy";
 import type { FocusId } from "./focus";
+import type { Operation } from "./operations";
 import type { Settlement } from "./peace";
 import type { TechId } from "./research";
 import type { ShipyardOrder } from "./ships";
@@ -62,6 +64,38 @@ export type Decision =
       readonly aviation: Aviation;
     }
   | {
+      readonly kind: "agency";
+      readonly nation: number;
+      readonly project: AgencyProject;
+    }
+  | {
+      readonly kind: "espionage";
+      readonly nation: number;
+      /** The nation its operatives go to, or -1 for counter-intelligence at home. */
+      readonly target: number;
+    }
+  | {
+      readonly kind: "operation";
+      readonly nation: number;
+      readonly target: number;
+      readonly operation: Operation;
+      /** How many of its operatives were caught as it ended. */
+      readonly captured: number;
+    }
+  | {
+      readonly kind: "captured";
+      /** The nation that caught the operative. */
+      readonly nation: number;
+      /** The nation whose operative it was. */
+      readonly spy: number;
+    }
+  | {
+      readonly kind: "cipher";
+      readonly nation: number;
+      /** The nation whose cipher it broke. */
+      readonly target: number;
+    }
+  | {
       readonly kind: "landing";
       readonly nation: number;
       /** The coast the divisions went ashore on. */
@@ -77,10 +111,14 @@ export type Decision =
 
 /**
  * What a government decides month by month and a surrendered nation's victor
- * dictates, which is everything that goes through a ruling. A landing and a
- * white peace come out of the day's own step, so no ruling carries them out.
+ * dictates, which is everything that goes through a ruling. A landing, a
+ * white peace, an operation, a caught operative and a broken cipher come out
+ * of the day's own step, so no ruling carries them out.
  */
-export type Order = Exclude<Decision, { kind: "landing" | "white-peace" }>;
+export type Order = Exclude<
+  Decision,
+  { kind: "landing" | "white-peace" | "operation" | "captured" | "cipher" }
+>;
 
 /** Who made a decision: Jev, with how sure it was, or the built-in rules. */
 export type Source =
@@ -110,19 +148,29 @@ export interface Entry extends Carried {
 
 /**
  * Which run of the chronicle an entry counts against: the wars, factions and
- * peaces between nations, a nation's laws, plans and stances, or its research
- * and focus tree.
+ * peaces between nations, a nation's laws, plans and stances, its research
+ * and focus tree, its landings, or its agency and operatives.
  */
-type Strand = "diplomacy" | "policy" | "advancement" | "operations";
+type Strand =
+  | "diplomacy"
+  | "policy"
+  | "advancement"
+  | "operations"
+  | "intelligence";
 
 const STRAND_OF = {
+  agency: "intelligence",
   aircraft: "policy",
   aviation: "policy",
+  captured: "intelligence",
+  cipher: "intelligence",
   conscription: "policy",
   declare: "diplomacy",
+  espionage: "intelligence",
   focus: "advancement",
   join: "diplomacy",
   landing: "operations",
+  operation: "intelligence",
   peace: "diplomacy",
   plan: "policy",
   research: "advancement",
@@ -140,6 +188,7 @@ const STRAND_OF = {
 const STRAND_LENGTH = {
   advancement: 60,
   diplomacy: 60,
+  intelligence: 60,
   operations: 60,
   policy: 60,
 } satisfies Readonly<Record<Strand, number>>;

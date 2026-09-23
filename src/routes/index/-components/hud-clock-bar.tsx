@@ -18,6 +18,7 @@ interface HudClockBarProps {
 
 const MODE_LABELS = {
   air: "制空権",
+  intel: "諜報",
   compliance: "服従度",
   naval: "制海権",
   political: "政治",

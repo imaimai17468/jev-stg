@@ -1,4 +1,5 @@
 import { Schema } from "effect";
+import { AgencyProjectSchema } from "./agency";
 import { FocusIdSchema } from "./focus";
 import { TechIdSchema } from "./research";
 
@@ -29,8 +30,27 @@ const Share = Schema.Finite.check(Schema.isBetween({ maximum: 1, minimum: 0 }));
  */
 const GameDay = Schema.String.check(Schema.isPattern(/^\d{4}-\d{2}-\d{2}$/u));
 
-/** A nation `nation` could declare on, with the men its side has in the field. */
-const RivalSchema = Schema.Struct({ nation: NationId, strength: Amount });
+/**
+ * What a government believes other nations' forces come to: the sum of what
+ * its intelligence lets it see, the widest error in that sum, and how many
+ * nations it has no figure for at all.
+ */
+const SightingSchema = Schema.Struct({
+  estimate: Amount,
+  margin: Share,
+  unseen: Schema.Int.check(
+    Schema.isBetween({ maximum: MOST_NATIONS, minimum: 0 })
+  ),
+});
+
+/** A nation `nation` could declare on, with what it believes the men its side has in the field come to. */
+const RivalSchema = Schema.Struct({
+  nation: NationId,
+  strength: SightingSchema,
+});
+
+/** A nation `nation` could send its operatives to, with how much it already knows of it on average. */
+const SpyTargetSchema = Schema.Struct({ known: Share, nation: NationId });
 
 /** A faction `nation` could join, with the men it has in the field. */
 const FactionOptionSchema = Schema.Struct({
@@ -44,18 +64,22 @@ const FactionOptionSchema = Schema.Struct({
  * questions from values it checked rather than from text the browser sent.
  */
 const NationBriefSchema = Schema.Struct({
+  /** What its agency may put its next month into, empty while it is busy. */
+  agencyProjects: Schema.Array(AgencyProjectSchema).check(
+    Schema.isMaxLength(MOST_OPTIONS)
+  ),
   atWar: Schema.Boolean,
   civilianFactories: Amount,
   /** Convoys it has afloat. */
   convoys: Amount,
   /** Dockyards it builds ships and convoys in, none for a nation without a port. */
   dockyards: Amount,
-  /** What every nation it is fighting has at sea. */
-  enemyFleet: Amount,
-  /** The planes every nation it is fighting has. */
-  enemyPlanes: Amount,
-  /** The men everyone the nation is fighting has in the field. */
-  enemyStrength: Amount,
+  /** What it believes every nation it is fighting has at sea. */
+  enemyFleet: SightingSchema,
+  /** What it believes the planes every nation it is fighting has come to. */
+  enemyPlanes: SightingSchema,
+  /** What it believes the men everyone the nation is fighting has in the field come to. */
+  enemyStrength: SightingSchema,
   equipment: Amount,
   /** Factions it may join, empty unless it is independent and unaligned. */
   factions: Schema.Array(FactionOptionSchema).check(
@@ -74,15 +98,23 @@ const NationBriefSchema = Schema.Struct({
   manpower: Amount,
   militaryFactories: Amount,
   nation: NationId,
+  /** The operatives its agency has. */
+  operatives: Amount,
   /** The planes it has. */
   planes: Amount,
   population: Amount,
+  /** Whether its operatives are posted in another nation rather than kept at home. */
+  posted: Schema.Boolean,
   /** Nations it may declare on, empty unless it is independent and at peace. */
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
   /** The share of its arms output lost to the resources it goes without. */
   shortage: Share,
   /** The share of the skies its side and its enemies both fly over where the enemies hold air superiority. */
   skyLost: Share,
+  /** Nations it may send its operatives to. */
+  spyTargets: Schema.Array(SpyTargetSchema).check(
+    Schema.isMaxLength(MOST_OPTIONS)
+  ),
   /** The men its own side has in the field. */
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
@@ -137,6 +169,8 @@ export type Question =
   | "shipbuilding"
   | "aircraft"
   | "aviation"
+  | "agency"
+  | "espionage"
   | "terms";
 
 const QUESTIONS: readonly Question[] = [
@@ -151,6 +185,8 @@ const QUESTIONS: readonly Question[] = [
   "shipbuilding",
   "aircraft",
   "aviation",
+  "agency",
+  "espionage",
   "terms",
 ];
 
@@ -194,6 +230,12 @@ export const NO_CHOICE = "none";
 
 /** The choice id that names declaring on `nation`. */
 export const rivalChoice = (nation: number): string => `n${nation}`;
+
+/** The choice id that names sending the operatives to `nation`. */
+export const spyChoice = (nation: number): string => `s${nation}`;
+
+/** The choice that keeps the operatives at home on counter-intelligence. */
+export const COUNTER_INTELLIGENCE_CHOICE = "home";
 
 /** The choice id that names joining `faction`. */
 export const factionChoice = (faction: number): string => `f${faction}`;

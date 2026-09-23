@@ -3,6 +3,7 @@ import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import type { ComplianceLevel } from "./compliance-level";
+import type { NetworkLevel } from "./network-level";
 import type { ResourceLevel } from "./resource-level";
 import type { SeaHoldLevel } from "./sea-hold";
 import type { SupplyLevel } from "./supply-level";
@@ -99,6 +100,26 @@ export const COMPLIANCE_HATCH = {
   home: 0,
   wavering: 4,
 } satisfies Readonly<Record<ComplianceLevel, number>>;
+
+/**
+ * What the intelligence map paints each level: the dim land where no network
+ * is, a pale violet where one is still too weak to count, and deeper violets
+ * where it counts and where it is strong.
+ */
+export const NETWORK_COLOURS = {
+  building: { blue: 190, green: 160, red: 170 },
+  counts: { blue: 190, green: 90, red: 130 },
+  none: { blue: 96, green: 90, red: 86 },
+  strong: { blue: 150, green: 30, red: 110 },
+} satisfies Readonly<Record<NetworkLevel, Colour>>;
+
+/** The stripes across each network level, which mark a network still too weak to count. */
+export const NETWORK_HATCH = {
+  building: 4,
+  counts: 0,
+  none: 0,
+  strong: 0,
+} satisfies Readonly<Record<NetworkLevel, number>>;
 
 /**
  * What the naval map paints a sea zone: the colour of the nation that holds it,

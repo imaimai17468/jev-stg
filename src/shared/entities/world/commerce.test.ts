@@ -80,6 +80,7 @@ const WORKS: Works = {
   navies: [NO_NAVY, { ...NO_NAVY, traded: 0.5 }],
   owners: OWNERS,
   reach: [FULL_REACH, FULL_REACH],
+  tiedUp: [0, 0],
   world: WORLD,
 };
 
@@ -165,6 +166,14 @@ describe(commerceOneDay, () => {
     expect(
       commerceOneDay(WORKS).economies.map((economy) => economy.construction)
     ).toStrictEqual([42.5, 22.5]);
+  });
+
+  it("should build with fewer civilian factories when a nation's intelligence agency ties some up", () => {
+    expect(
+      commerceOneDay({ ...WORKS, tiedUp: [5, 0] }).economies.map(
+        (economy) => economy.construction
+      )
+    ).toStrictEqual([17.5, 22.5]);
   });
 
   it("should turn out less equipment when a nation goes short of what its factories take", () => {

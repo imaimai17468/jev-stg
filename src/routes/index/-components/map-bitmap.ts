@@ -16,12 +16,15 @@ import {
   HATCH_SHADE,
   MAP_COLOURS,
   NAVAL_LAND_SHADE,
+  NETWORK_COLOURS,
+  NETWORK_HATCH,
   RESOURCE_COLOURS,
   SEA_HOLD_HATCH,
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
   TERRAIN_SHADE,
 } from "./map-palette";
+import { networkLevelOf, strengthShown } from "./network-level";
 import { richestResourceOf } from "./resource-level";
 import { seaHoldOf } from "./sea-hold";
 import { supplyLevelOf } from "./supply-level";
@@ -97,15 +100,27 @@ const skyFill = (
 
 /**
  * The paint a land province takes under `tint`: its holder's colour shaded by
- * its terrain on the political map, and its supply level's colour, flat, on
- * the supply map.
+ * its terrain on the political map, its supply level's colour, flat, on the
+ * supply map, and on the intelligence map the level of the network the
+ * `picked` nation has there, or the strongest foreign one with nobody picked.
  */
 const paintOf = (
   nations: readonly Nation[],
   holder: number,
   province: LandProvince,
-  tint: Tint
+  tint: Tint,
+  picked: Option.Option<number>
 ): Paint => {
+  if (tint.mode === "intel") {
+    const level = networkLevelOf(
+      strengthShown(tint.networks, province.id, holder, picked)
+    );
+    return {
+      colour: NETWORK_COLOURS[level],
+      hatch: NETWORK_HATCH[level],
+      shade: 1,
+    };
+  }
   if (tint.mode === "supply") {
     const level = supplyLevelOf(tint.network, holder, province.id);
     return {
@@ -201,7 +216,7 @@ const provinceFill = (
   if (province.kind === "sea") {
     return seaFill(nations, province.id, tint);
   }
-  const paint = paintOf(nations, holder, province, tint);
+  const paint = paintOf(nations, holder, province, tint, highlighted);
   // The comparison is on nation ids rather than through a sentinel, because the
   // id an unowned province carries is itself negative and any sentinel would
   // have to dodge it.

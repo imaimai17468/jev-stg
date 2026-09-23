@@ -11,6 +11,8 @@ import {
 } from "./divisions";
 import { combatWidth } from "./frontage";
 import { valueAt } from "./grid";
+import type { Insight } from "./insight";
+import { edgeAgainst } from "./insight";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
@@ -117,6 +119,8 @@ export interface Theatre {
   readonly modifiers: readonly Modifiers[];
   readonly supply: SupplyNetwork;
   readonly air: AirCover;
+  /** What each nation brings to a battle from what it knows of the enemy. */
+  readonly insight: Insight;
 }
 
 /**
@@ -193,7 +197,9 @@ const lineOf = (
  * diplomacy gets. A division that has already broken takes no part: it is
  * neither counted in the defence nor struck, and it leaves the province. Each
  * side fights with no more divisions than the battle's width holds, and the
- * rest wait in reserve, neither firing nor struck.
+ * rest wait in reserve, neither firing nor struck. An attacker fights with
+ * what its nation knows of the holder, and a defender with what the holder
+ * knows of the attacker with the most men in the province.
  */
 export const foughtOneDay = (
   theatre: Theatre,
@@ -201,19 +207,26 @@ export const foughtOneDay = (
   present: readonly Division[]
 ): Battle => {
   const { owners, wars } = theatre;
-  const backingOf = (division: Division): Backing => ({
-    air: combatKeptUnder(
-      coverOver(theatre.air, "enemy", division.nation, division.province)
-    ),
-    fill: postOf(theatre.supply, division.nation, division.province).fill,
-    modifiers: itemAt(theatre.modifiers, division.nation, NO_MODIFIERS),
-  });
   const holder = valueAt(owners, province.id);
   const fighting = present.filter(canFight);
   const broken = present.filter((division) => !canFight(division));
   const attacking = (division: Division) =>
     atWar(wars, holder, division.nation);
   const attackers = fighting.filter(attacking);
+  const leading = strongestOf(attackers);
+  const backingOf = (division: Division): Backing => ({
+    air: combatKeptUnder(
+      coverOver(theatre.air, "enemy", division.nation, division.province)
+    ),
+    fill: postOf(theatre.supply, division.nation, division.province).fill,
+    insight: edgeAgainst(
+      theatre.insight,
+      division.nation,
+      itemAt([holder, leading], Number(division.nation === holder), holder),
+      province.id
+    ),
+    modifiers: itemAt(theatre.modifiers, division.nation, NO_MODIFIERS),
+  });
   if (attackers.length === 0) {
     return {
       broken: [],
@@ -228,7 +241,7 @@ export const foughtOneDay = (
   if (defenders.length === 0) {
     return {
       broken,
-      captured: strongestOf(attackers),
+      captured: leading,
       fought: true,
       standing: fighting,
     };

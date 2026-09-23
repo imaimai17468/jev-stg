@@ -1,6 +1,8 @@
 import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
+import type { AgencyProject } from "./agency";
+import { AGENCY_UPGRADES, agencyOptions } from "./agency";
 import type { AirForce } from "./air-force";
 import { allPlanesOf, NO_AIR_FORCE, planesOf } from "./air-force";
 import type { Aircraft, Aviation } from "./aircraft";
@@ -20,14 +22,30 @@ import type {
   Verdict,
   Weight,
 } from "./consultation";
-import { factionChoice, rivalChoice } from "./consultation";
-import { allied, factionOf, NO_FACTION, sideOf } from "./diplomacy";
+import {
+  COUNTER_INTELLIGENCE_CHOICE,
+  factionChoice,
+  rivalChoice,
+  spyChoice,
+} from "./consultation";
+import {
+  allied,
+  factionOf,
+  NO_FACTION,
+  sideOf,
+  standsAlone,
+} from "./diplomacy";
 import { menFor } from "./divisions";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
+import type { Service } from "./espionage";
+import { HOME, NO_SERVICE } from "./espionage";
 import type { FocusId } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
+import { intelOf } from "./insight";
+import type { IntelTable } from "./intel";
+import { INTEL_KINDS, intelOn } from "./intel";
 import { CONVOYS_PER_DIVISION } from "./invasion";
 import { itemAt } from "./lookup";
 import { overseasRivals } from "./maritime";
@@ -35,14 +53,17 @@ import { neighbouringNations } from "./nations";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
+import { graphOf } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
 import type { TechBranch, TechId } from "./research";
 import { availableTechs, techOf } from "./research";
 import { ruled } from "./rulings";
 import { SHIPYARD_ORDERS } from "./ships";
+import type { Forces, Sighting } from "./sightings";
+import { sightingOf } from "./sightings";
 import type { Simulation } from "./simulation";
-import { realmOf, skiesOf, supplyOf } from "./simulation";
+import { espialOf, realmOf, skiesOf, supplyOf } from "./simulation";
 import type { Skies } from "./skies";
 import { skyLostBy } from "./skies";
 import type { Stance } from "./stance";
@@ -99,11 +120,46 @@ interface Dossier {
   readonly skies: Skies;
   /** The share of its arms output it loses to the resources it goes without. */
   readonly shortage: number;
+  /** Its intelligence service. */
+  readonly service: Service;
+  /** What every nation knows of every other. */
+  readonly intel: IntelTable;
+  /** The draws that set how far off each figure it cannot see exactly is. */
+  readonly random: Random;
 }
 
-/** The men every nation fighting `nation` has in the field. */
-const enemyStrength = (standoff: Standoff, nation: number): number =>
-  strengthAmong(standoff, new Set(enemiesOf(standoff.diplomacy.wars, nation)));
+/** Each of `nations` with `amount` of it, as what `observer` knows of each. */
+const forcesOf = (
+  intel: IntelTable,
+  observer: number,
+  nations: readonly number[],
+  amount: (nation: number) => number
+): readonly Forces[] =>
+  nations.map((nation) => ({
+    amount: amount(nation),
+    known: intelOn(intel, observer, nation),
+  }));
+
+/** The nations `nation` may send its operatives to: every other nation still standing, with what it knows of each. */
+const spyTargetsOf = (
+  standoff: Standoff,
+  intel: IntelTable,
+  nation: number
+): NationBrief["spyTargets"] =>
+  standoff.world.nations.flatMap((other) => {
+    if (other.id === nation || !standsAlone(standoff.diplomacy, other.id)) {
+      return [];
+    }
+    const known = intelOn(intel, nation, other.id);
+    return [
+      {
+        known:
+          INTEL_KINDS.reduce((total, kind) => total + known[kind], 0) /
+          INTEL_KINDS.length,
+        nation: other.id,
+      },
+    ];
+  });
 
 /**
  * The nations `nation` may declare on: none while it is at war, and otherwise
@@ -114,6 +170,7 @@ const enemyStrength = (standoff: Standoff, nation: number): number =>
  */
 const rivalsOf = (
   standoff: Standoff,
+  dossier: Pick<Dossier, "intel" | "random">,
   nation: number
 ): NationBrief["rivals"] => {
   const { diplomacy } = standoff;
@@ -127,7 +184,21 @@ const rivalsOf = (
     ) {
       return [];
     }
-    return [{ nation: other, strength: sideStrength(standoff, other) }];
+    return [
+      {
+        nation: other,
+        strength: sightingOf(
+          "army",
+          forcesOf(
+            dossier.intel,
+            nation,
+            sideOf(standoff.diplomacy, other),
+            (member) => strengthAmong(standoff, new Set([member]))
+          ),
+          dossier.random
+        ),
+      },
+    ];
   });
 };
 
@@ -183,23 +254,34 @@ const briefOf = (
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   const enemies = enemiesOf(standoff.diplomacy.wars, nation);
   const airForce = itemAt(dossier.airForces, nation, NO_AIR_FORCE);
+  const sighted = (
+    kind: "army" | "navy" | "air",
+    amount: (enemy: number) => number
+  ): Sighting =>
+    sightingOf(
+      kind,
+      forcesOf(dossier.intel, nation, enemies, amount),
+      dossier.random
+    );
   return {
     ...offersOf(dossier.advancement),
+    agencyProjects: agencyOptions(
+      dossier.service.agency,
+      dossier.advancement.research.researched
+    ),
     atWar: enemies.length > 0,
     civilianFactories: economy.civilianFactories,
     convoys: itemAt(dossier.navies, nation, NO_NAVY).convoys,
     dockyards: economy.dockyards,
-    enemyFleet: enemies.reduce(
-      (total, enemy) =>
-        total + fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY)),
-      0
+    enemyFleet: sighted("navy", (enemy) =>
+      fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY))
     ),
-    enemyPlanes: enemies.reduce(
-      (total, enemy) =>
-        total + allPlanesOf(itemAt(dossier.airForces, enemy, NO_AIR_FORCE)),
-      0
+    enemyPlanes: sighted("air", (enemy) =>
+      allPlanesOf(itemAt(dossier.airForces, enemy, NO_AIR_FORCE))
     ),
-    enemyStrength: enemyStrength(standoff, nation),
+    enemyStrength: sighted("army", (enemy) =>
+      strengthAmong(standoff, new Set([enemy]))
+    ),
     equipment: economy.equipment,
     factions: factionsOf(standoff, nation),
     fleet: fleetStrength(itemAt(dossier.navies, nation, NO_NAVY)),
@@ -207,11 +289,14 @@ const briefOf = (
     manpower: economy.manpower,
     militaryFactories: economy.militaryFactories,
     nation,
+    operatives: dossier.service.operatives,
     planes: allPlanesOf(airForce),
     population: economy.population,
-    rivals: rivalsOf(standoff, nation),
+    posted: dossier.service.target !== HOME,
+    rivals: rivalsOf(standoff, dossier, nation),
     shortage: dossier.shortage,
     skyLost: skyLostBy(dossier.skies, nation),
+    spyTargets: spyTargetsOf(standoff, dossier.intel, nation),
     strength: sideStrength(standoff, nation),
     undersupplied: undersuppliedShare(
       dossier.supply,
@@ -220,6 +305,12 @@ const briefOf = (
     ),
   };
 };
+
+/**
+ * The stream the council's figures are misread from, apart from the month's
+ * decisions and from the day's intelligence work.
+ */
+const SIGHTING_STREAM = 23;
 
 /** The nations that decide for themselves, in id order. */
 const governments = (world: World, simulation: Simulation): readonly number[] =>
@@ -239,6 +330,10 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
   const standoff = standoffOf(world, simulation);
   const supply = supplyOf(world, simulation);
   const ledgers = ledgersOf({ ...simulation, world });
+  const intel = intelOf(espialOf(simulation, graphOf(world.provinces)));
+  const random = randomFromSeed(
+    streamSeed(streamSeed(world.seed, SIGHTING_STREAM), simulation.clock.days)
+  );
   return {
     _tag: "council",
     date: dateLabel(dateOf(simulation.clock)),
@@ -252,7 +347,10 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
             START_ADVANCEMENT
           ),
           airForces: simulation.airForces,
+          intel,
           navies: simulation.navies,
+          random,
+          service: itemAt(simulation.services, nation, NO_SERVICE),
           shortage: itemAt(ledgers, nation, NO_LEDGER).shortage,
           skies: skiesOf(simulation),
           supply,
@@ -486,6 +584,106 @@ const airByRules = (
   ];
 };
 
+/**
+ * The order the rules buy an agency's upgrades in, at peace and at war,
+ * before every other upgrade in the order the agency lists them: at peace the
+ * economy's department, the defence against enemy operatives, and the
+ * codebreakers; at war the army's department and the codebreakers first.
+ * This game's own.
+ */
+const AGENCY_ORDER = {
+  peace: [
+    "found",
+    "civilian-department",
+    "passive-defense",
+    "cryptology-department",
+    "cypher-school",
+  ],
+  war: [
+    "found",
+    "army-department",
+    "cryptology-department",
+    "radio-interception",
+    "passive-defense",
+  ],
+} satisfies Readonly<Record<"peace" | "war", readonly AgencyProject[]>>;
+
+/** The project the rules put a nation's agency on next, or none where it is busy or has bought everything. */
+const agencyByRules = (
+  service: Service,
+  advancement: Advancement,
+  atWar: boolean
+): Option.Option<AgencyProject> => {
+  const offered = new Set(
+    agencyOptions(service.agency, advancement.research.researched)
+  );
+  const order = itemAt(
+    [AGENCY_ORDER.peace, AGENCY_ORDER.war],
+    Number(atWar),
+    AGENCY_ORDER.peace
+  );
+  return Option.fromUndefinedOr(
+    [...order, ...AGENCY_UPGRADES].find((project) => offered.has(project))
+  );
+};
+
+/**
+ * Where the rules send a nation's operatives: to the enemy with the most men
+ * in the field at war, to the neighbour with the most men at peace, and home
+ * on counter-intelligence where it has neither. Operatives already in one of
+ * those stay there, so the network they built keeps growing rather than
+ * starting over each month. This game's own.
+ */
+const espionageByRules = (
+  standoff: Standoff,
+  nation: number,
+  current: number
+): number => {
+  const enemies = enemiesOf(standoff.diplomacy.wars, nation);
+  const watched = itemAt(
+    [bordering(standoff, nation), enemies],
+    Number(enemies.length > 0),
+    enemies
+  );
+  if (watched.includes(current)) {
+    return current;
+  }
+  let target = HOME;
+  let most = -1;
+  for (const other of watched) {
+    const men = strengthAmong(standoff, new Set([other]));
+    if (men > most) {
+      target = other;
+      most = men;
+    }
+  }
+  return target;
+};
+
+/** What the rules decide for one nation's agency and operatives this month. */
+const intelligenceByRules = (
+  simulation: Simulation,
+  standoff: Standoff,
+  nation: number
+): readonly Order[] => {
+  const service = itemAt(simulation.services, nation, NO_SERVICE);
+  const atWar = enemiesOf(simulation.diplomacy.wars, nation).length > 0;
+  return [
+    ...Option.toArray(
+      agencyByRules(
+        service,
+        itemAt(simulation.advancements, nation, START_ADVANCEMENT),
+        atWar
+      )
+    ).map((project): Order => ({ kind: "agency", nation, project })),
+    {
+      kind: "espionage",
+      nation,
+      target: espionageByRules(standoff, nation, service.target),
+    },
+  ];
+};
+
 /** The branches that make a nation's army fight better. */
 const ARMY_BRANCHES: ReadonlySet<TechBranch> = new Set([
   "infantry",
@@ -584,6 +782,7 @@ export const ruledByRules = (
         ...decisionsByRules(standoffOf(world, current), nation, random),
         ...tradeAndShipsByRules(current, nation),
         ...airByRules(current, nation),
+        ...intelligenceByRules(current, standoffOf(world, current), nation),
       ],
       BY_RULES
     );
@@ -690,6 +889,27 @@ const decisionOf = (
       nation,
     }));
   }
+  if (question === "agency") {
+    return Option.map(
+      pickOf(brief.agencyProjects, choice),
+      (project): Order => ({
+        kind: "agency",
+        nation,
+        project,
+      })
+    );
+  }
+  if (question === "espionage") {
+    if (choice === COUNTER_INTELLIGENCE_CHOICE) {
+      return Option.some({ kind: "espionage", nation, target: HOME });
+    }
+    return Option.map(
+      Option.fromUndefinedOr(
+        brief.spyTargets.find((option) => spyChoice(option.nation) === choice)
+      ),
+      (option): Order => ({ kind: "espionage", nation, target: option.nation })
+    );
+  }
   if (question === "faction") {
     return Option.map(
       Option.fromUndefinedOr(
@@ -726,11 +946,20 @@ const drawn = (
  * declaration Jev gives one chance in ten happens in about one month in ten
  * rather than never; a law, a plan or a stance changes only where Jev is sure
  * of it, which keeps them from flipping on a near tie month after month; a
- * faction and a focus are the one Jev picked; and the research comes back as
+ * faction, a focus and an agency's next project are the one Jev picked, since
+ * each is taken once and the agency's many options leave no single one
+ * likely enough to pass the bar a law has to; operatives still at home go
+ * where Jev picked, and operatives already posted move only where Jev is
+ * sure, so a network under way is not abandoned on a near tie; and the
+ * research comes back as
  * every technology Jev weighed, the heaviest first, which fills the free slots
  * when carried out in order and passes over one an earlier pick ruled out.
  */
-const settledOn = (verdict: Verdict, random: Random): readonly Weight[] => {
+const settledOn = (
+  verdict: Verdict,
+  brief: NationBrief,
+  random: Random
+): readonly Weight[] => {
   const picked: Weight = {
     choice: verdict.choice,
     probability: verdict.probability,
@@ -738,7 +967,12 @@ const settledOn = (verdict: Verdict, random: Random): readonly Weight[] => {
   if (verdict.question === "war") {
     return Option.toArray(drawn(verdict.weights, random));
   }
-  if (verdict.question === "faction" || verdict.question === "focus") {
+  if (
+    verdict.question === "faction" ||
+    verdict.question === "focus" ||
+    verdict.question === "agency" ||
+    (verdict.question === "espionage" && !brief.posted)
+  ) {
     return [picked];
   }
   if (verdict.question === "research") {
@@ -766,7 +1000,7 @@ export const rulingsFrom = (
       (entry) => entry.nation === verdict.nation
     );
     return Option.toArray(Option.fromUndefinedOr(brief)).flatMap((found) =>
-      settledOn(verdict, random).flatMap((weight) =>
+      settledOn(verdict, found, random).flatMap((weight) =>
         Option.toArray(
           Option.map(
             decisionOf(found, verdict.question, weight.choice),

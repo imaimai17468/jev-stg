@@ -100,6 +100,8 @@ export interface Footing {
   readonly airSupplied: number;
   /** Civilian factories its trade brought in, less the ones it paid out. */
   readonly traded: number;
+  /** Civilian factories its intelligence agency has off construction. */
+  readonly tiedUp: number;
   /** The share of its military factories on planes, from 0 to 1. */
   readonly aviation: number;
   /** The share of its people who live on the coast, from 0 to 1. */
@@ -218,17 +220,19 @@ export const constructionProgress = (economy: NationEconomy): number =>
 
 /**
  * What the nation's civilian factories put into construction in a day: the
- * ones its consumer goods leave, with the ones its trade handed over taken off
- * and the ones it was handed added.
+ * ones its consumer goods leave, with the ones its trade handed over and the
+ * ones its intelligence agency ties up taken off, and the ones it was handed
+ * added.
  */
 const constructionPerDay = (
   economy: NationEconomy,
-  { modifiers, reach, traded }: Footing
+  { modifiers, reach, tiedUp, traded }: Footing
 ): number =>
   Math.max(
     0,
     economy.civilianFactories * (1 - PLAN_SHARES[economy.plan].consumerGoods) +
-      traded
+      traded -
+      tiedUp
   ) *
   CONSTRUCTION_PER_FACTORY *
   (1 + modifiers.construction) *

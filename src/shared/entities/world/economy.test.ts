@@ -97,6 +97,7 @@ const INLAND: Footing = {
   modifiers: NO_MODIFIERS,
   reach: FULL_REACH,
   supplied: 1,
+  tiedUp: 0,
   traded: 0,
 };
 
