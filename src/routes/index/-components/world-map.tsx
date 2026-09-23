@@ -30,8 +30,8 @@ import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
 import { CRATES } from "./map-palette";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
-import type { Surface, Viewport } from "./viewport";
-import { clamped, fitViewport, pannedBy, zoomedAt } from "./viewport";
+import { useMapView } from "./use-map-view";
+import type { Surface } from "./viewport";
 import { wingMarks } from "./wing-marks";
 
 interface WorldMapProps {
@@ -70,7 +70,6 @@ const noCleanup = () => {
 };
 
 const UNMEASURED: Surface = { height: 0, width: 0 };
-const NO_VIEW = Option.none<Viewport>();
 const NO_CANVAS = Option.none<HTMLCanvasElement>();
 const NO_DRAG = Option.none<Point>();
 
@@ -314,7 +313,6 @@ const WorldMapSurface = ({
   const dragTravel = useRef(0);
   const dragSlack = useRef(CLICK_SLACK.mouse);
   const [surface, setSurface] = useState<Surface>(UNMEASURED);
-  const [chosenView, setChosenView] = useState(NO_VIEW);
   // The element the ref was last handed. It is state as well as a ref so the
   // observer below is torn down and rebuilt against the element rather than
   // against the mount, and a ref so the painting effect reaches it without
@@ -403,17 +401,12 @@ const WorldMapSurface = ({
     [world, owners, divisions, supply, navies, airForces]
   );
 
-  const viewOf = useCallback(
-    (chosen: Option.Option<Viewport>): Viewport =>
-      clamped(
-        Option.getOrElse(chosen, () => fitViewport(world.grid, surface)),
-        world.grid,
-        surface
-      ),
-    [world.grid, surface]
-  );
-
-  const view = viewOf(chosenView);
+  const {
+    panBy,
+    steer: steerBy,
+    view,
+    zoomAt,
+  } = useMapView(world.grid, surface);
 
   useEffect(() => {
     // Synchronise the canvas with the viewport the render settled on.
@@ -483,9 +476,6 @@ const WorldMapSurface = ({
     dragSlack.current = slackFor(event.pointerType);
   };
 
-  // Every handler below folds the previous viewport rather than the one this
-  // render holds, because a burst of pointer or wheel events is delivered before
-  // React renders the first of them.
   const continueDrag = (event: PointerEvent<HTMLCanvasElement>) => {
     const from = dragFrom.current;
     if (Option.isNone(from)) {
@@ -494,9 +484,7 @@ const WorldMapSurface = ({
     const byX = event.clientX - from.value.x;
     const byY = event.clientY - from.value.y;
     dragTravel.current += Math.abs(byX) + Math.abs(byY);
-    setChosenView((chosen) =>
-      Option.some(pannedBy(viewOf(chosen), world.grid, surface, byX, byY))
-    );
+    panBy(byX, byY);
     dragFrom.current = Option.some({ x: event.clientX, y: event.clientY });
   };
 
@@ -532,11 +520,7 @@ const WorldMapSurface = ({
     const factor = ZOOM_PER_PIXEL ** -event.deltaY;
     const atX = event.clientX - box.left;
     const atY = event.clientY - box.top;
-    setChosenView((chosen) =>
-      Option.some(
-        zoomedAt(viewOf(chosen), world.grid, surface, factor, atX, atY)
-      )
-    );
+    zoomAt(factor, atX, atY);
   };
 
   const steer = (event: KeyboardEvent<HTMLCanvasElement>) => {
@@ -556,18 +540,7 @@ const WorldMapSurface = ({
       return;
     }
     event.preventDefault();
-    setChosenView((chosen) =>
-      Option.some(
-        zoomedAt(
-          pannedBy(viewOf(chosen), world.grid, surface, pan.x, pan.y),
-          world.grid,
-          surface,
-          factor,
-          surface.width / 2,
-          surface.height / 2
-        )
-      )
-    );
+    steerBy(pan.x, pan.y, factor);
   };
 
   return (
