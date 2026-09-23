@@ -17,7 +17,16 @@ import type {
   ConscriptionLaw,
   IndustryPlan,
 } from "@/shared/entities/world/economy";
+import type { FocusId, Grants } from "@/shared/entities/world/focus";
+import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
+import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
+import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
+import type { TechId } from "@/shared/entities/world/research";
+import {
+  AHEAD_OF_TIME_PER_YEAR,
+  techOf,
+} from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
 
 /** One `choice` question as `/v1/evaluate` takes it. */
@@ -93,6 +102,60 @@ const TERMS_LABELS = {
   cede: "占領した土地だけを取って講和する",
   puppet: "傀儡国にして陣営に従わせる",
 } satisfies Readonly<Record<PeaceTerms, string>>;
+
+const MODIFIER_LABELS = {
+  attack: "攻撃",
+  construction: "建設速度",
+  defence: "防御",
+  manpower: "動員できる人数",
+  organisation: "組織力",
+  production: "装備の生産",
+  recovery: "組織力の回復",
+  research: "研究速度",
+} satisfies Readonly<Record<Modifier, string>>;
+
+const GRANT_LABELS = {
+  civilianFactories: "民需工場",
+  militaryFactories: "軍需工場",
+  researchSlots: "研究枠",
+} satisfies Readonly<Record<keyof Grants, string>>;
+
+const GRANTS: readonly (keyof Grants)[] = [
+  "civilianFactories",
+  "militaryFactories",
+  "researchSlots",
+];
+
+const PERCENT = 100;
+
+/** What a technology or a focus makes the nation better at, in words. */
+const bonusWords = (bonus: Bonus): readonly string[] =>
+  MODIFIERS.flatMap((modifier) => {
+    const share = shareOf(bonus, modifier);
+    if (share === 0) {
+      return [];
+    }
+    return [`${MODIFIER_LABELS[modifier]}+${Math.round(share * PERCENT)}%`];
+  });
+
+/** What finishing a focus hands the nation once, in words. */
+const grantWords = (grants: Grants): readonly string[] =>
+  GRANTS.flatMap((grant) => {
+    if (grants[grant] === 0) {
+      return [];
+    }
+    return [`${GRANT_LABELS[grant]}+${grants[grant]}`];
+  });
+
+const techLabel = (tech: TechId): string => {
+  const { bonus, name, year } = techOf(tech);
+  return `${name}（${year}年の技術、${bonusWords(bonus).join("・")}）`;
+};
+
+const focusLabel = (focus: FocusId): string => {
+  const { bonus, grants, name } = focusOf(focus);
+  return `${name}（${[...grantWords(grants), ...bonusWords(bonus)].join("・")}）`;
+};
 
 const men = (count: number): string =>
   `${Math.round(count).toLocaleString("ja-JP")}人`;
@@ -174,6 +237,31 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       key: keyOf(nation, "war"),
       nation,
       question: "war",
+    });
+  }
+  if (brief.techs.length > 0) {
+    asked.push({
+      criteria: Object.fromEntries(
+        brief.techs.map((tech): [string, string] => [tech, techLabel(tech)])
+      ),
+      instructions: `${name}には空いている研究枠が${brief.freeSlots}つあります。次に研究する技術として最も良いものはどれですか。今年より後の年の技術は、1年早いごとに研究にかかる日数が${AHEAD_OF_TIME_PER_YEAR}倍ずつ増えます。`,
+      key: keyOf(nation, "research"),
+      nation,
+      question: "research",
+    });
+  }
+  if (brief.focuses.length > 0) {
+    asked.push({
+      criteria: Object.fromEntries(
+        brief.focuses.map((focus): [string, string] => [
+          focus,
+          focusLabel(focus),
+        ])
+      ),
+      instructions: `${name}が次に進める国家方針はどれですか。国家方針は${FOCUS_DAYS}日かけて達成され、達成した日から効果が出ます。`,
+      key: keyOf(nation, "focus"),
+      nation,
+      question: "focus",
     });
   }
   if (brief.factions.length > 0) {

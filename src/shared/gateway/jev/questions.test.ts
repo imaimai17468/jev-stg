@@ -12,12 +12,15 @@ const BRIEF: NationBrief = {
   enemyStrength: 40_000,
   equipment: 1500.4,
   factions: [{ faction: 0, strength: 60_000 }],
+  focuses: [],
+  freeSlots: 0,
   manpower: 90_000.6,
   militaryFactories: 5,
   nation: 1,
   population: 3_000_000.2,
   rivals: [{ nation: 2, strength: 20_000 }],
   strength: 20_000,
+  techs: [],
 };
 
 const COUNCIL: Council = {
@@ -79,6 +82,55 @@ describe(evaluationFor, () => {
       },
       instructions:
         "国1は今月、陣営に入りますか。強い隣国に脅かされているなら、後ろ盾になる陣営が役に立ちます。",
+      type: "choice",
+    });
+  });
+
+  it("should offer each technology a free slot may start, with its year and what it adds, when a slot is free", () => {
+    const researching: Council = {
+      ...COUNCIL,
+      nations: [
+        {
+          ...BRIEF,
+          freeSlots: 2,
+          techs: ["infantry-weapons-1", "tools-2"],
+        },
+      ],
+    };
+
+    expect(evaluationFor(researching).body.questions.n1_research).toStrictEqual(
+      {
+        criteria: {
+          "infantry-weapons-1": "歩兵装備I（1936年の技術、攻撃+5%・防御+10%）",
+          "tools-2": "工作機械II（1937年の技術、装備の生産+10%）",
+        },
+        instructions:
+          "国1には空いている研究枠が2つあります。次に研究する技術として最も良いものはどれですか。今年より後の年の技術は、1年早いごとに研究にかかる日数が1倍ずつ増えます。",
+        type: "choice",
+      }
+    );
+  });
+
+  it("should offer each focus on offer, with what it hands over and adds, when no focus is being pursued", () => {
+    const choosing: Council = {
+      ...COUNCIL,
+      nations: [
+        {
+          ...BRIEF,
+          focuses: ["industrialisation", "total-mobilisation", "army-effort"],
+        },
+      ],
+    };
+
+    expect(evaluationFor(choosing).body.questions.n1_focus).toStrictEqual({
+      criteria: {
+        "army-effort": "陸軍拡張（組織力+5%）",
+        industrialisation: "工業化（民需工場+3）",
+        "total-mobilisation":
+          "総力動員（民需工場+2・軍需工場+2・装備の生産+5%）",
+      },
+      instructions:
+        "国1が次に進める国家方針はどれですか。国家方針は70日かけて達成され、達成した日から効果が出ます。",
       type: "choice",
     });
   });

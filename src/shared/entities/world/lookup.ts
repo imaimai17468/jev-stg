@@ -8,3 +8,16 @@
  */
 export const itemAt = <T>(items: readonly T[], index: number, fallback: T): T =>
   items[index] ?? fallback;
+
+/** The list with `item` in place of the one at `index`. */
+export const replacedAt = <T>(
+  items: readonly T[],
+  index: number,
+  item: T
+): readonly T[] =>
+  items.map((held, other) => {
+    if (other === index) {
+      return item;
+    }
+    return held;
+  });

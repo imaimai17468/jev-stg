@@ -1,3 +1,6 @@
+import { Option } from "effect";
+import type { Advancement } from "./advancement";
+import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
 import type { Decision, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
 import {
@@ -10,29 +13,16 @@ import {
 } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY, withConscription, withPlan } from "./economy";
+import { availableFocuses, focusStarted } from "./focus";
 import type { World } from "./index";
-import { itemAt } from "./lookup";
+import { itemAt, replacedAt } from "./lookup";
 import { neighbouringNations } from "./nations";
+import { availableTechs, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
 import { START_STANCE } from "./stance";
 import { answersToItself, peaceSigned } from "./statecraft";
 import { enemiesOf } from "./wars";
-
-/** The simulation with one nation's economy replaced by what `change` makes of it. */
-const economyChanged = (
-  simulation: Simulation,
-  nation: number,
-  change: (economy: NationEconomy) => NationEconomy
-): Simulation => ({
-  ...simulation,
-  economies: simulation.economies.map((economy, other) => {
-    if (other === nation) {
-      return change(economy);
-    }
-    return economy;
-  }),
-});
 
 /**
  * Whether `nation`, which answers to itself, may still declare on `target`
@@ -80,6 +70,69 @@ const mayJoin = (
 };
 
 /**
+ * The advancement with the research or the focus started on it, or none where
+ * no slot is free any more, or the technology or the focus is no longer on
+ * offer because it was started or ruled out since.
+ */
+const advancementRuled = (
+  advancement: Advancement,
+  decision: Extract<Decision, { kind: "research" | "focus" }>
+): Option.Option<Advancement> => {
+  if (decision.kind === "research") {
+    if (
+      freeSlotsOf(advancement) === 0 ||
+      !availableTechs(advancement.research).includes(decision.tech)
+    ) {
+      return Option.none();
+    }
+    return Option.some({
+      ...advancement,
+      research: studyStarted(advancement.research, decision.tech),
+    });
+  }
+  if (!availableFocuses(advancement.focuses).includes(decision.focus)) {
+    return Option.none();
+  }
+  return Option.some({
+    ...advancement,
+    focuses: focusStarted(advancement.focuses, decision.focus),
+  });
+};
+
+/** The economy under the law or the plan decided, or none where it already has it. */
+const economyRuled = (
+  economy: NationEconomy,
+  decision: Extract<Decision, { kind: "conscription" | "plan" }>
+): Option.Option<NationEconomy> => {
+  if (decision.kind === "conscription") {
+    if (economy.conscription === decision.law) {
+      return Option.none();
+    }
+    return Option.some(withConscription(economy, decision.law));
+  }
+  if (economy.plan === decision.plan) {
+    return Option.none();
+  }
+  return Option.some(withPlan(economy, decision.plan));
+};
+
+/**
+ * The simulation with `ruled` in place of the nation's entry in `items`, put
+ * back by `into`, or `simulation` itself where the ruling changed nothing.
+ */
+const replacedFor = <T>(
+  simulation: Simulation,
+  items: readonly T[],
+  nation: number,
+  ruled: Option.Option<T>,
+  into: (replaced: readonly T[]) => Simulation
+): Simulation =>
+  Option.match(ruled, {
+    onNone: () => simulation,
+    onSome: (next) => into(replacedAt(items, nation, next)),
+  });
+
+/**
  * The simulation once `decision` is carried out, or the same simulation where
  * the world has moved on since it was decided and it no longer applies, or
  * where it changes nothing. A nation that has become a puppet or been annexed
@@ -95,20 +148,13 @@ const carriedOut = (
   if (!answersToItself(diplomacy, decision.nation)) {
     return simulation;
   }
-  if (decision.kind === "conscription") {
-    if (economy.conscription === decision.law) {
-      return simulation;
-    }
-    return economyChanged(simulation, decision.nation, (held) =>
-      withConscription(held, decision.law)
-    );
-  }
-  if (decision.kind === "plan") {
-    if (economy.plan === decision.plan) {
-      return simulation;
-    }
-    return economyChanged(simulation, decision.nation, (held) =>
-      withPlan(held, decision.plan)
+  if (decision.kind === "conscription" || decision.kind === "plan") {
+    return replacedFor(
+      simulation,
+      simulation.economies,
+      decision.nation,
+      economyRuled(economy, decision),
+      (economies) => ({ ...simulation, economies })
     );
   }
   if (decision.kind === "stance") {
@@ -120,13 +166,20 @@ const carriedOut = (
     }
     return {
       ...simulation,
-      stances: simulation.stances.map((stance, nation) => {
-        if (nation === decision.nation) {
-          return decision.stance;
-        }
-        return stance;
-      }),
+      stances: replacedAt(simulation.stances, decision.nation, decision.stance),
     };
+  }
+  if (decision.kind === "research" || decision.kind === "focus") {
+    return replacedFor(
+      simulation,
+      simulation.advancements,
+      decision.nation,
+      advancementRuled(
+        itemAt(simulation.advancements, decision.nation, START_ADVANCEMENT),
+        decision
+      ),
+      (advancements) => ({ ...simulation, advancements })
+    );
   }
   if (decision.kind === "declare") {
     if (!mayDeclare(world, simulation, decision.nation, decision.target)) {

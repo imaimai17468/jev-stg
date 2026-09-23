@@ -10,9 +10,11 @@ import type {
   ConscriptionLaw,
   IndustryPlan,
 } from "@/shared/entities/world/economy";
+import { focusOf } from "@/shared/entities/world/focus";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
+import { techOf } from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
 
 /** One chronicle entry as the feed prints it. */
@@ -85,6 +87,12 @@ const described = (
   }
   if (decision.kind === "declare") {
     return { action: `${nameOf(decision.target)}に宣戦布告`, actor };
+  }
+  if (decision.kind === "research") {
+    return { action: `研究開始 → ${techOf(decision.tech).name}`, actor };
+  }
+  if (decision.kind === "focus") {
+    return { action: `国家方針 → ${focusOf(decision.focus).name}`, actor };
   }
   return { action: `${nameOf(decision.faction)}陣営に加盟`, actor };
 };

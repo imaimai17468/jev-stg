@@ -10,6 +10,12 @@ import {
 import type { NationSummary } from "./nation-summary";
 
 const SUMMARY: NationSummary = {
+  advancement: {
+    focus: { label: "進めている方針", value: "なし" },
+    focusesDone: [],
+    researched: 0,
+    slots: [],
+  },
   cells: 6943,
   divisions: 0,
   economy: { ...NO_ECONOMY, population: 125_166_336 },

@@ -1,4 +1,6 @@
 import { Schema } from "effect";
+import { FocusIdSchema } from "./focus";
+import { TechIdSchema } from "./research";
 
 /**
  * The most nations and the most options one consultation names. They bound
@@ -6,6 +8,9 @@ import { Schema } from "effect";
  */
 const MOST_NATIONS = 32;
 const MOST_OPTIONS = 16;
+
+/** The most research slots a nation can have, which the focus tree stays under. */
+const MOST_SLOTS = 8;
 
 const NationId = Schema.Int.check(
   Schema.isBetween({ maximum: MOST_NATIONS - 1, minimum: 0 })
@@ -48,6 +53,12 @@ const NationBriefSchema = Schema.Struct({
   factions: Schema.Array(FactionOptionSchema).check(
     Schema.isMaxLength(MOST_OPTIONS)
   ),
+  /** National focuses it may pick, empty while it pursues one. */
+  focuses: Schema.Array(FocusIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  /** Research slots with nothing on them. */
+  freeSlots: Schema.Int.check(
+    Schema.isBetween({ maximum: MOST_SLOTS, minimum: 0 })
+  ),
   manpower: Amount,
   militaryFactories: Amount,
   nation: NationId,
@@ -56,6 +67,8 @@ const NationBriefSchema = Schema.Struct({
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
   /** The men its own side has in the field. */
   strength: Amount,
+  /** Technologies a free slot may start on, empty when no slot is free. */
+  techs: Schema.Array(TechIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
 });
 
 export type NationBrief = typeof NationBriefSchema.Type;
@@ -98,6 +111,8 @@ export type Question =
   | "stance"
   | "war"
   | "faction"
+  | "research"
+  | "focus"
   | "terms";
 
 const QUESTIONS: readonly Question[] = [
@@ -106,6 +121,8 @@ const QUESTIONS: readonly Question[] = [
   "stance",
   "war",
   "faction",
+  "research",
+  "focus",
   "terms",
 ];
 

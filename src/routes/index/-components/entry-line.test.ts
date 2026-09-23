@@ -64,4 +64,16 @@ describe(entryLine, () => {
       actor: "国0",
     });
   });
+
+  it("should name the technology when a nation starts researching one", () => {
+    expect(
+      lineOf({ kind: "research", nation: 0, tech: "tools-1" }).action
+    ).toBe("研究開始 → 工作機械I");
+  });
+
+  it("should name the focus when a nation picks a national focus", () => {
+    expect(
+      lineOf({ focus: "research-bureau", kind: "focus", nation: 0 }).action
+    ).toBe("国家方針 → 研究局");
+  });
 });

@@ -1,5 +1,7 @@
 import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
+import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { dateOf } from "@/shared/entities/world/clock";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
   factionOf,
@@ -17,6 +19,8 @@ import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
+import type { AdvancementSummary } from "./advancement-summary";
+import { advancementSummaryOf } from "./advancement-summary";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {
@@ -57,9 +61,11 @@ export interface NationSummary {
   readonly faction: Option.Option<FactionSummary>;
   /** The nations that answer to it, by name. */
   readonly puppets: readonly string[];
+  readonly advancement: AdvancementSummary;
 }
 
 const EMPTY: NationSummary = {
+  advancement: advancementSummaryOf(START_ADVANCEMENT, 0),
   cells: 0,
   divisions: 0,
   economy: NO_ECONOMY,
@@ -164,6 +170,10 @@ export const summaryOf = (
     }
   }
   return {
+    advancement: advancementSummaryOf(
+      itemAt(simulation.advancements, nation, START_ADVANCEMENT),
+      dateOf(simulation.clock).year
+    ),
     cells,
     divisions: simulation.divisions.filter(
       (division) => division.nation === nation

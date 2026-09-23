@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Advancement } from "./advancement";
+import { START_ADVANCEMENT } from "./advancement";
 import type { Decision, Ruling } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Diplomacy } from "./diplomacy";
@@ -11,6 +13,7 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import { focusStarted, START_FOCUSES } from "./focus";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
 import { enemiesOf } from "./wars";
@@ -34,6 +37,30 @@ const SUBJECTS: Simulation = withDiplomacy({
     { kind: "puppet", overlord: 3 },
     INDEPENDENT,
   ],
+});
+
+/** The row with nation 0's advancement replaced by `advancement`. */
+const advancedTo = (advancement: Advancement): Simulation => ({
+  ...ROW_SIMULATION,
+  advancements: ROW_SIMULATION.advancements.map((held, nation) => {
+    if (nation === 0) {
+      return advancement;
+    }
+    return held;
+  }),
+});
+
+/** Nation 0 with a technology on each of its three slots. */
+const BUSY: Simulation = advancedTo({
+  ...START_ADVANCEMENT,
+  research: {
+    researched: [],
+    studies: [
+      { progress: 0, tech: "tools-1" },
+      { progress: 0, tech: "construction-1" },
+      { progress: 0, tech: "electronics-1" },
+    ],
+  },
 });
 
 describe(ruled, () => {
@@ -308,5 +335,64 @@ describe(ruled, () => {
         })
       )
     ).toBe(ROW_SIMULATION);
+  });
+
+  it("should put the technology on a free slot when a nation starts researching it", () => {
+    const after = ruled(
+      ROW_WORLD,
+      ROW_SIMULATION,
+      byRules({ kind: "research", nation: 0, tech: "tools-1" })
+    );
+
+    expect(after.advancements[0]?.research.studies).toStrictEqual([
+      { progress: 0, tech: "tools-1" },
+    ]);
+  });
+
+  it("should drop a technology when every slot is busy", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        BUSY,
+        byRules({ kind: "research", nation: 0, tech: "artillery-1" })
+      )
+    ).toBe(BUSY);
+  });
+
+  it("should drop a technology when its prerequisites are not researched", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "research", nation: 0, tech: "tools-2" })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
+  it("should start the focus when a nation picks one on offer", () => {
+    const after = ruled(
+      ROW_WORLD,
+      ROW_SIMULATION,
+      byRules({ focus: "army-effort", kind: "focus", nation: 0 })
+    );
+
+    expect(after.advancements[0]?.focuses).toStrictEqual(
+      focusStarted(START_FOCUSES, "army-effort")
+    );
+  });
+
+  it("should drop a focus when the nation is already pursuing one", () => {
+    const pursuing = advancedTo({
+      ...START_ADVANCEMENT,
+      focuses: focusStarted(START_FOCUSES, "army-effort"),
+    });
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        pursuing,
+        byRules({ focus: "industrialisation", kind: "focus", nation: 0 })
+      )
+    ).toBe(pursuing);
   });
 });

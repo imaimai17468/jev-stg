@@ -1,13 +1,21 @@
+import type { Advancement } from "./advancement";
+import {
+  modifiersOf,
+  progressedOneDay,
+  START_ADVANCEMENT,
+} from "./advancement";
 import { armiesAfterOneDay } from "./army";
 import type { Entry, Negotiation } from "./chronicle";
 import type { Clock } from "./clock";
-import { advancedOneDay as nextClock, START_CLOCK } from "./clock";
+import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy } from "./diplomacy";
+import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { producedOneDay, startEconomies } from "./economy";
 import type { World } from "./index";
+import { itemAt } from "./lookup";
+import { NO_MODIFIERS } from "./modifiers";
 import { initialOwners } from "./nations";
 import type { Stance } from "./stance";
 import { START_STANCE } from "./stance";
@@ -25,6 +33,8 @@ export interface Simulation {
   readonly divisions: readonly Division[];
   /** How boldly each nation's army attacks, by nation id. */
   readonly stances: readonly Stance[];
+  /** What each nation has researched and how far along its focus tree it is, by nation id. */
+  readonly advancements: readonly Advancement[];
   /** Surrendered nations waiting to hear their terms. */
   readonly negotiations: readonly Negotiation[];
   /** What the governments decided and the world carried out, the newest first. */
@@ -36,6 +46,7 @@ export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
   const economies = startEconomies(world, owners);
   return {
+    advancements: world.nations.map(() => START_ADVANCEMENT),
     chronicle: [],
     clock: START_CLOCK,
     diplomacy: openingDiplomacy(
@@ -73,27 +84,75 @@ export const fromRealm = (realm: Realm) => ({
   owners: realm.armies.owners,
 });
 
+/** Every nation's research and focus one day on, and the economies they handed something to. */
+interface Advanced {
+  readonly advancements: readonly Advancement[];
+  readonly economies: readonly NationEconomy[];
+}
+
+/**
+ * An annexed nation's tree stops where it stood, so a focus it had under way
+ * hands nothing to a nation that no longer holds any ground.
+ */
+const advancedEverywhere = (
+  diplomacy: Diplomacy,
+  advancements: readonly Advancement[],
+  economies: readonly NationEconomy[],
+  year: number
+): Advanced => {
+  const days = economies.map((economy, nation) => {
+    const advancement = itemAt(advancements, nation, START_ADVANCEMENT);
+    if (!standsAlone(diplomacy, nation)) {
+      return { advancement, economy };
+    }
+    return progressedOneDay(advancement, economy, year);
+  });
+  return {
+    advancements: days.map((day) => day.advancement),
+    economies: days.map((day) => day.economy),
+  };
+};
+
 /**
  * The whole simulation one day on: the economies, then the armies, then the
- * diplomacy, so a nation surrenders the day its homeland falls and a month's
- * declarations read the armies as that day left them.
+ * research and the national focuses, then the diplomacy, so a nation
+ * surrenders the day its homeland falls and a month's declarations read the
+ * armies as that day left them. The economies and the armies work with what
+ * the nation had researched when the day began.
  */
 export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
+  const modifiers = simulation.advancements.map(modifiersOf);
   const armies = armiesAfterOneDay(
     world,
-    { stances: simulation.stances, wars: simulation.diplomacy.wars },
+    {
+      modifiers,
+      stances: simulation.stances,
+      wars: simulation.diplomacy.wars,
+    },
     {
       divisions: simulation.divisions,
-      economies: simulation.economies.map(producedOneDay),
+      economies: simulation.economies.map((economy, nation) =>
+        producedOneDay(economy, itemAt(modifiers, nation, NO_MODIFIERS))
+      ),
       owners: simulation.owners,
     }
+  );
+  const advanced = advancedEverywhere(
+    simulation.diplomacy,
+    simulation.advancements,
+    armies.economies,
+    dateOf(clock).year
   );
   return {
     ...simulation,
     ...fromRealm(
-      conductedOneDay(world, clock, { ...realmOf(simulation), armies })
+      conductedOneDay(world, clock, {
+        ...realmOf(simulation),
+        armies: { ...armies, economies: advanced.economies },
+      })
     ),
+    advancements: advanced.advancements,
     clock,
   };
 };

@@ -1,13 +1,18 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { START_ADVANCEMENT } from "./advancement";
 import { LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
-import { openingDiplomacy } from "./diplomacy";
+import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
+import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
+import { START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, startSimulation, withClock } from "./simulation";
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
+  advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   clock: START_CLOCK,
   diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
@@ -60,6 +65,60 @@ describe(ranOneDay, () => {
       paused: false,
       speed: 2,
     });
+  });
+
+  it("should put a day into every nation's research and focus when a day passes", () => {
+    const studying: Simulation = {
+      ...OPENING,
+      advancements: [
+        {
+          focuses: focusStarted(START_FOCUSES, "army-effort"),
+          research: studyStarted(START_RESEARCH, "tools-1"),
+        },
+        START_ADVANCEMENT,
+      ],
+    };
+
+    expect(ranOneDay(LINE_WORLD, studying).advancements).toStrictEqual([
+      {
+        focuses: {
+          current: Option.some({ focus: "army-effort", progress: 1 }),
+          done: [],
+        },
+        research: {
+          researched: [],
+          studies: [{ progress: 1, tech: "tools-1" }],
+        },
+      },
+      START_ADVANCEMENT,
+    ]);
+  });
+
+  it("should grant nothing when an annexed nation's focus reaches its last day", () => {
+    const annexed: Simulation = {
+      ...OPENING,
+      advancements: [
+        START_ADVANCEMENT,
+        {
+          ...START_ADVANCEMENT,
+          focuses: {
+            current: Option.some({
+              focus: "industrialisation",
+              progress: FOCUS_DAYS - 1,
+            }),
+            done: [],
+          },
+        },
+      ],
+      diplomacy: {
+        ...OPENING.diplomacy,
+        standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
+      },
+    };
+
+    expect(ranOneDay(LINE_WORLD, annexed).economies[1]?.civilianFactories).toBe(
+      1
+    );
   });
 
   it("should leave the map alone when no nation can put a division in the field", () => {

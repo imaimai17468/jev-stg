@@ -1,4 +1,5 @@
 import type { NationEconomy } from "./economy";
+import type { Modifiers } from "./modifiers";
 import type { Terrain } from "./terrain";
 
 /** What a division is built from. Armour and artillery join this later. */
@@ -103,19 +104,26 @@ export const strengthOf = (divisions: readonly Division[]): number =>
 const fitnessOf = (division: Division): number =>
   division.strength / TEMPLATES[division.kind].manpower;
 
-/** What a division is worth in a day of attacking. */
-export const attackOf = (division: Division): number =>
-  fitnessOf(division) * TEMPLATES[division.kind].attack;
+/** What a division of a nation with `modifiers` is worth in a day of attacking. */
+export const attackOf = (division: Division, modifiers: Modifiers): number =>
+  fitnessOf(division) *
+  TEMPLATES[division.kind].attack *
+  (1 + modifiers.attack);
 
-/** What a division is worth in a day of holding the ground it stands on. */
-export const defenceOf = (division: Division): number =>
-  fitnessOf(division) * TEMPLATES[division.kind].defence;
+/** What it is worth in a day of holding the ground it stands on. */
+export const defenceOf = (division: Division, modifiers: Modifiers): number =>
+  fitnessOf(division) *
+  TEMPLATES[division.kind].defence *
+  (1 + modifiers.defence);
 
-/** The division with a day of rest behind it, up to its template's cohesion. */
-export const rested = (division: Division): Division => ({
+/**
+ * The division with a day of rest behind it, up to its template's cohesion as
+ * its nation's doctrine raises it, recovering as fast as the doctrine lets it.
+ */
+export const rested = (division: Division, modifiers: Modifiers): Division => ({
   ...division,
   organisation: Math.min(
-    TEMPLATES[division.kind].organisation,
-    division.organisation + ORGANISATION_PER_DAY
+    TEMPLATES[division.kind].organisation * (1 + modifiers.organisation),
+    division.organisation + ORGANISATION_PER_DAY * (1 + modifiers.recovery)
   ),
 });

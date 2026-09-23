@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
+import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import {
   INDEPENDENT,
@@ -12,6 +13,7 @@ import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import type { AdvancementSummary } from "./advancement-summary";
 import { summaryOf } from "./nation-summary";
 
 const land = (
@@ -54,6 +56,7 @@ const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
 
 /** The two nations at war, so the panel has enemies to name. */
 const SIMULATION: Simulation = {
+  advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   negotiations: [],
   stances: ["balanced", "balanced"],
@@ -74,9 +77,18 @@ const SIMULATION: Simulation = {
   diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
 };
 
+/** What the panel says of a nation that has researched and pursued nothing. */
+const UNADVANCED: AdvancementSummary = {
+  focus: { label: "進めている方針", value: "なし" },
+  focusesDone: [],
+  researched: 0,
+  slots: [{ label: "空き枠", value: "3" }],
+};
+
 describe(summaryOf, () => {
   it("should gather a nation's ground, terrain and borders when it holds some", () => {
     expect(summaryOf(WORLD, SIMULATION, 0)).toStrictEqual({
+      advancement: UNADVANCED,
       cells: 7,
       divisions: 1,
       economy: { ...NO_ECONOMY, equipment: 40 },
@@ -97,6 +109,7 @@ describe(summaryOf, () => {
 
   it("should read nothing when the world holds no nation with that id", () => {
     expect(summaryOf(WORLD, SIMULATION, 9)).toStrictEqual({
+      advancement: UNADVANCED,
       cells: 0,
       divisions: 0,
       economy: NO_ECONOMY,

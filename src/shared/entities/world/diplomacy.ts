@@ -1,5 +1,5 @@
 import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
+import { itemAt, replacedAt } from "./lookup";
 import type { Wars } from "./wars";
 import { declared, noWars, peaceFor } from "./wars";
 
@@ -74,7 +74,7 @@ export const factionOf = (diplomacy: Diplomacy, nation: number): number =>
   valueAt(diplomacy.factions, commanderOf(diplomacy, nation));
 
 /** Whether the nation still holds a seat in the world. */
-const standsAlone = (diplomacy: Diplomacy, nation: number): boolean =>
+export const standsAlone = (diplomacy: Diplomacy, nation: number): boolean =>
   standingOf(diplomacy, nation).kind !== "annexed";
 
 /** How many nations still hold a seat in the world. */
@@ -185,12 +185,7 @@ export const leftTheWar = (
 ): Diplomacy => ({
   ...peaceMade(diplomacy, nation),
   factions: factionsWithout(diplomacy.factions, nation),
-  standings: diplomacy.standings.map((before, other) => {
-    if (other === nation) {
-      return standing;
-    }
-    return before;
-  }),
+  standings: replacedAt(diplomacy.standings, nation, standing),
 });
 
 /** The puppets that answer to `overlord`, by nation id. */

@@ -8,6 +8,7 @@ import {
   startEconomies,
 } from "./economy";
 import type { World } from "./index";
+import { NO_MODIFIERS } from "./modifiers";
 import { UNASSIGNED } from "./spread";
 
 /** Thirty factories' worth of plains, held by one nation. */
@@ -83,11 +84,21 @@ describe(constructionProgress, () => {
 
 describe(producedOneDay, () => {
   it("should turn out equipment and advance the site when a day passes", () => {
-    expect(producedOneDay(INDUSTRY)).toStrictEqual({
+    expect(producedOneDay(INDUSTRY, NO_MODIFIERS)).toStrictEqual({
       ...INDUSTRY,
       construction: 65,
       equipment: 50,
     });
+  });
+
+  it("should turn out more equipment and put more into the site when the nation's modifiers raise production and construction", () => {
+    expect(
+      producedOneDay(INDUSTRY, {
+        ...NO_MODIFIERS,
+        construction: 0.2,
+        production: 0.5,
+      })
+    ).toStrictEqual({ ...INDUSTRY, construction: 78, equipment: 75 });
   });
 
   it("should finish a military factory when the nation holds less of them than its plan wants", () => {
@@ -97,7 +108,7 @@ describe(producedOneDay, () => {
       plan: "total-war",
     };
 
-    expect(producedOneDay(arming)).toStrictEqual({
+    expect(producedOneDay(arming, NO_MODIFIERS)).toStrictEqual({
       ...arming,
       construction: 0,
       equipment: 50,
@@ -108,7 +119,7 @@ describe(producedOneDay, () => {
   it("should finish a civilian factory when the nation already holds the share its plan wants", () => {
     const building: NationEconomy = { ...INDUSTRY, construction: 10_735 };
 
-    expect(producedOneDay(building)).toStrictEqual({
+    expect(producedOneDay(building, NO_MODIFIERS)).toStrictEqual({
       ...building,
       civilianFactories: 21,
       construction: 0,
@@ -117,7 +128,7 @@ describe(producedOneDay, () => {
   });
 
   it("should grow the population and recover the manpower when a day passes", () => {
-    expect(producedOneDay(PEOPLE)).toStrictEqual({
+    expect(producedOneDay(PEOPLE, NO_MODIFIERS)).toStrictEqual({
       ...PEOPLE,
       manpower: 8.213822211165878,
       population: 1_000_032.8542094456,
@@ -127,11 +138,19 @@ describe(producedOneDay, () => {
   it("should hold the manpower at the cap when the law reaches no further", () => {
     const full: NationEconomy = { ...PEOPLE, manpower: 15_000 };
 
-    expect(producedOneDay(full)).toStrictEqual({
+    expect(producedOneDay(full, NO_MODIFIERS)).toStrictEqual({
       ...full,
       manpower: 15_000.492813141684,
       population: 1_000_032.8542094456,
     });
+  });
+});
+
+describe("producedOneDay under a wider reach", () => {
+  it("should recover the manpower toward a higher cap when the nation's modifiers widen the law's reach", () => {
+    expect(
+      producedOneDay(PEOPLE, { ...NO_MODIFIERS, manpower: 1 }).manpower
+    ).toBe(16.427644422331756);
   });
 });
 

@@ -1,4 +1,5 @@
 import type { World } from "@/shared/entities/world";
+import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
@@ -58,6 +59,7 @@ export const HELD_BY_NOBODY = Int32Array.from([
 export const fixtureSimulation = (
   patch: Partial<Simulation> = {}
 ): Simulation => ({
+  advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   clock: START_CLOCK,
   diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),

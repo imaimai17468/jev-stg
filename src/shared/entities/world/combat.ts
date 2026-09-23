@@ -7,6 +7,9 @@ import {
   terrainDefenceOf,
 } from "./divisions";
 import { valueAt } from "./grid";
+import { itemAt } from "./lookup";
+import type { Modifiers } from "./modifiers";
+import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { isLand, neighboursOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
@@ -96,6 +99,17 @@ export const withdrawn = (
 };
 
 /**
+ * What a battle reads beyond its own province: who holds what, who fights
+ * whom, and how well each nation's divisions fight.
+ */
+export interface Theatre {
+  readonly owners: Int32Array;
+  readonly wars: Wars;
+  /** Each nation's modifiers, by nation id. */
+  readonly modifiers: readonly Modifiers[];
+}
+
+/**
  * One day of whatever is happening in a province that divisions stand in.
  *
  * The nation holding the ground defends it, and every nation at war with that
@@ -104,11 +118,13 @@ export const withdrawn = (
  * neither counted in the defence nor struck, and it leaves the province.
  */
 export const foughtOneDay = (
-  owners: Int32Array,
-  wars: Wars,
+  theatre: Theatre,
   province: LandProvince,
   present: readonly Division[]
 ): Battle => {
+  const { owners, wars } = theatre;
+  const modifiersOf = (division: Division) =>
+    itemAt(theatre.modifiers, division.nation, NO_MODIFIERS);
   const holder = valueAt(owners, province.id);
   const fighting = present.filter(canFight);
   const broken = present.filter((division) => !canFight(division));
@@ -120,7 +136,9 @@ export const foughtOneDay = (
       broken: [],
       captured: UNASSIGNED,
       fought: false,
-      standing: present.map(rested),
+      standing: present.map((division) =>
+        rested(division, modifiersOf(division))
+      ),
     };
   }
   const defenders = fighting.filter((division) => division.nation === holder);
@@ -133,12 +151,14 @@ export const foughtOneDay = (
     };
   }
   const attack = attackers.reduce(
-    (total, division) => total + attackOf(division),
+    (total, division) => total + attackOf(division, modifiersOf(division)),
     0
   );
   const defence =
-    defenders.reduce((total, division) => total + defenceOf(division), 0) *
-    terrainDefenceOf(province.terrain);
+    defenders.reduce(
+      (total, division) => total + defenceOf(division, modifiersOf(division)),
+      0
+    ) * terrainDefenceOf(province.terrain);
   const toDefender = (attack * ORGANISATION_PER_POWER) / defenders.length;
   const toAttacker = (defence * ORGANISATION_PER_POWER) / attackers.length;
   const afterFire = fighting.map((division) => {
