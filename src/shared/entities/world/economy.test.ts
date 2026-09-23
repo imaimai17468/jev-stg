@@ -130,6 +130,17 @@ describe(producedOneDay, () => {
     ).toStrictEqual({ ...INDUSTRY, construction: 78, equipment: 75 });
   });
 
+  it("should turn out less and build slower when the nation's law calls up its workers", () => {
+    expect(
+      producedOneDay({ ...INDUSTRY, conscription: "all-adults" }, NO_MODIFIERS)
+    ).toStrictEqual({
+      ...INDUSTRY,
+      conscription: "all-adults",
+      construction: 45.5,
+      equipment: 35,
+    });
+  });
+
   it("should finish a military factory when the nation holds less of them than its plan wants", () => {
     const arming: NationEconomy = {
       ...INDUSTRY,

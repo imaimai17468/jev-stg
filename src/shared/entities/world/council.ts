@@ -17,6 +17,7 @@ import type {
 } from "./consultation";
 import { factionChoice, rivalChoice } from "./consultation";
 import { allied, factionOf, NO_FACTION, sideOf } from "./diplomacy";
+import { menFor } from "./divisions";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
 import type { FocusId } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
@@ -261,10 +262,17 @@ const stanceByRules = (standoff: Standoff, nation: number): Stance => {
 };
 
 /**
- * What the rules decide for one nation this month. A nation at war calls up
- * one law more and turns its plan one step further toward war each month, and
- * a nation at peace keeps both; the faction and the war come from the same
- * rules the world ran on before any government was consulted.
+ * The divisions' worth of men a nation at war keeps in hand before the rules
+ * reach for a heavier law, which costs it factory output.
+ */
+const DRAFT_BELOW_DIVISIONS = 10;
+
+/**
+ * What the rules decide for one nation this month. A nation at war turns its
+ * plan one step further toward war each month, and calls up one law more only
+ * when it is running out of men to call. A nation at peace keeps both. The
+ * faction and the war come from the same rules the world ran on before any
+ * government was consulted.
  */
 const decisionsByRules = (
   standoff: Standoff,
@@ -276,14 +284,18 @@ const decisionsByRules = (
     { kind: "stance", nation, stance: stanceByRules(standoff, nation) },
   ];
   if (enemiesOf(standoff.diplomacy.wars, nation).length > 0) {
-    decisions.push(
-      {
+    decisions.push({
+      kind: "plan",
+      nation,
+      plan: stepUp(INDUSTRY_PLANS, economy.plan),
+    });
+    if (economy.manpower < menFor(DRAFT_BELOW_DIVISIONS)) {
+      decisions.push({
         kind: "conscription",
         law: stepUp(CONSCRIPTION_LAWS, economy.conscription),
         nation,
-      },
-      { kind: "plan", nation, plan: stepUp(INDUSTRY_PLANS, economy.plan) }
-    );
+      });
+    }
   }
   for (const faction of Option.toArray(factionToJoin(standoff, nation))) {
     decisions.push({ faction, kind: "join", nation });

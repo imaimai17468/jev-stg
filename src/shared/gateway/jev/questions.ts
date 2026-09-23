@@ -77,10 +77,12 @@ export interface Evaluation {
 const JEV_MODEL = "typesafe-ai/jev";
 
 const LAW_LABELS = {
-  "all-adults": "国民皆兵（人口の20%まで動員できる）",
+  "all-adults":
+    "国民皆兵（人口の20%まで動員できるが、装備の生産と建設が30%落ちる）",
   extensive: "拡大徴兵（人口の5%まで）",
   limited: "限定徴兵（人口の2.5%まで）",
-  "service-by-requirement": "必要に応じた兵役（人口の10%まで）",
+  "service-by-requirement":
+    "必要に応じた兵役（人口の10%まで、装備の生産と建設が10%落ちる）",
   volunteer: "志願兵制（人口の1.5%まで）",
 } satisfies Readonly<Record<ConscriptionLaw, string>>;
 

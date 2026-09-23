@@ -20,6 +20,22 @@ const MANPOWER_SHARE = {
   volunteer: 0.015,
 } satisfies Readonly<Record<ConscriptionLaw, number>>;
 
+/**
+ * The share of its factories' output and construction a nation gives up under
+ * each law, because the workers the law calls up leave the factories. The
+ * values follow Hearts of Iron IV's conscription laws.
+ */
+const LAW_OUTPUT_LOSS = {
+  "all-adults": 0.3,
+  extensive: 0,
+  limited: 0,
+  "service-by-requirement": 0.1,
+  volunteer: 0,
+} satisfies Readonly<Record<ConscriptionLaw, number>>;
+
+/** The share of its output a nation under `law` keeps. */
+const outputUnder = (law: ConscriptionLaw): number => 1 - LAW_OUTPUT_LOSS[law];
+
 /** Every conscription law, from the lightest to the heaviest. */
 export const CONSCRIPTION_LAWS: readonly ConscriptionLaw[] = [
   "volunteer",
@@ -163,7 +179,8 @@ const constructionPerDay = (
   economy.civilianFactories *
   (1 - PLAN_SHARES[economy.plan].consumerGoods) *
   CONSTRUCTION_PER_FACTORY *
-  (1 + modifiers.construction);
+  (1 + modifiers.construction) *
+  outputUnder(economy.conscription);
 
 /**
  * The people a nation of `population` can still call up: what its law reaches,
@@ -209,7 +226,8 @@ const splitBuilt = (economy: NationEconomy, built: number): Built => {
 /**
  * The economy after one day of work, which is the step the calendar takes,
  * with the nation's technologies and focuses speeding up its construction,
- * its equipment and the reach of its conscription law.
+ * its equipment and the reach of its conscription law, and a heavy law taking
+ * some of the construction and the equipment back.
  */
 export const producedOneDay = (
   economy: NationEconomy,
@@ -227,7 +245,8 @@ export const producedOneDay = (
       economy.equipment +
       economy.militaryFactories *
         EQUIPMENT_PER_FACTORY *
-        (1 + modifiers.production),
+        (1 + modifiers.production) *
+        outputUnder(economy.conscription),
     manpower: freeManpower(economy, population, modifiers),
     militaryFactories: economy.militaryFactories + built.military,
     population,
