@@ -1,3 +1,4 @@
+import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { World } from "./index";
@@ -5,6 +6,7 @@ import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
+import { START_STANCE } from "./stance";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 
@@ -53,6 +55,12 @@ export const LINE_GRAPH: ProvinceGraph = graphOf(LINE_WORLD.provinces);
 
 /** The two nations fighting each other. */
 export const AT_WAR: Wars = declared(noWars(2), { one: 0, other: 1 });
+
+/** The two nations at war, both attacking at the stance every nation opens with. */
+export const WAR_COMMAND: Command = {
+  stances: [START_STANCE, START_STANCE],
+  wars: AT_WAR,
+};
 
 /** A full-strength division, with whatever a test needs changed. */
 export const division = (patch: Partial<Division>): Division => ({

@@ -2,6 +2,8 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { Armies } from "./army";
 import { division } from "./army-fixture";
+import type { Clock } from "./clock";
+import { START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";
 import {
   INDEPENDENT,
@@ -18,6 +20,7 @@ import { neighbouringNations } from "./nations";
 import type { Province } from "./provinces";
 import type { Random } from "./random";
 import { UNASSIGNED } from "./spread";
+import type { Realm } from "./statecraft";
 import {
   conductedOneDay,
   factionFounders,
@@ -26,7 +29,6 @@ import {
   surrenders,
   warTarget,
 } from "./statecraft";
-import { enemiesOf } from "./wars";
 
 const ECONOMIES: readonly NationEconomy[] = [
   NO_ECONOMY,
@@ -362,57 +364,88 @@ describe(settlementFor, () => {
   });
 });
 
+const onDay = (days: number): Clock => ({ ...START_CLOCK, days });
+
 describe(conductedOneDay, () => {
   /** Nation 1 at war with nation 0, which holds nation 1's only province. */
-  const beaten = {
+  const beaten: Realm = {
     armies: {
       divisions: [],
       economies: ECONOMIES,
       owners: Int32Array.from([0, 0, 2, 3, UNASSIGNED]),
     },
+    chronicle: [],
     diplomacy: warDeclared(ROW_PEACE, 0, 1),
+    negotiations: [],
   };
 
-  it("should have a beaten nation surrender when a day passes mid-month", () => {
-    const after = conductedOneDay(
-      ROW_WORLD,
-      { days: 1, paused: false, speed: 2 },
-      beaten
-    );
+  /** The same war with nation 1's talks opened on day 1. */
+  const talking: Realm = {
+    ...beaten,
+    negotiations: [
+      { fallback: { terms: "annex", victor: 0 }, loser: 1, openedOn: 1 },
+    ],
+  };
 
-    expect(standingOf(after.diplomacy, 1)).toStrictEqual({
-      by: 0,
-      kind: "annexed",
+  it("should open talks with the rules' terms when a nation loses its homeland", () => {
+    expect(
+      conductedOneDay(ROW_WORLD, onDay(1), beaten).negotiations
+    ).toStrictEqual(talking.negotiations);
+  });
+
+  it("should keep one set of talks when a beaten nation is already talking", () => {
+    expect(
+      conductedOneDay(ROW_WORLD, onDay(2), talking).negotiations
+    ).toStrictEqual(talking.negotiations);
+  });
+
+  it("should sign the rules' terms when the talks pass their deadline", () => {
+    const after = conductedOneDay(ROW_WORLD, onDay(31), talking);
+
+    expect({
+      chronicle: after.chronicle,
+      negotiations: after.negotiations,
+      standing: standingOf(after.diplomacy, 1),
+    }).toStrictEqual({
+      chronicle: [
+        {
+          day: 31,
+          ruling: {
+            decision: {
+              kind: "peace",
+              loser: 1,
+              settlement: { terms: "annex", victor: 0 },
+            },
+            source: { kind: "rules" },
+          },
+          seq: 0,
+        },
+      ],
+      negotiations: [],
+      standing: { by: 0, kind: "annexed" },
     });
   });
 
-  it("should leave the wars alone when a day passes mid-month", () => {
-    const after = conductedOneDay(
-      ROW_WORLD,
-      { days: 1, paused: false, speed: 2 },
-      { armies: ARMED_THREE, diplomacy: ROW_PEACE }
-    );
+  it("should reopen the talks with the enemy it still fights when the victor has left the war by the deadline", () => {
+    const after = conductedOneDay(ROW_WORLD, onDay(31), {
+      ...talking,
+      negotiations: [
+        { fallback: { terms: "annex", victor: 2 }, loser: 1, openedOn: 1 },
+      ],
+    });
 
-    expect(after.diplomacy).toBe(ROW_PEACE);
+    expect(after.negotiations).toStrictEqual([
+      { fallback: { terms: "annex", victor: 0 }, loser: 1, openedOn: 31 },
+    ]);
   });
 
-  it("should declare the war its draw allows when the month turns on 1936-03-01", () => {
-    const after = conductedOneDay(
-      ROW_WORLD,
-      { days: 60, paused: false, speed: 2 },
-      { armies: ARMED_THREE, diplomacy: ROW_PEACE }
-    );
+  it("should drop the talks when the loser is no longer at war with anyone", () => {
+    const after = conductedOneDay(ROW_WORLD, onDay(2), {
+      ...talking,
+      armies: { ...talking.armies, owners: ROW_OWNERS },
+      diplomacy: ROW_PEACE,
+    });
 
-    expect(enemiesOf(after.diplomacy.wars, 3)).toStrictEqual([2]);
-  });
-
-  it("should bring a threatened nation into a faction when the month turns on 1936-02-01", () => {
-    const after = conductedOneDay(
-      ROW_WORLD,
-      { days: 31, paused: false, speed: 2 },
-      { armies: ARMED_THREE, diplomacy: BLOC }
-    );
-
-    expect([...after.diplomacy.factions]).toStrictEqual([0, 0, 0, -1]);
+    expect(after.negotiations).toStrictEqual([]);
   });
 });

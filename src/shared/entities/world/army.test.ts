@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Armies } from "./army";
 import { armiesAfterOneDay } from "./army";
-import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
+import { division, LINE_OWNERS, LINE_WORLD, WAR_COMMAND } from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { noWars } from "./wars";
@@ -23,7 +23,7 @@ const startingWith = (patch: Partial<Armies>): Armies => ({
 describe(armiesAfterOneDay, () => {
   it("should raise a division at the capital and take its cost out when a nation can afford one", () => {
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, startingWith({}))
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, startingWith({}))
     ).toStrictEqual({
       divisions: [division({ marched: 1, movingTo: 1, nation: 0 })],
       economies: [{ ...ARMED, equipment: 500, manpower: 10_000 }, NO_ECONOMY],
@@ -35,7 +35,7 @@ describe(armiesAfterOneDay, () => {
     const broke = startingWith({ economies: [NO_ECONOMY, NO_ECONOMY] });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, broke).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, broke).divisions
     ).toStrictEqual([]);
   });
 
@@ -43,7 +43,8 @@ describe(armiesAfterOneDay, () => {
     const pushed = startingWith({ owners: Int32Array.from([1, 0, 1, 1, -1]) });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, pushed).divisions.at(0)?.province
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, pushed).divisions.at(0)
+        ?.province
     ).toBe(1);
   });
 
@@ -51,7 +52,7 @@ describe(armiesAfterOneDay, () => {
     const overrun = startingWith({ owners: Int32Array.from([1, 1, 1, 1, -1]) });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, overrun).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, overrun).divisions
     ).toStrictEqual([]);
   });
 
@@ -62,7 +63,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, walking).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, walking).divisions
     ).toStrictEqual([
       division({ marched: 0, movingTo: 1, nation: 0, province: 1 }),
     ]);
@@ -74,9 +75,9 @@ describe(armiesAfterOneDay, () => {
       economies: [NO_ECONOMY, NO_ECONOMY],
     });
 
-    expect(armiesAfterOneDay(LINE_WORLD, AT_WAR, invaded).owners).toStrictEqual(
-      Int32Array.from([0, 0, 0, 1, -1])
-    );
+    expect(
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, invaded).owners
+    ).toStrictEqual(Int32Array.from([0, 0, 0, 1, -1]));
   });
 
   it("should hold the attacker in place when the province it took was fought over", () => {
@@ -86,7 +87,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, invaded).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, invaded).divisions
     ).toStrictEqual([division({ nation: 0, province: 2 })]);
   });
 
@@ -97,7 +98,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, setting).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, setting).divisions
     ).toStrictEqual([division({ marched: 1, movingTo: 1, nation: 0 })]);
   });
 
@@ -108,7 +109,8 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, noWars(2), posted).divisions
+      armiesAfterOneDay(LINE_WORLD, { ...WAR_COMMAND, wars: noWars(2) }, posted)
+        .divisions
     ).toStrictEqual([division({ movingTo: 1, nation: 0, province: 1 })]);
   });
 
@@ -122,7 +124,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, massed).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, massed).divisions
     ).toStrictEqual([
       division({ movingTo: 1, nation: 0, province: 1 }),
       division({ marched: 1, movingTo: 2, nation: 0, province: 1 }),
@@ -136,7 +138,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, alone).divisions
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, alone).divisions
     ).toStrictEqual([division({ movingTo: 1, nation: 0, province: 1 })]);
   });
 
@@ -151,10 +153,32 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, outmatched)
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, outmatched)
         .divisions.filter((standing) => standing.nation === 0)
         .map((standing) => standing.movingTo)
     ).toStrictEqual([1, 1]);
+  });
+
+  it("should hold the line when a defensive stance asks for more than the attack brings", () => {
+    const cautious = startingWith({
+      divisions: [
+        division({ movingTo: 1, nation: 0, province: 1 }),
+        division({ movingTo: 1, nation: 0, province: 1 }),
+        division({ movingTo: 1, nation: 0, province: 1 }),
+        division({ movingTo: 2, nation: 1, province: 2 }),
+      ],
+      economies: [NO_ECONOMY, NO_ECONOMY],
+    });
+
+    expect(
+      armiesAfterOneDay(
+        LINE_WORLD,
+        { ...WAR_COMMAND, stances: ["defensive", "balanced"] },
+        cautious
+      )
+        .divisions.filter((standing) => standing.nation === 0)
+        .map((standing) => standing.movingTo)
+    ).toStrictEqual([1, 1, 1]);
   });
 
   it("should keep both sides where they stand when a battle is on in the province", () => {
@@ -166,7 +190,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, battle).divisions.map(
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, battle).divisions.map(
         (standing) => standing.province
       )
     ).toStrictEqual([2, 2]);
@@ -183,7 +207,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, pinned).divisions.filter(
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, pinned).divisions.filter(
         (standing) => standing.nation === 1
       )
     ).toStrictEqual([]);
@@ -205,7 +229,7 @@ describe(armiesAfterOneDay, () => {
     });
 
     expect(
-      armiesAfterOneDay(LINE_WORLD, AT_WAR, overrun).economies.at(1)
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, overrun).economies.at(1)
     ).toStrictEqual({
       ...loser,
       civilianFactories: 0,

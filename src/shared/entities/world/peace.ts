@@ -9,6 +9,9 @@ import { sentHome } from "./muster";
 /** What the victor takes from a nation that has surrendered. */
 export type PeaceTerms = "annex" | "puppet" | "cede";
 
+/** Every set of terms, from the harshest to the mildest. */
+export const PEACE_TERMS: readonly PeaceTerms[] = ["annex", "puppet", "cede"];
+
 /** Who dictates the peace, and what they dictate. */
 export interface Settlement {
   readonly victor: number;

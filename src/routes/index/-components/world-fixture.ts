@@ -6,6 +6,7 @@ import type { Nation } from "@/shared/entities/world/nations";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import { START_STANCE } from "@/shared/entities/world/stance";
 
 const nation = (id: number, red: number): Nation => ({
   capital: id,
@@ -57,10 +58,13 @@ export const HELD_BY_NOBODY = Int32Array.from([
 export const fixtureSimulation = (
   patch: Partial<Simulation> = {}
 ): Simulation => ({
+  chronicle: [],
   clock: START_CLOCK,
   diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],
+  negotiations: [],
   owners: HELD_BY_TWO,
+  stances: [START_STANCE, START_STANCE],
   ...patch,
 });

@@ -1,31 +1,29 @@
 import { Option } from "effect";
 import type { Armies } from "./army";
+import type { Entry, Negotiation, Source } from "./chronicle";
+import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
-import { dateOf } from "./clock";
 import type { Diplomacy } from "./diplomacy";
 import {
   allied,
   commanderOf,
   factionOf,
-  joined,
   NO_FACTION,
   sideOf,
   standingOf,
-  warDeclared,
 } from "./diplomacy";
 import { strengthOf } from "./divisions";
 import type { NationEconomy } from "./economy";
+import { NO_ECONOMY } from "./economy";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { provincePeople } from "./industry";
 import { itemAt } from "./lookup";
 import type { NationPair } from "./nations";
-import { neighbouringNations } from "./nations";
 import type { Settled, Settlement } from "./peace";
 import { settled } from "./peace";
 import { landProvinces } from "./provinces";
 import type { Random } from "./random";
-import { randomFromSeed, shuffled, streamSeed } from "./random";
 import { enemiesOf } from "./wars";
 
 /** How many factions the world opens with. */
@@ -46,6 +44,16 @@ const ANNEX_SHARE = 0.6;
 /** The share it must hold to make a puppet of it rather than take a cession. */
 const PUPPET_SHARE = 0.3;
 
+/** The nations in order of `weightOf`, the heaviest first. */
+const heaviestFirst = (
+  nations: readonly number[],
+  weightOf: (nation: number) => number
+): readonly number[] =>
+  nations
+    .map((nation) => ({ nation, weight: weightOf(nation) }))
+    .toSorted((left, right) => right.weight - left.weight)
+    .map((entry) => entry.nation);
+
 /**
  * The nations that found the opening factions: the most populous, the largest
  * first, the way the great powers of 1936 already lead their blocs.
@@ -53,34 +61,43 @@ const PUPPET_SHARE = 0.3;
 export const factionFounders = (
   economies: readonly NationEconomy[]
 ): readonly number[] =>
-  economies
-    .map((economy, nation) => ({ nation, population: economy.population }))
-    .toSorted((left, right) => right.population - left.population)
-    .slice(0, FOUNDING_FACTIONS)
-    .map((entry) => entry.nation);
+  heaviestFirst(
+    economies.map((_, nation) => nation),
+    (nation) => itemAt(economies, nation, NO_ECONOMY).population
+  ).slice(0, FOUNDING_FACTIONS);
 
 /** Everything a nation weighs when it decides where it stands. */
-interface Situation {
+export interface Situation {
   readonly world: World;
   readonly armies: Armies;
   readonly diplomacy: Diplomacy;
 }
 
 /** A month's decisions also see which nations border which. */
-interface Standoff extends Situation {
+export interface Standoff extends Situation {
   readonly borders: readonly NationPair[];
 }
 
-/** The men everyone on `nation`'s side has in the field. */
-const sideStrength = (situation: Situation, nation: number): number => {
-  const side = new Set(sideOf(situation.diplomacy, nation));
-  return strengthOf(
-    situation.armies.divisions.filter((division) => side.has(division.nation))
+/** The men `nations` have in the field between them. */
+export const strengthAmong = (
+  situation: Situation,
+  nations: ReadonlySet<number>
+): number =>
+  strengthOf(
+    situation.armies.divisions.filter((division) =>
+      nations.has(division.nation)
+    )
   );
-};
+
+/** The men everyone on `nation`'s side has in the field. */
+export const sideStrength = (situation: Situation, nation: number): number =>
+  strengthAmong(situation, new Set(sideOf(situation.diplomacy, nation)));
 
 /** The nations whose land touches `nation`'s, by id. */
-const bordering = (standoff: Standoff, nation: number): readonly number[] =>
+export const bordering = (
+  standoff: Standoff,
+  nation: number
+): readonly number[] =>
   standoff.borders.flatMap((pair) => {
     if (pair.one === nation) {
       return [pair.other];
@@ -96,13 +113,10 @@ const strongestFirst = (
   situation: Situation,
   nations: readonly number[]
 ): readonly number[] =>
-  nations
-    .map((nation) => ({ nation, strength: sideStrength(situation, nation) }))
-    .toSorted((left, right) => right.strength - left.strength)
-    .map((entry) => entry.nation);
+  heaviestFirst(nations, (nation) => sideStrength(situation, nation));
 
 /** Whether `rival`'s side is strong enough against `nation`'s to fear. */
-const outmatches = (
+export const outmatches = (
   situation: Situation,
   rival: number,
   nation: number
@@ -112,8 +126,10 @@ const outmatches = (
 };
 
 /** Whether the nation makes its own choices, which a puppet does not. */
-const answersToItself = (diplomacy: Diplomacy, nation: number): boolean =>
-  standingOf(diplomacy, nation).kind === "independent";
+export const answersToItself = (
+  diplomacy: Diplomacy,
+  nation: number
+): boolean => standingOf(diplomacy, nation).kind === "independent";
 
 /**
  * The faction an unaligned nation joins this month, if it joins one.
@@ -219,21 +235,24 @@ export const surrenders = (situation: Situation, nation: number): boolean => {
   );
 };
 
+/** Who holds how much of a surrendered nation's homeland. */
+interface HomelandSplit {
+  /** The overlord of the enemy bloc holding the most of it. */
+  readonly victor: number;
+  /** The share that bloc holds, from 0 to 1. */
+  readonly victorHeld: number;
+  /** The share the loser still holds, from 0 to 1. */
+  readonly loserHeld: number;
+}
+
 /**
- * The peace `loser` is made to sign.
- *
- * An overlord and its puppets count as one enemy, so the peace is dictated by
- * the overlord of the bloc holding the most of the loser's homeland and never
- * by a puppet. The more of the homeland that bloc holds, the harsher the
- * terms: a war won by one power ends in annexation, one won by several ends
- * with each keeping what it took. A loser left holding no ground at all is
- * annexed whatever the split, because a cession would leave it a nation with
- * nowhere to stand.
+ * How `loser`'s homeland is divided. An overlord and its puppets count as one
+ * enemy, so the victor is always an overlord or a nation answering to itself.
  */
-export const settlementFor = (
+export const homelandSplit = (
   situation: Situation,
   loser: number
-): Settlement => {
+): HomelandSplit => {
   const { diplomacy } = situation;
   const held = homelandHeld(situation, loser);
   const enemies = enemiesOf(diplomacy.wars, loser);
@@ -251,91 +270,194 @@ export const settlementFor = (
       victor = commander;
     }
   }
-  const share = valueAt(blocs, victor) / Math.max(1, homelandTotal(held));
-  if (share > ANNEX_SHARE || !situation.armies.owners.includes(loser)) {
-    return { terms: "annex", victor };
-  }
-  if (share >= PUPPET_SHARE) {
-    return { terms: "puppet", victor };
-  }
-  return { terms: "cede", victor };
+  const total = Math.max(1, homelandTotal(held));
+  return {
+    loserHeld: valueAt(held, loser) / total,
+    victor,
+    victorHeld: valueAt(blocs, victor) / total,
+  };
 };
 
-/** Every nation that has lost its homeland signs the peace it is given. */
-const surrendered = (world: World, before: Settled): Settled => {
-  let current = before;
-  for (const nation of world.nations) {
-    const situation = { ...current, world };
-    if (!surrenders(situation, nation.id)) {
+/**
+ * `settlement`, or annexation where the loser holds no ground at all, because
+ * a cession or a puppet would leave it a nation with nowhere to stand. Every
+ * peace signed goes through here, whoever named the terms.
+ */
+const enforceableTerms = (
+  situation: Situation,
+  loser: number,
+  settlement: Settlement
+): Settlement => {
+  if (situation.armies.owners.includes(loser)) {
+    return settlement;
+  }
+  return { ...settlement, terms: "annex" };
+};
+
+/**
+ * The peace `loser` is made to sign.
+ *
+ * An overlord and its puppets count as one enemy, so the peace is dictated by
+ * the overlord of the bloc holding the most of the loser's homeland and never
+ * by a puppet. The more of the homeland that bloc holds, the harsher the
+ * terms: a war won by one power ends in annexation, one won by several ends
+ * with each keeping what it took.
+ */
+export const settlementFor = (
+  situation: Situation,
+  loser: number
+): Settlement => {
+  const split = homelandSplit(situation, loser);
+  const { victor } = split;
+  if (split.victorHeld > ANNEX_SHARE) {
+    return { terms: "annex", victor };
+  }
+  if (split.victorHeld >= PUPPET_SHARE) {
+    return enforceableTerms(situation, loser, { terms: "puppet", victor });
+  }
+  return enforceableTerms(situation, loser, { terms: "cede", victor });
+};
+
+/**
+ * How long a surrendered nation waits for its terms before it signs the rules'.
+ * A reply that says Jev cannot answer signs them at once, so this only ends
+ * talks whose reply never came, and a month outlasts the gateway's deadline at
+ * every speed.
+ */
+const NEGOTIATION_DAYS = 30;
+
+/**
+ * The armies and the diplomacy, with the talks under way and what the world
+ * has carried out, which is everything a day of statecraft reads and writes.
+ */
+export interface Realm extends Settled {
+  readonly negotiations: readonly Negotiation[];
+  readonly chronicle: readonly Entry[];
+}
+
+/**
+ * The realm after `loser` signs the `named` terms, made enforceable, which
+ * closes its talks and goes into the chronicle under `source` on `day`.
+ */
+export const peaceSigned = (
+  world: World,
+  realm: Realm,
+  named: Settlement,
+  loser: number,
+  ruling: { readonly day: number; readonly source: Source }
+): Realm => {
+  const settlement = enforceableTerms({ ...realm, world }, loser, named);
+  return {
+    ...realm,
+    ...settled(world, realm, loser, settlement),
+    chronicle: chronicled(realm.chronicle, {
+      day: ruling.day,
+      ruling: {
+        decision: { kind: "peace", loser, settlement },
+        source: ruling.source,
+      },
+    }),
+    negotiations: realm.negotiations.filter(
+      (negotiation) => negotiation.loser !== loser
+    ),
+  };
+};
+
+/**
+ * The realm with talks opened for every nation that has lost its homeland
+ * today and has none open yet. Each keeps the terms the rules would dictate,
+ * so a surrender whose talks go unanswered still ends. The list keeps its
+ * identity on a day nothing opens.
+ */
+const talksOpened = (world: World, realm: Realm, day: number): Realm => {
+  const talking = new Set(
+    realm.negotiations.map((negotiation) => negotiation.loser)
+  );
+  const opened = world.nations.flatMap((nation): readonly Negotiation[] => {
+    const situation = { ...realm, world };
+    if (talking.has(nation.id) || !surrenders(situation, nation.id)) {
+      return [];
+    }
+    return [
+      {
+        fallback: settlementFor(situation, nation.id),
+        loser: nation.id,
+        openedOn: day,
+      },
+    ];
+  });
+  if (opened.length === 0) {
+    return realm;
+  }
+  return { ...realm, negotiations: [...realm.negotiations, ...opened] };
+};
+
+/** The realm without `negotiation`'s talks. */
+const withoutTalks = (realm: Realm, negotiation: Negotiation): Realm => ({
+  ...realm,
+  negotiations: realm.negotiations.filter((open) => open !== negotiation),
+});
+
+/**
+ * The realm keeping only the talks whose loser is still at war. The list keeps
+ * its identity when every talk survives, so a reader keyed on it sees no change.
+ */
+const talksAtWar = (realm: Realm): Realm => {
+  const live = realm.negotiations.filter(
+    (negotiation) =>
+      enemiesOf(realm.diplomacy.wars, negotiation.loser).length > 0
+  );
+  if (live.length === realm.negotiations.length) {
+    return realm;
+  }
+  return { ...realm, negotiations: live };
+};
+
+/**
+ * The realm once talks whose loser is no longer at war have been dropped and
+ * every talk past its deadline has been signed on the rules' terms. A talk
+ * whose victor has left the war since, annexed by a peace signed earlier the
+ * same day, is dropped instead, and the loser opens fresh talks with whoever
+ * it still fights.
+ */
+const talksClosed = (world: World, realm: Realm, day: number): Realm => {
+  let current = talksAtWar(realm);
+  for (const negotiation of current.negotiations) {
+    if (day - negotiation.openedOn < NEGOTIATION_DAYS) {
       continue;
     }
-    current = settled(
+    if (
+      !enemiesOf(current.diplomacy.wars, negotiation.loser).includes(
+        negotiation.fallback.victor
+      )
+    ) {
+      current = withoutTalks(current, negotiation);
+      continue;
+    }
+    current = peaceSigned(
       world,
       current,
-      nation.id,
-      settlementFor(situation, nation.id)
+      negotiation.fallback,
+      negotiation.loser,
+      {
+        day,
+        source: BY_RULES,
+      }
     );
   }
   return current;
 };
 
 /**
- * A month's diplomacy: the unaligned look for a faction, then the strong look
- * for a war, in an order the day's draw shuffles so no nation always moves
- * first. Each decision sees the ones taken before it.
- */
-const monthsDiplomacy = (
-  world: World,
-  before: Settled,
-  random: Random
-): Settled => {
-  const borders = neighbouringNations(world, before.armies.owners);
-  const order = shuffled(
-    world.nations.map((nation) => nation.id),
-    random
-  );
-  const { armies } = before;
-  let { diplomacy } = before;
-  for (const nation of order) {
-    const faction = factionToJoin(
-      { armies, borders, diplomacy, world },
-      nation
-    );
-    if (Option.isSome(faction)) {
-      diplomacy = joined(diplomacy, nation, faction.value);
-    }
-  }
-  for (const nation of order) {
-    const target = warTarget(
-      { armies, borders, diplomacy, world },
-      nation,
-      random
-    );
-    if (Option.isSome(target)) {
-      diplomacy = warDeclared(diplomacy, nation, target.value);
-    }
-  }
-  return { armies, diplomacy };
-};
-
-/**
  * One day of statecraft, on the day `clock` reads.
  *
- * Surrenders are signed the day they are earned, and the rest of diplomacy
- * waits for the first of the month, which is how often a government meets.
+ * A nation that has lost its homeland surrenders the same day and waits for
+ * its terms, and one whose terms have not come in time signs the rules'.
+ * Everything a government decides month by month goes through the council.
  */
 export const conductedOneDay = (
   world: World,
   clock: Clock,
-  before: Settled
-): Settled => {
-  const after = surrendered(world, before);
-  if (dateOf(clock).day !== 1) {
-    return after;
-  }
-  return monthsDiplomacy(
-    world,
-    after,
-    randomFromSeed(streamSeed(world.seed, clock.days))
-  );
-};
+  before: Realm
+): Realm =>
+  talksOpened(world, talksClosed(world, before, clock.days), clock.days);

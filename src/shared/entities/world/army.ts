@@ -19,6 +19,8 @@ import { musteringAt } from "./muster";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
 import { UNASSIGNED } from "./spread";
+import type { Stance } from "./stance";
+import { attackOddsFor, START_STANCE } from "./stance";
 import type { Wars } from "./wars";
 
 /** The armies of a world, the ground they hold, and what it all costs. */
@@ -116,6 +118,13 @@ const occupied = (
   return { ...armies, economies, owners };
 };
 
+/** What the armies are ordered by: who is at war, and how boldly each attacks. */
+export interface Command {
+  readonly wars: Wars;
+  /** Each nation's stance, by nation id. */
+  readonly stances: readonly Stance[];
+}
+
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
 interface Fighting {
   readonly armies: Armies;
@@ -169,12 +178,6 @@ const foughtEverywhere = (
   };
 };
 
-/**
- * How much stronger than the defence an attack has to be before a stack on the
- * line sends it, the defence counted with the ground it holds.
- */
-const ATTACK_ODDS = 1.5;
-
 /** Where a division stands after a day of walking toward `target`. */
 const walkedToward = (
   world: World,
@@ -220,6 +223,8 @@ interface Line {
   readonly graph: ProvinceGraph;
   readonly owners: Int32Array;
   readonly wars: Wars;
+  /** Each nation's stance, by nation id. */
+  readonly stances: readonly Stance[];
   readonly garrisons: ReadonlyMap<number, number>;
 }
 
@@ -229,6 +234,8 @@ interface Line {
  *
  * The first division of the stack stays behind as the garrison, so a stack of
  * one never attacks and the province it stands in is never left empty by it.
+ * The rest attack when they outweigh the weakest enemy neighbour by the odds
+ * the nation's stance asks for.
  */
 const attackTarget = (
   line: Line,
@@ -255,7 +262,8 @@ const attackTarget = (
     weakest = defended;
     target = beside;
   }
-  if (attacking === 0 || attacking < ATTACK_ODDS * weakest) {
+  const odds = attackOddsFor(itemAt(line.stances, nation, START_STANCE));
+  if (attacking === 0 || attacking < odds * weakest) {
     return province;
   }
   return target;
@@ -308,13 +316,15 @@ const marchedEverywhere = (
   world: World,
   graph: ProvinceGraph,
   armies: Armies,
-  wars: Wars,
+  command: Command,
   engaged: ReadonlySet<number>
 ): Armies => {
+  const { wars } = command;
   const line: Line = {
     garrisons: garrisons(armies.owners, armies.divisions),
     graph,
     owners: armies.owners,
+    stances: command.stances,
     wars,
     world,
   };
@@ -352,7 +362,7 @@ const marchedEverywhere = (
  */
 export const armiesAfterOneDay = (
   world: World,
-  wars: Wars,
+  command: Command,
   armies: Armies
 ): Armies => {
   const graph = graphOf(world.provinces);
@@ -365,7 +375,13 @@ export const armiesAfterOneDay = (
       economies: raised.economies,
       owners: armies.owners,
     },
-    wars
+    command.wars
   );
-  return marchedEverywhere(world, graph, fought.armies, wars, fought.engaged);
+  return marchedEverywhere(
+    world,
+    graph,
+    fought.armies,
+    command,
+    fought.engaged
+  );
 };
