@@ -1,5 +1,6 @@
 import { Option, Schema } from "effect";
 import type { IntelKind } from "./intel";
+import type { TechBranch } from "./research";
 import type { UnrestKind } from "./unrest";
 
 /** Every operation an agency runs, in the order the rules weigh them. */
@@ -60,6 +61,26 @@ const TERMS = {
 export const operationTermsOf = (operation: Operation): OperationTerms =>
   TERMS[operation];
 
+/** The operations that steal a blueprint. */
+const BlueprintTheftSchema = Schema.Literals([
+  "steal-military-blueprints",
+  "steal-industrial-blueprints",
+]);
+
+export type BlueprintTheft = typeof BlueprintTheftSchema.Type;
+
+export const BLUEPRINT_THEFTS = BlueprintTheftSchema.literals;
+
+/**
+ * The research branches each stolen blueprint speeds up. Hearts of Iron IV's
+ * military and industrial blueprints; this world has no naval or aviation
+ * technologies for the other two to reach.
+ */
+export const BLUEPRINT_BRANCHES = {
+  "steal-industrial-blueprints": ["industry", "construction"],
+  "steal-military-blueprints": ["infantry", "artillery", "logistics"],
+} satisfies Readonly<Record<BlueprintTheft, readonly TechBranch[]>>;
+
 /** What a nation's operatives in a target find there, which decides the operations open to them. */
 export interface Prospect {
   /** How many of the nation's operatives the target holds captive. */
@@ -80,6 +101,8 @@ export interface Prospect {
   readonly unrest: ReadonlySet<UnrestKind>;
   /** Whether the nation is at war, which puts the army's blueprints before industry's. */
   readonly atWar: boolean;
+  /** The blueprints whose bonus the nation's research would use now: none waiting unused for their branches, and a technology left in them. */
+  readonly usableBlueprints: ReadonlySet<BlueprintTheft>;
   /** The operations the nation already has under way in the target, which it does not start again. */
   readonly underway: ReadonlySet<Operation>;
 }
@@ -101,9 +124,13 @@ const OPEN = {
   "sabotage-industry": (prospect: Prospect) =>
     prospect.unrest.has("contacts") && !prospect.unrest.has("sabotage"),
   "steal-industrial-blueprints": (prospect: Prospect) =>
-    prospect.infiltrated.has("civilian") && !prospect.atWar,
+    prospect.infiltrated.has("civilian") &&
+    !prospect.atWar &&
+    prospect.usableBlueprints.has("steal-industrial-blueprints"),
   "steal-military-blueprints": (prospect: Prospect) =>
-    prospect.infiltrated.has("army") && prospect.atWar,
+    prospect.infiltrated.has("army") &&
+    prospect.atWar &&
+    prospect.usableBlueprints.has("steal-military-blueprints"),
   "strengthen-resistance": (prospect: Prospect) =>
     prospect.unrest.has("contacts") && !prospect.unrest.has("strengthened"),
 } satisfies Readonly<Record<Operation, (prospect: Prospect) => boolean>>;

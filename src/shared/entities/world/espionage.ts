@@ -25,12 +25,17 @@ import { itemAt } from "./lookup";
 import type { Build, Networks } from "./networks";
 import { networkBuiltOneDay } from "./networks";
 import type { Operation, Prospect } from "./operations";
-import { operationTermsOf, operationWanted } from "./operations";
+import {
+  BLUEPRINT_BRANCHES,
+  BLUEPRINT_THEFTS,
+  operationTermsOf,
+  operationWanted,
+} from "./operations";
 import type { ProvinceGraph } from "./provinces";
 import { isLand } from "./provinces";
 import type { Random } from "./random";
-import type { TechBranch } from "./research";
-import { voucherGranted } from "./research";
+import type { Research, TechBranch } from "./research";
+import { bonusUsable, voucherGranted } from "./research";
 import { isCoastal } from "./seas";
 import type { Unrest, UnrestKind } from "./unrest";
 import { unrestAgainst, unrestOneDay, unrestStarted } from "./unrest";
@@ -374,11 +379,13 @@ interface Posting {
   readonly target: number;
   /** The resistance work its missions done today set running, which the day's state does not hold yet. */
   readonly started: readonly Unrest[];
+  /** The nation's research as today's missions left it. */
+  readonly research: Research;
 }
 
 /** What `spy`'s operatives find in `target`. */
 const prospectOf = (
-  { service, spy, started, target }: Posting,
+  { research, service, spy, started, target }: Posting,
   surroundings: Surroundings
 ): Prospect => {
   const { intrigue, scene } = surroundings;
@@ -409,6 +416,13 @@ const prospectOf = (
       )
     ),
     unrest: unrestAgainst([...intrigue.unrest, ...started], spy, target),
+    usableBlueprints: new Set(
+      BLUEPRINT_THEFTS.filter(
+        (theft) =>
+          !service.missions.some((mission) => mission.operation === theft) &&
+          bonusUsable(research, BLUEPRINT_BRANCHES[theft])
+      )
+    ),
   };
 };
 
@@ -452,22 +466,34 @@ const resistanceWork =
     ],
   });
 
-/** A stolen blueprint, which waits for the next technology in `branches`. */
+/**
+ * A stolen blueprint, which waits for the next technology in `branches`, or
+ * comes to nothing where the nation's research has run out of use for it
+ * while the theft was under way.
+ */
 const blueprint =
   (branches: readonly TechBranch[]): Effect =>
-  (_, worked) => ({
-    ...worked,
-    advancement: {
-      ...worked.advancement,
-      research: voucherGranted(worked.advancement.research, {
-        branches,
-        share:
-          BLUEPRINT_BONUS *
-          (1 + agencyModifiersOf(worked.service.agency).blueprints),
-      }),
-    },
-    started: [],
-  });
+  (_, worked) => {
+    const { research } = worked.advancement;
+    const granted = voucherGranted(research, {
+      branches,
+      share:
+        BLUEPRINT_BONUS *
+        (1 + agencyModifiersOf(worked.service.agency).blueprints),
+    });
+    return {
+      ...worked,
+      advancement: {
+        ...worked.advancement,
+        research: itemAt(
+          [research, granted],
+          Number(bonusUsable(research, branches)),
+          research
+        ),
+      },
+      started: [],
+    };
+  };
 
 /** A captured cipher, which puts a share of the target's strength into breaking it. */
 const capturedCipher: Effect = (_, worked, mission, surroundings) => ({
@@ -526,20 +552,17 @@ const EFFECTS = {
   "rescue-operative": rescue,
   "resistance-contacts": resistanceWork("contacts"),
   "sabotage-industry": resistanceWork("sabotage"),
-  "steal-industrial-blueprints": blueprint(["industry", "construction"]),
-  "steal-military-blueprints": blueprint([
-    "infantry",
-    "artillery",
-    "logistics",
-  ]),
+  "steal-industrial-blueprints": blueprint(
+    BLUEPRINT_BRANCHES["steal-industrial-blueprints"]
+  ),
+  "steal-military-blueprints": blueprint(
+    BLUEPRINT_BRANCHES["steal-military-blueprints"]
+  ),
   "strengthen-resistance": resistanceWork("strengthened"),
 } satisfies Readonly<Record<Operation, Effect>>;
 
 /** The operations whose risk the agency's invisible ink lowers. */
-const BLUEPRINT_OPERATIONS: ReadonlySet<Operation> = new Set([
-  "steal-industrial-blueprints",
-  "steal-military-blueprints",
-]);
+const BLUEPRINT_OPERATIONS: ReadonlySet<Operation> = new Set(BLUEPRINT_THEFTS);
 
 /** The risk `operation` ends on for a spy whose agency is `agency`. */
 const riskOf = (operation: Operation, agency: Agency): number =>
@@ -707,7 +730,16 @@ const servedOneDay = (
   let { service } = worked;
   const build: Build[] = [];
   if (target !== HOME) {
-    const inTarget = workedIn({ service, spy, started, target }, surroundings);
+    const inTarget = workedIn(
+      {
+        research: worked.advancement.research,
+        service,
+        spy,
+        started,
+        target,
+      },
+      surroundings
+    );
     ({ service } = inTarget);
     events.push(...inTarget.events);
     build.push(...inTarget.build);

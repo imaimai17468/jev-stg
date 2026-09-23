@@ -467,6 +467,44 @@ export const studyStarted = (research: Research, tech: TechId): Research => {
   };
 };
 
+/**
+ * Whether a slot could still start `tech` some day: it is neither researched
+ * nor on a slot, nothing researched or on a slot rules it out, and every
+ * technology it needs is researched, on a slot, or could itself still be
+ * started.
+ */
+const reachable = (research: Research) => {
+  const taken = touched(research);
+  const open = (tech: TechId): boolean =>
+    !taken.has(tech) &&
+    ![...taken].some((other) => exclusive(tech, other)) &&
+    techOf(tech).requires.every((needed) => taken.has(needed) || open(needed));
+  return open;
+};
+
+/**
+ * Whether a research bonus for `branches` would find a use: no bonus for any
+ * of them is already waiting, and some technology in them could still be
+ * started.
+ */
+export const bonusUsable = (
+  research: Research,
+  branches: readonly TechBranch[]
+): boolean => {
+  const covered = new Set(branches);
+  if (
+    research.vouchers.some((voucher) =>
+      voucher.branches.some((branch) => covered.has(branch))
+    )
+  ) {
+    return false;
+  }
+  const reach = reachable(research);
+  return TECH_IDS.some(
+    (tech) => covered.has(techOf(tech).branch) && reach(tech)
+  );
+};
+
 /** The research with `voucher` waiting for the next technology in its branches. */
 export const voucherGranted = (
   research: Research,

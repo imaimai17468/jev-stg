@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { Research, Voucher } from "./research";
 import {
   availableTechs,
+  bonusUsable,
   costOf,
   researchBonuses,
   researchedOneDay,
@@ -130,6 +131,58 @@ describe(studyStarted, () => {
       vouchers: [INDUSTRY_VOUCHER],
     });
   });
+});
+
+/** Every technology the industry branch holds, researched. */
+const INDUSTRY_DONE: Research = {
+  ...START_RESEARCH,
+  researched: [
+    "tools-1",
+    "tools-2",
+    "tools-3",
+    "tools-4",
+    "concentrated-industry-1",
+    "concentrated-industry-2",
+  ],
+};
+
+describe(bonusUsable, () => {
+  it.each<{ condition: string; research: Research; usable: boolean }>([
+    {
+      condition: "nothing is researched yet",
+      research: START_RESEARCH,
+      usable: true,
+    },
+    {
+      condition: "a bonus for one of the branches is already waiting",
+      research: { ...START_RESEARCH, vouchers: [INDUSTRY_VOUCHER] },
+      usable: false,
+    },
+    {
+      condition:
+        "every technology left in the branch needs one that an earlier pick ruled out",
+      research: INDUSTRY_DONE,
+      usable: false,
+    },
+    {
+      condition: "the one technology left waits on another that is on a slot",
+      research: {
+        ...INDUSTRY_DONE,
+        researched: INDUSTRY_DONE.researched.filter(
+          (tech) =>
+            tech !== "concentrated-industry-1" &&
+            tech !== "concentrated-industry-2"
+        ),
+        studies: [{ bonus: 0, progress: 0, tech: "concentrated-industry-1" }],
+      },
+      usable: true,
+    },
+  ])(
+    "should tell whether a bonus for industry finds a use when $condition",
+    ({ research, usable }) => {
+      expect(bonusUsable(research, ["industry"])).toBe(usable);
+    }
+  );
 });
 
 describe(voucherGranted, () => {
