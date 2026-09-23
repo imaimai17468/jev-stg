@@ -18,7 +18,9 @@ interface HudClockBarProps {
 
 const MODE_LABELS = {
   compliance: "服従度",
+  naval: "制海権",
   political: "政治",
+  resources: "資源",
   supply: "補給",
 } satisfies Record<MapMode, string>;
 

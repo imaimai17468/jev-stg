@@ -13,6 +13,8 @@ interface Drawn {
   readonly counters: readonly (readonly number[])[];
   /** Each counter's supply, in the order they were drawn. */
   readonly crates: readonly SupplyState[];
+  /** Each fleet counter as its number and the point it was centred on. */
+  readonly fleets: readonly (readonly number[])[];
 }
 
 interface Recorder {
@@ -26,8 +28,9 @@ const recorder = (): Recorder => {
   const texts: string[] = [];
   const counters: number[][] = [];
   const crates: SupplyState[] = [];
+  const fleets: number[][] = [];
   return {
-    drawn: { cleared, counters, crates, texts, worlds },
+    drawn: { cleared, counters, crates, fleets, texts, worlds },
     pen: {
       clear: (width, height) => {
         cleared.push([width, height]);
@@ -35,6 +38,9 @@ const recorder = (): Recorder => {
       counter: (value, x, y, _colour, supply) => {
         counters.push([Number(value), x, y]);
         crates.push(supply);
+      },
+      fleet: (value, x, y) => {
+        fleets.push([Number(value), x, y]);
       },
       text: (value) => {
         texts.push(value);
@@ -49,7 +55,7 @@ const recorder = (): Recorder => {
 const VIEW = { scale: 2, x: 1, y: 1 };
 const SURFACE = { height: 100, width: 200 };
 
-const NOTHING_OVER = { labels: [], marks: [] };
+const NOTHING_OVER = { fleets: [], labels: [], marks: [] };
 
 const label = (weight: number): NationLabel => ({
   id: 0,
@@ -80,8 +86,8 @@ describe(drawMap, () => {
     const { drawn, pen } = recorder();
 
     drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
       labels: [label(900)],
-      marks: [],
     });
 
     expect(drawn.texts).toStrictEqual(["国0"]);
@@ -91,8 +97,8 @@ describe(drawMap, () => {
     const { drawn, pen } = recorder();
 
     drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
       labels: [label(899)],
-      marks: [],
     });
 
     expect(drawn.texts).toStrictEqual([]);
@@ -102,7 +108,7 @@ describe(drawMap, () => {
     const { drawn, pen } = recorder();
 
     drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
-      labels: [],
+      ...NOTHING_OVER,
       marks: [
         {
           colour: { blue: 0, green: 0, red: 0 },
@@ -122,7 +128,7 @@ describe(drawMap, () => {
     const { drawn, pen } = recorder();
 
     drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
-      labels: [],
+      ...NOTHING_OVER,
       marks: [
         {
           colour: { blue: 0, green: 0, red: 0 },
@@ -136,5 +142,24 @@ describe(drawMap, () => {
     });
 
     expect(drawn.crates).toStrictEqual(["short"]);
+  });
+
+  it("should centre a fleet counter on its zone when warships are at sea there", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
+      fleets: [
+        {
+          colour: { blue: 0, green: 0, red: 0 },
+          count: 4,
+          x: 4.5,
+          y: 0.5,
+          zone: 2,
+        },
+      ],
+    });
+
+    expect(drawn.fleets).toStrictEqual([[4, 7, -1]]);
   });
 });

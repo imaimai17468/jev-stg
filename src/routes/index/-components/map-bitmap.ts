@@ -6,6 +6,7 @@ import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour, Nation } from "@/shared/entities/world/nations";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
+import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { complianceLevelOf } from "./compliance-level";
 import type { Tint } from "./map-mode";
@@ -14,10 +15,15 @@ import {
   COMPLIANCE_HATCH,
   HATCH_SHADE,
   MAP_COLOURS,
+  NAVAL_LAND_SHADE,
+  RESOURCE_COLOURS,
+  SEA_HOLD_HATCH,
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
   TERRAIN_SHADE,
 } from "./map-palette";
+import { richestResourceOf } from "./resource-level";
+import { seaHoldOf } from "./sea-hold";
 import { supplyLevelOf } from "./supply-level";
 
 /** Stands in for the nation an unowned land province would name. */
@@ -62,6 +68,12 @@ interface Fill {
 
 const UNOWNED_FILL: Fill = { colour: MAP_COLOURS.unowned, hatch: 0 };
 
+/** How much each map mode that paints the land by its holder dims it. */
+const LAND_SHADE_FOR = {
+  naval: NAVAL_LAND_SHADE,
+  political: 1,
+} satisfies Readonly<Record<"naval" | "political", number>>;
+
 /**
  * The paint a land province takes under `tint`: its holder's colour shaded by
  * its terrain on the political map, and its supply level's colour, flat, on
@@ -78,6 +90,19 @@ const paintOf = (
     return {
       colour: SUPPLY_COLOURS[level],
       hatch: SUPPLY_HATCH[level],
+      shade: 1,
+    };
+  }
+  if (tint.mode === "resources") {
+    return {
+      colour:
+        RESOURCE_COLOURS[
+          richestResourceOf(
+            itemAt(tint.deposits, province.id, NO_RESOURCES),
+            tint.world
+          )
+        ],
+      hatch: 0,
       shade: 1,
     };
   }
@@ -99,7 +124,29 @@ const paintOf = (
   return {
     colour: itemAt(nations, holder, UNOWNED_NATION).colour,
     hatch: 0,
-    shade: TERRAIN_SHADE[province.terrain],
+    shade: TERRAIN_SHADE[province.terrain] * LAND_SHADE_FOR[tint.mode],
+  };
+};
+
+/**
+ * What a sea zone is filled with: the flat sea, or on the naval map the colour
+ * of the nation that holds it, striped where another's ships share it.
+ */
+const seaFill = (
+  nations: readonly Nation[],
+  zone: number,
+  tint: Tint
+): Fill => {
+  if (tint.mode !== "naval") {
+    return { colour: MAP_COLOURS.sea, hatch: 0 };
+  }
+  const hold = seaHoldOf(tint.waters, zone);
+  if (hold.level === "empty") {
+    return { colour: MAP_COLOURS.sea, hatch: 0 };
+  }
+  return {
+    colour: itemAt(nations, hold.leader, UNOWNED_NATION).colour,
+    hatch: SEA_HOLD_HATCH[hold.level],
   };
 };
 
@@ -118,7 +165,7 @@ const provinceFill = (
   tint: Tint
 ): Fill => {
   if (province.kind === "sea") {
-    return { colour: MAP_COLOURS.sea, hatch: 0 };
+    return seaFill(nations, province.id, tint);
   }
   const paint = paintOf(nations, holder, province, tint);
   // The comparison is on nation ids rather than through a sentinel, because the

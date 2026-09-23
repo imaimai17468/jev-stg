@@ -16,6 +16,7 @@ import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
 import { techOf } from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
+import { ORDER_NAMES, TRADE_LAW_NAMES } from "./naval-names";
 
 /** One chronicle entry as the feed prints it. */
 export interface EntryLine {
@@ -75,7 +76,22 @@ const described = (
       actor: nameOf(decision.settlement.victor),
     };
   }
+  if (decision.kind === "white-peace") {
+    return {
+      action: `${nameOf(decision.other)}と白紙講和`,
+      actor: nameOf(decision.one),
+    };
+  }
   const actor = nameOf(decision.nation);
+  if (decision.kind === "landing") {
+    return { action: `${nameOf(decision.defender)}の海岸に上陸`, actor };
+  }
+  if (decision.kind === "trade") {
+    return { action: `交易法 → ${TRADE_LAW_NAMES[decision.law]}`, actor };
+  }
+  if (decision.kind === "shipbuilding") {
+    return { action: `造船 → ${ORDER_NAMES[decision.order]}`, actor };
+  }
   if (decision.kind === "conscription") {
     return { action: `徴兵法 → ${LAW_NAMES[decision.law]}`, actor };
   }

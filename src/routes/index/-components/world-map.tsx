@@ -9,12 +9,20 @@ import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
 import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
+import type { Colour } from "@/shared/entities/world/nations";
+import type { Navy } from "@/shared/entities/world/navy";
+import { watersOf } from "@/shared/entities/world/navy";
+import { graphOf } from "@/shared/entities/world/provinces";
+import type {
+  SupplyNetwork,
+  SupplyState,
+} from "@/shared/entities/world/supply";
 import { divisionMarks } from "./division-marks";
 import { drawMap } from "./draw-map";
+import { fleetMarks } from "./fleet-marks";
 import { paintWorld } from "./map-bitmap";
 import type { MapMode } from "./map-mode";
-import { tintFor } from "./map-mode";
+import { resourceTintOf, tintFor } from "./map-mode";
 import { CRATES } from "./map-palette";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
@@ -30,6 +38,8 @@ interface WorldMapProps {
   readonly supply: SupplyNetwork;
   /** How far the people of each province go along with whoever holds it. */
   readonly compliance: Compliance;
+  /** Every nation's navy, by nation id. */
+  readonly navies: readonly Navy[];
   /** What the provinces are coloured by. */
   readonly mode: MapMode;
   /** The nation drawn brighter than the rest, where one is picked. */
@@ -115,9 +125,90 @@ const FILL_CRATE = {
   (pen: CanvasRenderingContext2D, left: number, top: number) => void
 >;
 const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
+/**
+ * How big a fleet counter is drawn, in screen pixels: wider than an army's
+ * and narrowing to a keel, with the nation's colour along its deck.
+ */
+const FLEET_WIDTH = 28;
+const FLEET_HEIGHT = 16;
+const FLEET_KEEL = 5;
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
 const LABEL_OUTLINE = "rgba(0, 0, 0, 0.65)";
 const LABEL_OUTLINE_WIDTH = 3;
+
+/** One counter as the canvas draws it: its text, its centre and its nation's colour. */
+interface Counter {
+  readonly value: string;
+  readonly x: number;
+  readonly y: number;
+  readonly colour: Colour;
+}
+
+const inkOf = (colour: Colour): string =>
+  `rgb(${colour.red} ${colour.green} ${colour.blue})`;
+
+/**
+ * Draws an army counter, with the crate beside it where its divisions are
+ * short of supply, and leaves the pen set for the names again.
+ */
+const drawCounter = (
+  pen: CanvasRenderingContext2D,
+  counter: Counter,
+  crate: SupplyState
+): void => {
+  const { colour, value, x, y } = counter;
+  const left = x - COUNTER_WIDTH / 2;
+  const top = y - COUNTER_HEIGHT / 2;
+  pen.fillStyle = COUNTER_FILL;
+  pen.fillRect(left, top, COUNTER_WIDTH, COUNTER_HEIGHT);
+  pen.fillStyle = inkOf(colour);
+  pen.fillRect(left, top, COUNTER_STRIPE, COUNTER_HEIGHT);
+  pen.fillStyle = COUNTER_INK;
+  pen.font = COUNTER_FONT;
+  pen.fillText(value, x + COUNTER_STRIPE / 2, y);
+  Option.match(CRATES[crate], {
+    onNone: noCrate,
+    onSome: (drawn) => {
+      const crateLeft = left + COUNTER_WIDTH + CRATE_GAP;
+      const crateTop = y - CRATE_SIZE / 2;
+      const ink = inkOf(drawn.colour);
+      pen.fillStyle = COUNTER_FILL;
+      pen.fillRect(crateLeft - 1, crateTop - 1, CRATE_SIZE + 2, CRATE_SIZE + 2);
+      pen.fillStyle = ink;
+      pen.strokeStyle = ink;
+      pen.lineWidth = CRATE_LINE;
+      FILL_CRATE[`${drawn.filled}`](pen, crateLeft, crateTop);
+      pen.lineWidth = LABEL_OUTLINE_WIDTH;
+      pen.strokeStyle = LABEL_OUTLINE;
+    },
+  });
+  pen.font = LABEL_FONT;
+  pen.fillStyle = LABEL_INK;
+};
+
+/**
+ * Draws a fleet counter, a hull narrowing to its keel with the nation's
+ * colour along the deck, and leaves the pen set for the names again.
+ */
+const drawFleet = (pen: CanvasRenderingContext2D, counter: Counter): void => {
+  const { colour, value, x, y } = counter;
+  const top = y - FLEET_HEIGHT / 2;
+  pen.fillStyle = COUNTER_FILL;
+  pen.beginPath();
+  pen.moveTo(x - FLEET_WIDTH / 2, top);
+  pen.lineTo(x + FLEET_WIDTH / 2, top);
+  pen.lineTo(x + FLEET_WIDTH / 2 - FLEET_KEEL, y + FLEET_HEIGHT / 2);
+  pen.lineTo(x - FLEET_WIDTH / 2 + FLEET_KEEL, y + FLEET_HEIGHT / 2);
+  pen.closePath();
+  pen.fill();
+  pen.fillStyle = inkOf(colour);
+  pen.fillRect(x - FLEET_WIDTH / 2, top, FLEET_WIDTH, COUNTER_STRIPE);
+  pen.fillStyle = COUNTER_INK;
+  pen.font = COUNTER_FONT;
+  pen.fillText(value, x, y + COUNTER_STRIPE / 2);
+  pen.font = LABEL_FONT;
+  pen.fillStyle = LABEL_INK;
+};
 
 const measure = (element: HTMLCanvasElement): Surface => ({
   height: element.clientHeight,
@@ -157,6 +248,7 @@ const WorldMapSurface = ({
   divisions,
   highlighted,
   mode,
+  navies,
   onSelectNation,
   onTogglePause,
   owners,
@@ -197,9 +289,16 @@ const WorldMapSurface = ({
     };
   }, [attached]);
 
+  const waters = useMemo(
+    () => watersOf(graphOf(world.provinces), navies),
+    [world, navies]
+  );
+
+  const resources = useMemo(() => resourceTintOf(world.deposits), [world]);
+
   const tint = useMemo(
-    () => tintFor(mode, { compliance, network: supply }),
-    [mode, supply, compliance]
+    () => tintFor(mode, { compliance, network: supply, resources, waters }),
+    [mode, supply, compliance, waters, resources]
   );
 
   // One bitmap per world, painted at cell resolution and scaled by the canvas,
@@ -224,10 +323,11 @@ const WorldMapSurface = ({
 
   const overlay = useMemo(
     () => ({
+      fleets: fleetMarks(world, navies),
       labels: nationLabels(world, owners),
       marks: divisionMarks(world, divisions, supply),
     }),
-    [world, owners, divisions, supply]
+    [world, owners, divisions, supply, navies]
   );
 
   const viewOf = useCallback(
@@ -278,38 +378,10 @@ const WorldMapSurface = ({
           pen.clearRect(0, 0, clearWidth, clearHeight);
         },
         counter: (value, x, y, colour, crate) => {
-          const left = x - COUNTER_WIDTH / 2;
-          const top = y - COUNTER_HEIGHT / 2;
-          pen.fillStyle = COUNTER_FILL;
-          pen.fillRect(left, top, COUNTER_WIDTH, COUNTER_HEIGHT);
-          pen.fillStyle = `rgb(${colour.red} ${colour.green} ${colour.blue})`;
-          pen.fillRect(left, top, COUNTER_STRIPE, COUNTER_HEIGHT);
-          pen.fillStyle = COUNTER_INK;
-          pen.font = COUNTER_FONT;
-          pen.fillText(value, x + COUNTER_STRIPE / 2, y);
-          Option.match(CRATES[crate], {
-            onNone: noCrate,
-            onSome: (drawn) => {
-              const crateLeft = left + COUNTER_WIDTH + CRATE_GAP;
-              const crateTop = y - CRATE_SIZE / 2;
-              const ink = `rgb(${drawn.colour.red} ${drawn.colour.green} ${drawn.colour.blue})`;
-              pen.fillStyle = COUNTER_FILL;
-              pen.fillRect(
-                crateLeft - 1,
-                crateTop - 1,
-                CRATE_SIZE + 2,
-                CRATE_SIZE + 2
-              );
-              pen.fillStyle = ink;
-              pen.strokeStyle = ink;
-              pen.lineWidth = CRATE_LINE;
-              FILL_CRATE[`${drawn.filled}`](pen, crateLeft, crateTop);
-              pen.lineWidth = LABEL_OUTLINE_WIDTH;
-              pen.strokeStyle = LABEL_OUTLINE;
-            },
-          });
-          pen.font = LABEL_FONT;
-          pen.fillStyle = LABEL_INK;
+          drawCounter(pen, { colour, value, x, y }, crate);
+        },
+        fleet: (value, x, y, colour) => {
+          drawFleet(pen, { colour, value, x, y });
         },
         text: (value, x, y) => {
           pen.strokeText(value, x, y);

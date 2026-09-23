@@ -7,6 +7,8 @@ import {
   COMPLIANCE_COLOURS,
   HATCH_SHADE,
   MAP_COLOURS,
+  NAVAL_LAND_SHADE,
+  RESOURCE_COLOURS,
   SUPPLY_COLOURS,
 } from "./map-palette";
 import {
@@ -209,6 +211,85 @@ describe(paintWorld, () => {
       MAP_COLOURS.unowned.red,
       MAP_COLOURS.unowned.green,
       MAP_COLOURS.unowned.blue,
+      255,
+    ]);
+  });
+
+  it("should paint a sea zone in its holder's colour when one nation's ships cover it on the naval map", () => {
+    const naval: Tint = {
+      mode: "naval",
+      waters: [Float32Array.from([0, 0, 10]), Float32Array.from([0, 0, 0])],
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, naval),
+        11
+      )
+    ).toStrictEqual([200, 0, 0, 255]);
+  });
+
+  it("should stripe a sea zone when two nations share it on the naval map", () => {
+    const naval: Tint = {
+      mode: "naval",
+      waters: [Float32Array.from([0, 0, 6]), Float32Array.from([0, 0, 4])],
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, naval),
+        11
+      )
+    ).toStrictEqual([Math.round(200 * HATCH_SHADE), 0, 0, 255]);
+  });
+
+  it("should leave a sea zone the sea's colour when no warship covers it on the naval map", () => {
+    const naval: Tint = {
+      mode: "naval",
+      waters: [Float32Array.from([0, 0, 0]), Float32Array.from([0, 0, 0])],
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, naval),
+        11
+      )
+    ).toStrictEqual([
+      MAP_COLOURS.sea.red,
+      MAP_COLOURS.sea.green,
+      MAP_COLOURS.sea.blue,
+      255,
+    ]);
+  });
+
+  it("should dim the land in its holder's colour when the map shows naval supremacy", () => {
+    const naval: Tint = { mode: "naval", waters: [] };
+
+    expect(
+      channelsAt(paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, naval), 0)
+    ).toStrictEqual([Math.round(200 * NAVAL_LAND_SHADE), 0, 0, 255]);
+  });
+
+  it("should fill a province with its richest resource's colour when the map shows resources", () => {
+    const resources: Tint = {
+      deposits: [
+        { chromium: 0, steel: 0, tungsten: 4 },
+        { chromium: 0, steel: 0, tungsten: 0 },
+        { chromium: 0, steel: 0, tungsten: 0 },
+      ],
+      mode: "resources",
+      world: { chromium: 10, steel: 10, tungsten: 10 },
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, resources),
+        0
+      )
+    ).toStrictEqual([
+      RESOURCE_COLOURS.tungsten.red,
+      RESOURCE_COLOURS.tungsten.green,
+      RESOURCE_COLOURS.tungsten.blue,
       255,
     ]);
   });

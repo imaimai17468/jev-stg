@@ -2,6 +2,7 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { startCompliance } from "@/shared/entities/world/compliance";
 import {
@@ -11,7 +12,9 @@ import {
 } from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { NO_NAVY } from "@/shared/entities/world/navy";
 import type { Province } from "@/shared/entities/world/provinces";
+import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { supplyOf } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
@@ -44,6 +47,7 @@ const WORLD: World = {
     { cells: 9, id: 3, kind: "sea", neighbours: [0], x: 3, y: 0 },
     land(4, "hills", 1, []),
   ],
+  deposits: [0, 1, 2, 3, 4].map(() => NO_RESOURCES),
   seed: 1,
 };
 
@@ -61,11 +65,16 @@ const SIMULATION: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   compliance: startCompliance(OWNERS),
+  deals: [],
+  invasions: [],
+  navies: [NO_NAVY, NO_NAVY],
   negotiations: [],
+  quiet: noQuiet(2),
   stances: ["balanced", "balanced"],
   clock: START_CLOCK,
   divisions: [
     {
+      arrival: "march",
       kind: "infantry",
       marched: 0,
       movingTo: 0,
@@ -79,6 +88,30 @@ const SIMULATION: Simulation = {
   owners: OWNERS,
   diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
 };
+
+/** What the panel says of a nation with no dockyard and nothing afloat. */
+const NO_FLEET = [
+  { label: "造船所", value: "0" },
+  { label: "建造中", value: "輸送船（0%）" },
+  { label: "駆逐艦", value: "0" },
+  { label: "巡洋艦", value: "0" },
+  { label: "戦艦", value: "0" },
+  { label: "潜水艦", value: "0" },
+  { label: "輸送船（航路で使用中）", value: "0（0）" },
+  { label: "飛び地に届いた補給", value: "100%" },
+  { label: "海越しの輸入の到着", value: "100%" },
+  { label: "準備中の海上輸送", value: "0（0師団）" },
+];
+
+/** What the panel says of a nation with no mine and no factory that needs one. */
+const NO_TRADE = [
+  { label: "交易法", value: "輸出重視" },
+  { label: "鋼鉄", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "タングステン", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "クロム", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "資源不足による軍需生産の低下", value: "0%" },
+  { label: "交易で増減した民需工場", value: "0" },
+];
 
 /** What the panel says of a nation that has researched and pursued nothing. */
 const UNADVANCED: AdvancementSummary = {
@@ -101,6 +134,7 @@ describe(summaryOf, () => {
       faction: Option.some({ members: ["国0"], name: "国0陣営" }),
       id: 0,
       name: "国0",
+      navy: NO_FLEET,
       neighbours: ["国1"],
       occupation: [
         { label: "占領している州", value: "0" },
@@ -121,6 +155,7 @@ describe(summaryOf, () => {
         { provinces: 2, terrain: "plains" },
         { provinces: 1, terrain: "hills" },
       ],
+      trade: NO_TRADE,
     });
   });
 
@@ -136,6 +171,7 @@ describe(summaryOf, () => {
       faction: Option.none(),
       id: -1,
       name: "",
+      navy: [],
       neighbours: [],
       occupation: [],
       provinces: 0,
@@ -143,6 +179,7 @@ describe(summaryOf, () => {
       standing: { kind: "independent" },
       supply: [],
       terrain: [],
+      trade: [],
     });
   });
 

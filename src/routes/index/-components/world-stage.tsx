@@ -98,6 +98,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
         divisions={simulation.divisions}
         highlighted={selected}
         mode={mode}
+        navies={simulation.navies}
         onSelectNation={setSelected}
         onTogglePause={flipPause}
         owners={simulation.owners}

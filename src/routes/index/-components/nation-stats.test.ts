@@ -23,6 +23,7 @@ const SUMMARY: NationSummary = {
   faction: Option.none(),
   id: 0,
   name: "国0",
+  navy: [],
   neighbours: ["国1"],
   occupation: [],
   provinces: 61,
@@ -33,6 +34,7 @@ const SUMMARY: NationSummary = {
     { provinces: 32, terrain: "plains" },
     { provinces: 14, terrain: "tundra" },
   ],
+  trade: [],
 };
 
 describe(territoryOf, () => {

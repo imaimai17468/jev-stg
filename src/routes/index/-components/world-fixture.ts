@@ -1,11 +1,14 @@
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { startCompliance } from "@/shared/entities/world/compliance";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Nation } from "@/shared/entities/world/nations";
+import { NO_NAVY } from "@/shared/entities/world/navy";
 import type { Province } from "@/shared/entities/world/provinces";
+import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { START_STANCE } from "@/shared/entities/world/stance";
@@ -40,6 +43,7 @@ export const FIXTURE_WORLD: World = {
     land(1, 2.5, 4),
     { cells: 4, id: 2, kind: "sea", neighbours: [], x: 4.5, y: 0.5 },
   ],
+  deposits: [NO_RESOURCES, NO_RESOURCES, NO_RESOURCES],
   seed: 1,
 };
 
@@ -64,10 +68,14 @@ export const fixtureSimulation = (
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(HELD_BY_TWO),
+  deals: [],
   diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],
+  invasions: [],
+  navies: [NO_NAVY, NO_NAVY],
   negotiations: [],
+  quiet: noQuiet(2),
   owners: HELD_BY_TWO,
   stances: [START_STANCE, START_STANCE],
   ...patch,
