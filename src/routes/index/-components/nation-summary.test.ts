@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
+import type { NationEconomy } from "@/shared/entities/world/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { summaryOf } from "./nation-summary";
@@ -34,10 +36,17 @@ const WORLD: World = {
   seed: 1,
 };
 
+/** One economy per nation, told apart by the equipment each has stacked. */
+const ECONOMIES: readonly NationEconomy[] = [
+  { ...NO_ECONOMY, equipment: 40 },
+  { ...NO_ECONOMY, equipment: 90 },
+];
+
 describe(summaryOf, () => {
   it("should gather a nation's ground, terrain and borders when it holds some", () => {
-    expect(summaryOf(WORLD, 0)).toStrictEqual({
+    expect(summaryOf(WORLD, ECONOMIES, 0)).toStrictEqual({
       cells: 7,
+      economy: { ...NO_ECONOMY, equipment: 40 },
       id: 0,
       name: "国0",
       neighbours: ["国1"],
@@ -50,8 +59,9 @@ describe(summaryOf, () => {
   });
 
   it("should read nothing when the world holds no nation with that id", () => {
-    expect(summaryOf(WORLD, 9)).toStrictEqual({
+    expect(summaryOf(WORLD, ECONOMIES, 9)).toStrictEqual({
       cells: 0,
+      economy: NO_ECONOMY,
       id: -1,
       name: "",
       neighbours: [],

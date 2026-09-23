@@ -4,12 +4,15 @@ import { afterMilliseconds } from "@/lib/schedule";
 import { generateWorld } from "@/shared/entities/world";
 import type { Speed } from "@/shared/entities/world/clock";
 import {
-  advancedOneDay,
   atSpeed,
   dayDuration,
-  START_CLOCK,
   togglePaused,
 } from "@/shared/entities/world/clock";
+import {
+  ranOneDay,
+  startSimulation,
+  withClock,
+} from "@/shared/entities/world/simulation";
 import { headlineOf } from "./headline";
 import { HudClockBar } from "./hud-clock-bar";
 import { HudNationPanel } from "./hud-nation-panel";
@@ -33,8 +36,9 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   // Drawing the world is a pure function of the seed and takes long enough that
   // a second render must not repeat it.
   const world = useMemo(() => generateWorld(seed), [seed]);
-  const [clock, setClock] = useState(START_CLOCK);
+  const [simulation, setSimulation] = useState(() => startSimulation(world));
   const [selected, setSelected] = useState(NO_NATION);
+  const { clock } = simulation;
 
   useEffect(() => {
     // Synchronise the calendar with real time. Each run waits out one in-game
@@ -45,7 +49,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
       return noCleanup;
     }
     return afterMilliseconds(dayDuration(clock), () => {
-      setClock(advancedOneDay);
+      setSimulation(ranOneDay);
     });
   }, [clock]);
 
@@ -53,17 +57,20 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
     () =>
       Option.match(selected, {
         onNone: () => NO_SUMMARY,
-        onSome: (nation) => Option.some(summaryOf(world, nation)),
+        onSome: (nation) =>
+          Option.some(summaryOf(world, simulation.economies, nation)),
       }),
-    [selected, world]
+    [selected, world, simulation.economies]
   );
 
   const chooseSpeed = useCallback((speed: Speed) => {
-    setClock((current) => atSpeed(current, speed));
+    setSimulation((current) =>
+      withClock(current, atSpeed(current.clock, speed))
+    );
   }, []);
 
   const flipPause = useCallback(() => {
-    setClock(togglePaused);
+    setSimulation((current) => withClock(current, togglePaused(current.clock)));
   }, []);
 
   return (
