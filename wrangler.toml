@@ -20,3 +20,13 @@ namespace_id = "1001"
 [ratelimits.simple]
 limit = 30
 period = 60
+
+# Declared so `wrangler types` emits these on CloudflareEnv deterministically.
+# Without this block the generator falls back to whatever local env file it
+# finds, so the type differs between a developer machine and CI. Values are
+# never here; they are registered with `wrangler secret put`.
+#
+# Naming a secret here also makes it required at deploy time, so register it with
+# `wrangler secret put` before deploying (see docs/DEPLOYMENT.md).
+[secrets]
+required = ["AI_GATEWAY_API_KEY"]
