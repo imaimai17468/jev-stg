@@ -65,17 +65,56 @@ export interface Entry extends Carried {
   readonly seq: number;
 }
 
-/** How many entries the chronicle keeps, the newest first. */
-const CHRONICLE_LENGTH = 60;
+/**
+ * Which run of the chronicle an entry counts against: the wars, factions and
+ * peaces between nations, a nation's laws, plans and stances, or its research
+ * and focus tree.
+ */
+type Strand = "diplomacy" | "policy" | "advancement";
 
-/** The chronicle with `carried` added at the front and the oldest past the cap gone. */
+const STRAND_OF = {
+  conscription: "policy",
+  declare: "diplomacy",
+  focus: "advancement",
+  join: "diplomacy",
+  peace: "diplomacy",
+  plan: "policy",
+  research: "advancement",
+  stance: "policy",
+} satisfies Readonly<Record<Decision["kind"], Strand>>;
+
+/**
+ * How many entries of each strand the chronicle keeps, the newest first. A
+ * strand past its cap drops only its own oldest entries, so neither research
+ * nor a change of stance pushes out a declaration or a peace.
+ */
+const STRAND_LENGTH = {
+  advancement: 60,
+  diplomacy: 60,
+  policy: 60,
+} satisfies Readonly<Record<Strand, number>>;
+
+/**
+ * The chronicle with `carried` added at the front and, in each strand, the
+ * oldest past that strand's cap gone.
+ */
 export const chronicled = (
   chronicle: readonly Entry[],
   carried: Carried
 ): readonly Entry[] => {
   const newest = chronicle.slice(0, 1).map((entry) => entry.seq);
   const seq = Math.max(-1, ...newest) + 1;
-  return [{ ...carried, seq }, ...chronicle].slice(0, CHRONICLE_LENGTH);
+  const counted = new Map<Strand, number>();
+  const kept: Entry[] = [];
+  for (const entry of [{ ...carried, seq }, ...chronicle]) {
+    const strand = STRAND_OF[entry.ruling.decision.kind];
+    const count = (counted.get(strand) ?? 0) + 1;
+    counted.set(strand, count);
+    if (count <= STRAND_LENGTH[strand]) {
+      kept.push(entry);
+    }
+  }
+  return kept;
 };
 
 /**
