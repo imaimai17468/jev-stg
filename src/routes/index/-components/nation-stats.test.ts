@@ -1,6 +1,12 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
-import { terrainOf, territoryOf } from "./nation-stats";
+import {
+  factionListing,
+  standingLabel,
+  terrainOf,
+  territoryOf,
+} from "./nation-stats";
 import type { NationSummary } from "./nation-summary";
 
 const SUMMARY: NationSummary = {
@@ -8,10 +14,13 @@ const SUMMARY: NationSummary = {
   divisions: 0,
   economy: { ...NO_ECONOMY, population: 125_166_336 },
   enemies: [],
+  faction: Option.none(),
   id: 0,
   name: "国0",
   neighbours: ["国1"],
   provinces: 61,
+  puppets: [],
+  standing: { kind: "independent" },
   terrain: [
     { provinces: 32, terrain: "plains" },
     { provinces: 14, terrain: "tundra" },
@@ -34,5 +43,44 @@ describe(terrainOf, () => {
       { label: "平野", value: "32" },
       { label: "ツンドラ", value: "14" },
     ]);
+  });
+});
+
+describe(standingLabel, () => {
+  it("should read independent when the nation answers to nobody", () => {
+    expect(standingLabel({ kind: "independent" })).toBe("独立");
+  });
+
+  it("should name the overlord when the nation is a puppet", () => {
+    expect(standingLabel({ kind: "puppet", overlord: "国1" })).toBe(
+      "国1の傀儡"
+    );
+  });
+
+  it("should name the annexer when the nation has been annexed", () => {
+    expect(standingLabel({ by: "国2", kind: "annexed" })).toBe(
+      "国2に併合された"
+    );
+  });
+});
+
+describe(factionListing, () => {
+  it("should head the section with the faction's name when the nation has joined one", () => {
+    const summary: NationSummary = {
+      ...SUMMARY,
+      faction: Option.some({ members: ["国0", "国1"], name: "国1陣営" }),
+    };
+
+    expect(factionListing(summary)).toStrictEqual({
+      members: ["国0", "国1"],
+      title: "国1陣営",
+    });
+  });
+
+  it("should head the section plainly and list nobody when the nation has joined none", () => {
+    expect(factionListing(SUMMARY)).toStrictEqual({
+      members: [],
+      title: "陣営",
+    });
   });
 });

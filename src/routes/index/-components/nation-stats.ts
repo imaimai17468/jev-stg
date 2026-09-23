@@ -1,6 +1,7 @@
+import { Option } from "effect";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { countLabel } from "./count-label";
-import type { NationSummary } from "./nation-summary";
+import type { NationSummary, StandingSummary } from "./nation-summary";
 import type { Stat } from "./stat";
 
 const TERRAIN_LABELS = {
@@ -25,3 +26,26 @@ export const terrainOf = (summary: NationSummary): readonly Stat[] =>
     label: TERRAIN_LABELS[share.terrain],
     value: String(share.provinces),
   }));
+
+/** How the panel words a nation's standing. */
+export const standingLabel = (standing: StandingSummary): string => {
+  if (standing.kind === "puppet") {
+    return `${standing.overlord}の傀儡`;
+  }
+  if (standing.kind === "annexed") {
+    return `${standing.by}に併合された`;
+  }
+  return "独立";
+};
+
+/** What the faction section shows: its heading and the nations under it. */
+interface FactionListing {
+  readonly title: string;
+  readonly members: readonly string[];
+}
+
+export const factionListing = (summary: NationSummary): FactionListing =>
+  Option.match(summary.faction, {
+    onNone: () => ({ members: [], title: "陣営" }),
+    onSome: (faction) => ({ members: faction.members, title: faction.name }),
+  });

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { randomFromSeed, shuffled } from "./random";
+import { randomFromSeed, shuffled, streamSeed } from "./random";
 
 const firstThree = (seed: number): readonly number[] => {
   const random = randomFromSeed(seed);
@@ -52,5 +52,18 @@ describe(shuffled, () => {
     expect(shuffled([1, 2, 3, 4, 5], randomFromSeed(9))).toStrictEqual(
       shuffled([1, 2, 3, 4, 5], randomFromSeed(9))
     );
+  });
+});
+
+describe(streamSeed, () => {
+  it("should open consecutive streams far apart when the stream counts up by one", () => {
+    const first = randomFromSeed(streamSeed(115, 30)).unit();
+    const next = randomFromSeed(streamSeed(115, 31)).unit();
+
+    expect(Math.abs(first - next)).toBeGreaterThan(0.01);
+  });
+
+  it("should give the same seed when the seed and the stream are the same", () => {
+    expect(streamSeed(115, 30)).toBe(streamSeed(115, 30));
   });
 });

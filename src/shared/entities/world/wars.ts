@@ -1,9 +1,5 @@
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import type { NationPair } from "./nations";
-import { neighbouringNations } from "./nations";
-import type { Random } from "./random";
-import { shuffled } from "./random";
 
 /** Who each nation is fighting, as a square symmetric table of nation ids. */
 export interface Wars {
@@ -35,35 +31,16 @@ export const declared = (wars: Wars, pair: NationPair): Wars => {
   return { fighting, nations: wars.nations };
 };
 
-/** How many wars a world opens with. */
-const WARS_AT_START = 3;
-
-/**
- * The wars a world starts under.
- *
- * Nothing yet decides to declare one, so a world with none would never fight
- * and the ground would never change hands. These are drawn from the seed
- * between nations that share a border, and no nation is drawn twice, so each
- * war starts as one front between two powers.
- */
-export const startWars = (
-  world: World,
-  owners: Int32Array,
-  random: Random
-): Wars => {
-  const pairs = shuffled(neighbouringNations(world, owners), random);
-  const drawn = new Set<number>();
-  let wars = noWars(world.nations.length);
-  for (const pair of pairs) {
-    if (drawn.size >= WARS_AT_START * 2) {
-      break;
-    }
-    if (drawn.has(pair.one) || drawn.has(pair.other)) {
-      continue;
-    }
-    drawn.add(pair.one);
-    drawn.add(pair.other);
-    wars = declared(wars, pair);
+/** The same wars with `nation` at peace with everybody. */
+export const peaceFor = (wars: Wars, nation: number): Wars => {
+  const fighting = Uint8Array.from(wars.fighting);
+  fighting.fill(0, nation * wars.nations, (nation + 1) * wars.nations);
+  for (let other = 0; other < wars.nations; other += 1) {
+    fighting[other * wars.nations + nation] = 0;
   }
-  return wars;
+  return { fighting, nations: wars.nations };
 };
+
+/** How many wars are being fought, each pair of enemies counted once. */
+export const warCount = (wars: Wars): number =>
+  wars.fighting.reduce((total, flag) => total + flag, 0) / 2;

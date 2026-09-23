@@ -52,3 +52,16 @@ export const shuffled = <T>(
   }
   return order;
 };
+
+/**
+ * How far apart two consecutive streams' seeds sit. Stepping the generator's
+ * state by this much moves its first draw by 0.618 of the unit interval, the
+ * golden ratio's turn, which keeps a run of consecutive streams spread over
+ * the interval instead of opening on draws a hair apart as consecutive seeds
+ * do.
+ */
+const STREAM_STRIDE = 1_727_276_829;
+
+/** A seed for one stream of draws out of `seed`, such as one day's. */
+export const streamSeed = (seed: number, stream: number): number =>
+  (Math.floor(Math.abs(seed)) + stream * STREAM_STRIDE) % (MODULUS - 1);

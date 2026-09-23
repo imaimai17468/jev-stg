@@ -1,6 +1,9 @@
 import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
+import type { Diplomacy } from "@/shared/entities/world/diplomacy";
+import { nationsStanding } from "@/shared/entities/world/diplomacy";
 import { constructionProgress } from "@/shared/entities/world/economy";
+import { warCount } from "@/shared/entities/world/wars";
 import { countLabel } from "./count-label";
 import type { NationSummary } from "./nation-summary";
 import type { Stat } from "./stat";
@@ -16,19 +19,25 @@ const PERCENT = 100;
 /**
  * The top bar's contents.
  *
- * A nation's readings are the ones the calendar moves, so the bar carries those
- * where a nation is picked and the world's fixed counts where none is. The
- * construction reading is floored rather than rounded, so it reaches 100 only
+ * The bar carries the picked nation's readings where a nation is picked, and
+ * where none is, the world's: the nations an annexation has not removed, the
+ * wars between them, and the fixed counts of the map. The construction
+ * reading is floored rather than rounded, so it reaches 100 only
  * by the factory appearing in the count beside it.
  */
 export const headlineOf = (
   world: World,
+  diplomacy: Diplomacy,
   selection: Option.Option<NationSummary>
 ): Headline =>
   Option.match(selection, {
     onNone: () => ({
       stats: [
-        { label: "国", value: String(world.nations.length) },
+        {
+          label: "国",
+          value: String(nationsStanding(diplomacy)),
+        },
+        { label: "戦争", value: String(warCount(diplomacy.wars)) },
         { label: "州", value: String(world.provinces.length) },
         { label: "seed", value: String(world.seed) },
       ],

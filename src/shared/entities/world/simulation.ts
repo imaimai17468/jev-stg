@@ -1,14 +1,14 @@
 import { armiesAfterOneDay } from "./army";
 import type { Clock } from "./clock";
 import { advancedOneDay as nextClock, START_CLOCK } from "./clock";
+import type { Diplomacy } from "./diplomacy";
+import { openingDiplomacy } from "./diplomacy";
 import type { Division } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { producedOneDay, startEconomies } from "./economy";
 import type { World } from "./index";
 import { initialOwners } from "./nations";
-import { randomFromSeed } from "./random";
-import type { Wars } from "./wars";
-import { startWars } from "./wars";
+import { conductedOneDay, factionFounders } from "./statecraft";
 
 /** Everything about a world that the calendar moves. */
 export interface Simulation {
@@ -17,45 +17,49 @@ export interface Simulation {
   readonly economies: readonly NationEconomy[];
   /** Who holds each province now, by province id. */
   readonly owners: Int32Array;
-  readonly wars: Wars;
+  readonly diplomacy: Diplomacy;
   readonly divisions: readonly Division[];
 }
-
-/**
- * How far the war draw sits from the seed that drew the map, so the wars come
- * from a stream of their own rather than one opened at the map's seed.
- */
-const WAR_SEED_OFFSET = 104_729;
 
 /** The world on its first day, before any of it has run. */
 export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
+  const economies = startEconomies(world, owners);
   return {
     clock: START_CLOCK,
-    divisions: [],
-    economies: startEconomies(world, owners),
-    owners,
-    wars: startWars(
-      world,
+    diplomacy: openingDiplomacy(
       owners,
-      randomFromSeed(world.seed + WAR_SEED_OFFSET)
+      world.nations.length,
+      factionFounders(economies)
     ),
+    divisions: [],
+    economies,
+    owners,
   };
 };
 
-/** The whole simulation one day on: the economies, then the armies. */
+/**
+ * The whole simulation one day on: the economies, then the armies, then the
+ * diplomacy, so a nation surrenders the day its homeland falls and a month's
+ * declarations read the armies as that day left them.
+ */
 export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
-  const armies = armiesAfterOneDay(world, simulation.wars, {
+  const clock = nextClock(simulation.clock);
+  const armies = armiesAfterOneDay(world, simulation.diplomacy.wars, {
     divisions: simulation.divisions,
     economies: simulation.economies.map(producedOneDay),
     owners: simulation.owners,
   });
+  const after = conductedOneDay(world, clock, {
+    armies,
+    diplomacy: simulation.diplomacy,
+  });
   return {
-    ...simulation,
-    clock: nextClock(simulation.clock),
-    divisions: armies.divisions,
-    economies: armies.economies,
-    owners: armies.owners,
+    clock,
+    diplomacy: after.diplomacy,
+    divisions: after.armies.divisions,
+    economies: after.armies.economies,
+    owners: after.armies.owners,
   };
 };
 

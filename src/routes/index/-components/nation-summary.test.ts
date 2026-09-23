@@ -1,12 +1,17 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import {
+  INDEPENDENT,
+  openingDiplomacy,
+  warDeclared,
+} from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import { declared, noWars } from "@/shared/entities/world/wars";
 import { summaryOf } from "./nation-summary";
 
 const land = (
@@ -63,7 +68,7 @@ const SIMULATION: Simulation = {
   ],
   economies: ECONOMIES,
   owners: OWNERS,
-  wars: declared(noWars(2), { one: 0, other: 1 }),
+  diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
 };
 
 describe(summaryOf, () => {
@@ -73,10 +78,13 @@ describe(summaryOf, () => {
       divisions: 1,
       economy: { ...NO_ECONOMY, equipment: 40 },
       enemies: ["国1"],
+      faction: Option.some({ members: ["国0"], name: "国0陣営" }),
       id: 0,
       name: "国0",
       neighbours: ["国1"],
       provinces: 3,
+      puppets: [],
+      standing: { kind: "independent" },
       terrain: [
         { provinces: 2, terrain: "plains" },
         { provinces: 1, terrain: "hills" },
@@ -90,11 +98,61 @@ describe(summaryOf, () => {
       divisions: 0,
       economy: NO_ECONOMY,
       enemies: [],
+      faction: Option.none(),
       id: -1,
       name: "",
       neighbours: [],
       provinces: 0,
+      puppets: [],
+      standing: { kind: "independent" },
       terrain: [],
+    });
+  });
+
+  it("should name the overlord and list no faction when the nation is an unaligned puppet", () => {
+    const simulation: Simulation = {
+      ...SIMULATION,
+      diplomacy: {
+        ...openingDiplomacy(OWNERS, 2, []),
+        standings: [INDEPENDENT, { kind: "puppet", overlord: 0 }],
+      },
+    };
+
+    const summary = summaryOf(WORLD, simulation, 1);
+
+    expect({
+      faction: summary.faction,
+      standing: summary.standing,
+    }).toStrictEqual({
+      faction: Option.none(),
+      standing: { kind: "puppet", overlord: "国0" },
+    });
+  });
+
+  it("should list the puppets when the nation is an overlord", () => {
+    const simulation: Simulation = {
+      ...SIMULATION,
+      diplomacy: {
+        ...openingDiplomacy(OWNERS, 2, []),
+        standings: [INDEPENDENT, { kind: "puppet", overlord: 0 }],
+      },
+    };
+
+    expect(summaryOf(WORLD, simulation, 0).puppets).toStrictEqual(["国1"]);
+  });
+
+  it("should name the annexer when the nation has been annexed", () => {
+    const simulation: Simulation = {
+      ...SIMULATION,
+      diplomacy: {
+        ...openingDiplomacy(OWNERS, 2, []),
+        standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
+      },
+    };
+
+    expect(summaryOf(WORLD, simulation, 1).standing).toStrictEqual({
+      by: "国0",
+      kind: "annexed",
     });
   });
 });

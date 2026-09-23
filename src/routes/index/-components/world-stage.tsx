@@ -82,7 +82,9 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
         owners={simulation.owners}
         world={world}
       />
-      <HudTopBar headline={headlineOf(world, selection)} />
+      <HudTopBar
+        headline={headlineOf(world, simulation.diplomacy, selection)}
+      />
       <HudNationPanel selection={selection} />
       <HudClockBar
         clock={clock}
