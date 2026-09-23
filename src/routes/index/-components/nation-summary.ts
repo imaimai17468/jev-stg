@@ -1,4 +1,13 @@
+import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
+import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
+import {
+  factionOf,
+  NO_FACTION,
+  puppetsOf,
+  sideOf,
+  standingOf,
+} from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { valueAt } from "@/shared/entities/world/grid";
@@ -13,6 +22,18 @@ import { enemiesOf } from "@/shared/entities/world/wars";
 export interface TerrainShare {
   readonly terrain: Terrain;
   readonly provinces: number;
+}
+
+/** Whether a nation answers to itself, to another, or to nobody any more. */
+export type StandingSummary =
+  | { readonly kind: "independent" }
+  | { readonly kind: "puppet"; readonly overlord: string }
+  | { readonly kind: "annexed"; readonly by: string };
+
+/** The faction a nation fights under: its name and everyone in it, by name. */
+export interface FactionSummary {
+  readonly name: string;
+  readonly members: readonly string[];
 }
 
 /** What the panels say about one nation. */
@@ -32,6 +53,10 @@ export interface NationSummary {
   readonly divisions: number;
   /** The nations it is fighting, by name. */
   readonly enemies: readonly string[];
+  readonly standing: StandingSummary;
+  readonly faction: Option.Option<FactionSummary>;
+  /** The nations that answer to it, by name. */
+  readonly puppets: readonly string[];
 }
 
 const EMPTY: NationSummary = {
@@ -39,10 +64,13 @@ const EMPTY: NationSummary = {
   divisions: 0,
   economy: NO_ECONOMY,
   enemies: [],
+  faction: Option.none(),
   id: -1,
   name: "",
   neighbours: [],
   provinces: 0,
+  puppets: [],
+  standing: { kind: "independent" },
   terrain: [],
 };
 
@@ -52,6 +80,49 @@ const terrainShares = (
   [...counts]
     .map(([terrain, provinces]) => ({ provinces, terrain }))
     .toSorted((left, right) => right.provinces - left.provinces);
+
+/** Where a nation stands among the others, with every nation spelled out. */
+type Allegiance = Pick<NationSummary, "faction" | "puppets" | "standing">;
+
+/** The standing, with the nations it names spelled out. */
+const standingSummary = (
+  standing: Standing,
+  nameOf: (nation: number) => string
+): StandingSummary => {
+  if (standing.kind === "puppet") {
+    return { kind: "puppet", overlord: nameOf(standing.overlord) };
+  }
+  if (standing.kind === "annexed") {
+    return { by: nameOf(standing.by), kind: "annexed" };
+  }
+  return standing;
+};
+
+/**
+ * The nation's standing, its puppets, and the faction it fights under, which
+ * is named after the nation that founded it and lists every nation fighting
+ * under it, puppets included.
+ */
+const allegianceOf = (
+  diplomacy: Diplomacy,
+  nation: number,
+  nameOf: (nation: number) => string
+): Allegiance => {
+  const faction = factionOf(diplomacy, nation);
+  const standing = standingSummary(standingOf(diplomacy, nation), nameOf);
+  const puppets = puppetsOf(diplomacy, nation).map(nameOf);
+  if (faction === NO_FACTION) {
+    return { faction: Option.none(), puppets, standing };
+  }
+  return {
+    faction: Option.some({
+      members: sideOf(diplomacy, nation).map(nameOf),
+      name: `${nameOf(faction)}陣営`,
+    }),
+    puppets,
+    standing,
+  };
+};
 
 /**
  * Everything the HUD says about a nation, read off the world in one pass.
@@ -64,11 +135,12 @@ export const summaryOf = (
   simulation: Simulation,
   nation: number
 ): NationSummary => {
-  const { owners } = simulation;
+  const { diplomacy, owners } = simulation;
   const named = itemAt(world.nations, nation, NO_NATION);
   if (named.id < 0) {
     return EMPTY;
   }
+  const nameOf = (other: number) => itemAt(world.nations, other, named).name;
   const counts = new Map<Terrain, number>();
   const neighbours = new Set<number>();
   let provinces = 0;
@@ -97,14 +169,11 @@ export const summaryOf = (
       (division) => division.nation === nation
     ).length,
     economy: itemAt(simulation.economies, nation, NO_ECONOMY),
-    enemies: enemiesOf(simulation.diplomacy.wars, nation).map(
-      (enemy) => itemAt(world.nations, enemy, named).name
-    ),
+    enemies: enemiesOf(diplomacy.wars, nation).map(nameOf),
+    ...allegianceOf(diplomacy, nation, nameOf),
     id: nation,
     name: named.name,
-    neighbours: [...neighbours].map(
-      (id) => itemAt(world.nations, id, named).name
-    ),
+    neighbours: [...neighbours].map(nameOf),
     provinces,
     terrain: terrainShares(counts),
   };
