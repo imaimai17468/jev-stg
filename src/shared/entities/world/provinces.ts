@@ -27,6 +27,14 @@ export interface SeaProvince {
 
 export type Province = LandProvince | SeaProvince;
 
+/** The land provinces of a list, in the order they were given. */
+export const landProvinces = (
+  provinces: readonly Province[]
+): readonly LandProvince[] =>
+  provinces.filter(
+    (province): province is LandProvince => province.kind === "land"
+  );
+
 /** Stands in for a list `itemAt` cannot reach. Nothing reads it but the caller. */
 const NO_LIST: readonly number[] = [];
 

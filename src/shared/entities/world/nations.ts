@@ -2,6 +2,7 @@ import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
 import { nationNames } from "./names";
 import type { Province } from "./provinces";
+import { landProvinces } from "./provinces";
 import type { Random } from "./random";
 import { spreadFrom, UNASSIGNED } from "./spread";
 
@@ -181,10 +182,7 @@ export const growOwners = (
     (province) => valueAt(landFlags, province) === 1,
     capitals
   );
-  for (const province of provinces) {
-    if (province.kind !== "land") {
-      continue;
-    }
+  for (const province of landProvinces(provinces)) {
     if (valueAt(owners, province.id) !== UNASSIGNED) {
       continue;
     }
