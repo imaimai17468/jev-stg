@@ -24,6 +24,7 @@ import type { Simulation } from "@/shared/entities/world/simulation";
 import { supplyOf } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { AdvancementSummary } from "./advancement-summary";
+import { advancementTreeOf } from "./advancement-tree";
 import { summaryOf } from "./nation-summary";
 
 const land = (
@@ -219,6 +220,7 @@ describe(summaryOf, () => {
         { provinces: 1, terrain: "hills" },
       ],
       trade: NO_TRADE,
+      tree: advancementTreeOf(START_ADVANCEMENT),
     });
   });
 
@@ -246,6 +248,7 @@ describe(summaryOf, () => {
       supply: [],
       terrain: [],
       trade: [],
+      tree: advancementTreeOf(START_ADVANCEMENT),
     });
   });
 

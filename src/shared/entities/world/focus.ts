@@ -1,6 +1,7 @@
 import { Option, Schema } from "effect";
 import type { NationEconomy } from "./economy";
 import type { Bonus } from "./modifiers";
+import type { TreeStanding } from "./tree-standing";
 
 /** The part of the national focus tree a focus sits in. */
 export type FocusBranch = "industry" | "research" | "army" | "politics";
@@ -28,7 +29,7 @@ export const FocusIdSchema = Schema.Literals([
 /** One national focus a government can pursue. */
 export type FocusId = typeof FocusIdSchema.Type;
 
-const FOCUS_IDS = FocusIdSchema.literals;
+export const FOCUS_IDS = FocusIdSchema.literals;
 
 /** What finishing a focus hands the nation once, on the day it finishes. */
 export interface Grants {
@@ -217,21 +218,46 @@ const exclusive = (one: FocusId, other: FocusId): boolean =>
   focusOf(other).excludes.includes(one);
 
 /**
+ * Where each focus stands for a government with `focuses`: finished, the one
+ * it pursues, ruled out by one it finished or pursues, open once every
+ * prerequisite is finished, and otherwise locked.
+ */
+export const focusStandingsOf = (focuses: Focuses) => {
+  const finished = new Set(focuses.done);
+  const pursued = focuses.current.pipe(Option.map((pursuit) => pursuit.focus));
+  const started = [...focuses.done, ...Option.toArray(pursued)];
+  const ruledOut = new Set(
+    FOCUS_IDS.filter((focus) =>
+      started.some((other) => exclusive(focus, other))
+    )
+  );
+  return (focus: FocusId): TreeStanding => {
+    if (finished.has(focus)) {
+      return "done";
+    }
+    if (Option.contains(pursued, focus)) {
+      return "underway";
+    }
+    if (ruledOut.has(focus)) {
+      return "excluded";
+    }
+    if (focusOf(focus).requires.every((needed) => finished.has(needed))) {
+      return "open";
+    }
+    return "locked";
+  };
+};
+
+/**
  * The focuses a government may pick next: none while it pursues one, and
- * otherwise every focus not yet finished whose prerequisites are all finished
- * and that nothing finished rules out, in the tree's order.
+ * otherwise every open one, in the tree's order.
  */
 export const availableFocuses = (focuses: Focuses): readonly FocusId[] => {
   if (Option.isSome(focuses.current)) {
     return [];
   }
-  const finished = new Set(focuses.done);
-  return FOCUS_IDS.filter(
-    (focus) =>
-      !finished.has(focus) &&
-      focusOf(focus).requires.every((needed) => finished.has(needed)) &&
-      !focuses.done.some((other) => exclusive(focus, other))
-  );
+  const standingOf = focusStandingsOf(focuses);
+  return FOCUS_IDS.filter((focus) => standingOf(focus) === "open");
 };
 
 export const focusStarted = (focuses: Focuses, focus: FocusId): Focuses => ({

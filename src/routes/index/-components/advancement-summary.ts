@@ -2,6 +2,7 @@ import { Option } from "effect";
 import type { Advancement } from "@/shared/entities/world/advancement";
 import { freeSlotsOf } from "@/shared/entities/world/advancement";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
+import type { Study } from "@/shared/entities/world/research";
 import { daysOf } from "@/shared/entities/world/research";
 import { techOf } from "@/shared/entities/world/techs";
 import type { Stat } from "./stat";
@@ -20,11 +21,15 @@ export interface AdvancementSummary {
 
 const PERCENT = 100;
 
+/** The share of its technology's research-days `study` has done, as a percentage. */
+export const percentDone = (study: Study): string =>
+  `${Math.floor((study.progress / daysOf(study.tech)) * PERCENT)}%`;
+
 /** The busy slots, each with the share of its technology's research-days done. */
 const slotRows = (advancement: Advancement): readonly Stat[] => {
   const busy = advancement.research.studies.map((study) => ({
     label: techOf(study.tech).name,
-    value: `${Math.floor((study.progress / daysOf(study.tech)) * PERCENT)}%`,
+    value: percentDone(study),
   }));
   const free = freeSlotsOf(advancement);
   if (free === 0) {
@@ -33,12 +38,16 @@ const slotRows = (advancement: Advancement): readonly Stat[] => {
   return [...busy, { label: "空き枠", value: String(free) }];
 };
 
+/** The days left on a focus `progress` days in. */
+export const daysLeft = (progress: number): string =>
+  `あと${FOCUS_DAYS - progress}日`;
+
 const focusRow = (advancement: Advancement): Stat =>
   Option.match(advancement.focuses.current, {
     onNone: () => ({ label: "進めている方針", value: "なし" }),
     onSome: (pursuit) => ({
       label: focusOf(pursuit.focus).name,
-      value: `あと${FOCUS_DAYS - pursuit.progress}日`,
+      value: daysLeft(pursuit.progress),
     }),
   });
 

@@ -38,6 +38,7 @@ const SUMMARY: NationSummary = {
     { provinces: 14, terrain: "tundra" },
   ],
   trade: [],
+  tree: { focuses: [], techs: [] },
 };
 
 describe(territoryOf, () => {

@@ -41,6 +41,8 @@ import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
+import type { AdvancementTree } from "./advancement-tree";
+import { advancementTreeOf } from "./advancement-tree";
 import { airSummaryOf } from "./air-summary";
 import { frontSummaryOf } from "./front-summary";
 import { intelSummaryOf } from "./intel-summary";
@@ -90,6 +92,8 @@ export interface NationSummary {
   /** The nations that answer to it, by name. */
   readonly puppets: readonly string[];
   readonly advancement: AdvancementSummary;
+  /** Its focus tree and research tree, each node marked with where it stands. */
+  readonly tree: AdvancementTree;
   /** Its battle plan: its fronts, their objectives, and its fallback line. */
   readonly front: readonly Stat[];
   readonly supply: readonly Stat[];
@@ -121,6 +125,7 @@ const EMPTY: NationSummary = {
   standing: { kind: "independent" },
   terrain: [],
   trade: [],
+  tree: advancementTreeOf(START_ADVANCEMENT),
 };
 
 const terrainShares = (
@@ -192,9 +197,12 @@ export const summaryOf = (
     return EMPTY;
   }
   const nameOf = (other: number) => itemAt(world.nations, other, named).name;
-  const armoury = armouryOf(
-    itemAt(simulation.advancements, nation, START_ADVANCEMENT).research
+  const advancement = itemAt(
+    simulation.advancements,
+    nation,
+    START_ADVANCEMENT
   );
+  const armoury = armouryOf(advancement.research);
   const counts = new Map<Terrain, number>();
   const neighbours = new Set<number>();
   let provinces = 0;
@@ -227,9 +235,7 @@ export const summaryOf = (
       owners,
       superiority: superiorityOf(skiesOf(simulation), nation),
     }),
-    advancement: advancementSummaryOf(
-      itemAt(simulation.advancements, nation, START_ADVANCEMENT)
-    ),
+    advancement: advancementSummaryOf(advancement),
     cells,
     divisions: simulation.divisions.filter(
       (division) => division.nation === nation
@@ -304,5 +310,6 @@ export const summaryOf = (
         NO_LEDGER
       )
     ),
+    tree: advancementTreeOf(advancement),
   };
 };

@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { NO_ECONOMY } from "./economy";
-import type { Focuses } from "./focus";
+import type { FocusId, Focuses } from "./focus";
 import {
   availableFocuses,
   FOCUS_DAYS,
@@ -9,11 +9,34 @@ import {
   focusBonuses,
   focusedOneDay,
   focusOf,
+  focusStandingsOf,
   focusStarted,
   grantedBy,
   researchSlotsOf,
   START_FOCUSES,
 } from "./focus";
+import type { TreeStanding } from "./tree-standing";
+
+/** A government that finished its political effort and pursues militarism. */
+const MILITARIST: Focuses = {
+  current: Option.some({ focus: "militarism", progress: 10 }),
+  done: ["political-effort"],
+};
+
+describe(focusStandingsOf, () => {
+  it.each<{ focus: FocusId; standing: TreeStanding }>([
+    { focus: "political-effort", standing: "done" },
+    { focus: "militarism", standing: "underway" },
+    { focus: "neutrality", standing: "excluded" },
+    { focus: "national-unity", standing: "open" },
+    { focus: "war-propaganda", standing: "locked" },
+  ])(
+    "should place $focus as $standing when the political effort is finished and militarism pursued",
+    ({ focus, standing }) => {
+      expect(focusStandingsOf(MILITARIST)(focus)).toBe(standing);
+    }
+  );
+});
 
 describe(availableFocuses, () => {
   it("should offer every focus with no prerequisite when none is finished", () => {
