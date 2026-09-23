@@ -1,5 +1,5 @@
 import { valueAt } from "./grid";
-import type { Province } from "./provinces";
+import type { LandProvince, Province } from "./provinces";
 import { landProvinces } from "./provinces";
 import { UNASSIGNED } from "./spread";
 import type { Terrain } from "./terrain";
@@ -30,6 +30,10 @@ const TERRAIN_YIELD = {
 
 const PER_MILLION = 1_000_000;
 
+/** The people living on one land province. */
+export const provincePeople = (province: LandProvince): number =>
+  province.cells * TERRAIN_YIELD[province.terrain].people;
+
 /** The people a nation's land holds and the factories they run. */
 interface Industry {
   readonly population: number;
@@ -55,7 +59,7 @@ export const industryByNation = (
       continue;
     }
     const carried = TERRAIN_YIELD[province.terrain];
-    const people = province.cells * carried.people;
+    const people = provincePeople(province);
     population[owner] = valueAt(population, owner) + people;
     factories[owner] =
       valueAt(factories, owner) +

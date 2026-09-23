@@ -33,3 +33,22 @@ export const randomFromSeed = (seed: number): Random => {
     unit,
   };
 };
+
+/**
+ * The items in a new order the seed decides.
+ *
+ * Each draw takes one item out of the pool rather than swapping two positions,
+ * so the shuffle reads no index back and needs no stand-in for an element the
+ * list might not hold.
+ */
+export const shuffled = <T>(
+  items: readonly T[],
+  random: Random
+): readonly T[] => {
+  const pool = [...items];
+  const order: T[] = [];
+  while (pool.length > 0) {
+    order.push(...pool.splice(random.below(pool.length), 1));
+  }
+  return order;
+};
