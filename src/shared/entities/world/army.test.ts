@@ -4,9 +4,12 @@ import { armiesAfterOneDay } from "./army";
 import {
   division,
   FULL_SUPPLY,
+  land,
   LINE_OWNERS,
   LINE_WORLD,
+  nation,
   WAR_COMMAND,
+  worldOf,
 } from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
@@ -36,6 +39,36 @@ const UNDER_ENEMY_SKY: Command = {
     supportAttack: [],
   },
 };
+
+/**
+ * Nation 0 holding province 0, and nation 1 the three beyond it: its capital
+ * in province 1 beside nation 0's ground, and province 2 beside it too but
+ * two provinces from the capital.
+ */
+const FORK_WORLD = worldOf(
+  [nation(0, 0), nation(1, 1)],
+  [land(0, [1, 2]), land(1, [0, 3]), land(2, [0, 3]), land(3, [1, 2])]
+);
+
+/** The same ground with nation 1's capital in province 3, as far from both of nation 0's neighbours. */
+const DIAMOND_WORLD = worldOf(
+  [nation(0, 0), nation(1, 3)],
+  FORK_WORLD.provinces
+);
+
+const FORK_OWNERS = Int32Array.from([0, 1, 1, 1]);
+
+/** Nation 0's four divisions in province 0, and `defenders` of nation 1's in province 1. */
+const forkedWith = (defenders: number): Armies => ({
+  divisions: [
+    ...Array.from({ length: 4 }, () => division({ nation: 0, province: 0 })),
+    ...Array.from({ length: defenders }, () =>
+      division({ movingTo: 1, nation: 1, province: 1 })
+    ),
+  ],
+  economies: [NO_ECONOMY, NO_ECONOMY],
+  owners: FORK_OWNERS,
+});
 
 describe(armiesAfterOneDay, () => {
   it("should raise a division at the capital and take its cost out when a nation can afford one", () => {
@@ -361,6 +394,105 @@ describe(armiesAfterOneDay, () => {
           (moved) => moved.movingTo
         )
       ).toStrictEqual([0, 0, 0]);
+    });
+  });
+
+  describe("under a battle plan", () => {
+    it.each([
+      { defenders: 1, target: 1, why: "the attack outweighs its garrison" },
+      {
+        defenders: 3,
+        target: 2,
+        why: "its garrison outweighs the attack and the weaker neighbour does not",
+      },
+    ])(
+      "should attack province $target when the capital's neighbour is held by $defenders and $why",
+      ({ defenders, target }) => {
+        expect(
+          armiesAfterOneDay(FORK_WORLD, WAR_COMMAND, forkedWith(defenders))
+            .divisions.filter((standing) => standing.nation === 0)
+            .map((standing) => standing.movingTo)
+        ).toStrictEqual([0, target, target, target]);
+      }
+    );
+
+    it("should attack the weaker of two neighbours when the offensive runs as near its objective through both", () => {
+      expect(
+        armiesAfterOneDay(DIAMOND_WORLD, WAR_COMMAND, forkedWith(1))
+          .divisions.filter((standing) => standing.nation === 0)
+          .map((standing) => standing.movingTo)
+      ).toStrictEqual([0, 2, 2, 2]);
+    });
+
+    it("should fall back onto its fallback line to regroup when a defender breaks", () => {
+      const beaten = startingWith({
+        divisions: [
+          division({ movingTo: 2, nation: 0, province: 2 }),
+          division({ movingTo: 2, nation: 1, organisation: 1, province: 2 }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, beaten)
+          .divisions.filter((standing) => standing.nation === 1)
+          .map(({ movingTo, organisation, province, task }) => ({
+            movingTo,
+            organisation,
+            province,
+            task,
+          }))
+      ).toStrictEqual([
+        { movingTo: 3, organisation: 0, province: 3, task: "regroup" },
+      ]);
+    });
+
+    it("should walk a regrouping division toward the fallback line when it has not recovered", () => {
+      const regrouping = startingWith({
+        divisions: [
+          division({
+            movingTo: 1,
+            nation: 0,
+            organisation: 10,
+            province: 1,
+            task: "regroup",
+          }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, regrouping).divisions
+      ).toStrictEqual([
+        division({
+          marched: 1,
+          movingTo: 0,
+          nation: 0,
+          organisation: 13,
+          province: 1,
+          task: "regroup",
+        }),
+      ]);
+    });
+
+    it("should put a regrouping division back under the line's orders when it has recovered", () => {
+      const recovered = startingWith({
+        divisions: [
+          division({
+            marched: 1,
+            movingTo: 1,
+            nation: 0,
+            organisation: 50,
+            province: 0,
+            task: "regroup",
+          }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, recovered).divisions
+      ).toStrictEqual([division({ nation: 0, organisation: 53, province: 0 })]);
     });
   });
 });

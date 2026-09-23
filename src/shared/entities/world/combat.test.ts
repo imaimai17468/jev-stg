@@ -382,12 +382,24 @@ describe("foughtOneDay with what each side knows", () => {
   });
 });
 
+/** How far each province of the line is from a fallback line through province 0. */
+const FALLBACK_AT_HOME = Int32Array.from([0, 1, -1, -1, -1]);
+
 describe(withdrawn, () => {
-  it("should fall back onto ground its nation holds when a broken division has some behind it", () => {
+  it("should fall back onto ground its nation holds to regroup when a broken division has some behind it", () => {
     const beaten = division({ nation: 0, organisation: -4, province: 2 });
 
-    expect(withdrawn(LINE_GRAPH, LINE_OWNERS, beaten)).toStrictEqual([
-      { ...beaten, marched: 0, movingTo: 1, organisation: 0, province: 1 },
+    expect(
+      withdrawn(LINE_GRAPH, LINE_OWNERS, FALLBACK_AT_HOME, beaten)
+    ).toStrictEqual([
+      {
+        ...beaten,
+        marched: 0,
+        movingTo: 1,
+        organisation: 0,
+        province: 1,
+        task: "regroup",
+      },
     ]);
   });
 
@@ -399,14 +411,49 @@ describe(withdrawn, () => {
       province: 2,
     });
 
-    expect(withdrawn(LINE_GRAPH, LINE_OWNERS, beached)).toStrictEqual([
-      division({ movingTo: 1, nation: 0, organisation: 0, province: 1 }),
+    expect(
+      withdrawn(LINE_GRAPH, LINE_OWNERS, FALLBACK_AT_HOME, beached)
+    ).toStrictEqual([
+      division({
+        movingTo: 1,
+        nation: 0,
+        organisation: 0,
+        province: 1,
+        task: "regroup",
+      }),
     ]);
+  });
+
+  it("should fall back toward the fallback line when its nation holds ground on both sides", () => {
+    const flanked = Int32Array.from([1, 0, 1, 0, -1]);
+    const nearerTheLine = Int32Array.from([-1, 2, -1, 0, -1]);
+    const beaten = division({ nation: 0, organisation: -4, province: 2 });
+
+    expect(
+      withdrawn(LINE_GRAPH, flanked, nearerTheLine, beaten).map(
+        (fallen) => fallen.province
+      )
+    ).toStrictEqual([3]);
+  });
+
+  it("should fall back onto the first ground of its own when no fallback line reaches any of it", () => {
+    const beaten = division({ nation: 0, organisation: -4, province: 2 });
+
+    expect(
+      withdrawn(
+        LINE_GRAPH,
+        Int32Array.from([1, 0, 1, 0, -1]),
+        Int32Array.from([-1, -1, -1, -1, -1]),
+        beaten
+      ).map((fallen) => fallen.province)
+    ).toStrictEqual([1]);
   });
 
   it("should be lost when a broken division has nothing of its own behind it", () => {
     const pocket = division({ nation: 0, organisation: -4, province: 3 });
 
-    expect(withdrawn(LINE_GRAPH, LINE_OWNERS, pocket)).toStrictEqual([]);
+    expect(
+      withdrawn(LINE_GRAPH, LINE_OWNERS, FALLBACK_AT_HOME, pocket)
+    ).toStrictEqual([]);
   });
 });

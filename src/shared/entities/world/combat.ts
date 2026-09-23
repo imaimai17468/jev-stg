@@ -80,33 +80,69 @@ const struck = (division: Division, organisation: number): Division => ({
 
 const canFight = (division: Division): boolean => division.organisation > 0;
 
+/** A distance on a field, with ground the field never reached ranked past all of it. */
+const reachOf = (distance: number): number => {
+  if (distance === UNASSIGNED) {
+    return Number.MAX_SAFE_INTEGER;
+  }
+  return distance;
+};
+
 /**
- * The broken division standing on the first ground behind it its nation holds,
- * or nothing where no such ground touches it.
+ * Where a broken division falls back to among `ownGround`, the provinces its
+ * nation holds beside it: the one nearest its fallback line, the first of
+ * them where none reaches the line, or `UNASSIGNED` where there are none.
+ */
+const fallbackStep = (
+  retreat: Int32Array,
+  ownGround: readonly number[]
+): number => {
+  let best = UNASSIGNED;
+  let nearest = Number.POSITIVE_INFINITY;
+  for (const beside of ownGround) {
+    const reach = reachOf(valueAt(retreat, beside));
+    if (reach >= nearest) {
+      continue;
+    }
+    nearest = reach;
+    best = beside;
+  }
+  return best;
+};
+
+/**
+ * The broken division standing on the ground behind it that leads toward its
+ * nation's fallback line, regrouping, or nothing where no ground of its
+ * nation's touches it.
  *
  * A division with nowhere to fall back to is lost, which is how a pocket ends.
  */
 export const withdrawn = (
   graph: ProvinceGraph,
   owners: Int32Array,
+  retreat: Int32Array,
   division: Division
 ): readonly Division[] => {
-  for (const beside of neighboursOf(graph, division.province)) {
-    if (!isLand(graph, beside) || valueAt(owners, beside) !== division.nation) {
-      continue;
-    }
-    return [
-      {
-        ...division,
-        arrival: "march",
-        marched: 0,
-        movingTo: beside,
-        organisation: 0,
-        province: beside,
-      },
-    ];
+  const beside = fallbackStep(
+    retreat,
+    neighboursOf(graph, division.province).filter(
+      (next) => isLand(graph, next) && valueAt(owners, next) === division.nation
+    )
+  );
+  if (beside === UNASSIGNED) {
+    return [];
   }
-  return [];
+  return [
+    {
+      ...division,
+      arrival: "march",
+      marched: 0,
+      movingTo: beside,
+      organisation: 0,
+      province: beside,
+      task: "regroup",
+    },
+  ];
 };
 
 /**

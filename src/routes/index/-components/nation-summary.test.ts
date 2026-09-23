@@ -96,6 +96,7 @@ const SIMULATION: Simulation = {
       organisation: 60,
       province: 0,
       strength: 20_000,
+      task: "line",
     },
   ],
   economies: ECONOMIES,
