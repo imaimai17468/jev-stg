@@ -68,28 +68,42 @@ const battlesOf = (
   return battles;
 };
 
+/** The close air support each nation flies over each region, by nation id and then region id. */
+export type Flown = Pick<AirCover, "support" | "supportAttack">;
+
 /**
  * The close air support each nation sends into each of its battles today, by
- * nation id and then province id: what it flies over a region, its planes or
- * their ground attack, spread evenly over the battles it fights in that
+ * nation id and then province id: the planes it flies over a region and
+ * their ground attack, each spread evenly over the battles it fights in that
  * region.
  */
 export const supportOf = (
   field: Battlefield,
-  planes: readonly Float32Array[],
+  flown: Flown,
   provinces: number
-): readonly Float32Array[] =>
-  battlesOf(field, planes.length).map((battles, nation) => {
+): Flown => {
+  const battles = battlesOf(field, flown.support.length);
+  const shares = battles.map((fought) => {
     const perRegion = new Float64Array(field.airspace.regions.length);
-    for (const province of battles) {
+    for (const province of fought) {
       const region = regionOfProvince(field.airspace, province);
       perRegion[region] = valueAt(perRegion, region) + 1;
     }
-    const flown = itemAt(planes, nation, CLEAR);
-    const support = new Float32Array(provinces);
-    for (const province of battles) {
-      const region = regionOfProvince(field.airspace, province);
-      support[province] = valueAt(flown, region) / valueAt(perRegion, region);
-    }
-    return support;
+    return perRegion;
   });
+  const spread = (layer: readonly Float32Array[]): readonly Float32Array[] =>
+    battles.map((fought, nation) => {
+      const over = itemAt(layer, nation, CLEAR);
+      const perRegion = itemAt(shares, nation, new Float64Array(0));
+      const sent = new Float32Array(provinces);
+      for (const province of fought) {
+        const region = regionOfProvince(field.airspace, province);
+        sent[province] = valueAt(over, region) / valueAt(perRegion, region);
+      }
+      return sent;
+    });
+  return {
+    support: spread(flown.support),
+    supportAttack: spread(flown.supportAttack),
+  };
+};

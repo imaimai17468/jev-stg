@@ -544,24 +544,14 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     {
       air: {
         enemy: below.enemy,
-        support: supportOf(
+        ...supportOf(
           {
             airspace: world.airspace,
             divisions: afloat.divisions,
             owners: simulation.owners,
             wars: simulation.diplomacy.wars,
           },
-          aloft.support,
-          provinces
-        ),
-        supportAttack: supportOf(
-          {
-            airspace: world.airspace,
-            divisions: afloat.divisions,
-            owners: simulation.owners,
-            wars: simulation.diplomacy.wars,
-          },
-          aloft.supportAttack,
+          aloft,
           provinces
         ),
       },

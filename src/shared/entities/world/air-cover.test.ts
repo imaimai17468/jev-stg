@@ -49,16 +49,28 @@ describe(coverOver, () => {
 });
 
 describe(supportOf, () => {
-  it("should spread each nation's planes over a region evenly among the battles it fights there when divisions stand on enemy ground", () => {
+  it("should spread each nation's planes and their ground attack over a region evenly among the battles it fights there when divisions stand on enemy ground", () => {
     expect(
       supportOf(
         LINE_BATTLES,
-        [Float32Array.from([40, 0]), Float32Array.from([10, 0])],
+        {
+          support: [Float32Array.from([40, 0]), Float32Array.from([10, 0])],
+          supportAttack: [
+            Float32Array.from([320, 0]),
+            Float32Array.from([80, 0]),
+          ],
+        },
         5
       )
-    ).toStrictEqual([
-      Float32Array.from([0, 20, 20, 0, 0]),
-      Float32Array.from([0, 5, 5, 0, 0]),
-    ]);
+    ).toStrictEqual({
+      support: [
+        Float32Array.from([0, 20, 20, 0, 0]),
+        Float32Array.from([0, 5, 5, 0, 0]),
+      ],
+      supportAttack: [
+        Float32Array.from([0, 160, 160, 0, 0]),
+        Float32Array.from([0, 40, 40, 0, 0]),
+      ],
+    });
   });
 });
