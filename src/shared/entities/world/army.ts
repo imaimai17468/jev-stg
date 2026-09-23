@@ -15,7 +15,7 @@ import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
-import type { Nation } from "./nations";
+import { musteringAt } from "./muster";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
 import { UNASSIGNED } from "./spread";
@@ -31,24 +31,6 @@ export interface Armies {
 
 /** Stands in for a field no nation asked for. Every step off it stands still. */
 const NO_FIELD = new Int32Array(0);
-
-/**
- * Where a nation musters, which is its capital while it still holds it and
- * whatever else it holds after that, or nowhere once it holds nothing.
- */
-const musteringAt = (
-  world: World,
-  owners: Int32Array,
-  nation: Nation
-): number => {
-  if (valueAt(owners, nation.capital) === nation.id) {
-    return nation.capital;
-  }
-  const held = landProvinces(world.provinces).find(
-    (province) => valueAt(owners, province.id) === nation.id
-  );
-  return held?.id ?? UNASSIGNED;
-};
 
 /** What one day of the depots produced and what it cost. */
 interface Raised {
