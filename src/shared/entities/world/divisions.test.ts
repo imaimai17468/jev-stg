@@ -66,12 +66,16 @@ describe(paidForDivision, () => {
 });
 
 /** A division of a nation with nothing researched, fully supplied. */
-const SUPPLIED: Backing = { air: 1, fill: 1, modifiers: NO_MODIFIERS };
+const SUPPLIED: Backing = {
+  air: 1,
+  fill: 1,
+  insight: 0,
+  modifiers: NO_MODIFIERS,
+};
 
 /** A fully supplied division of a nation whose modifiers `bonus` raises. */
 const backedBy = (bonus: Partial<Modifiers>): Backing => ({
-  air: 1,
-  fill: 1,
+  ...SUPPLIED,
   modifiers: { ...NO_MODIFIERS, ...bonus },
 });
 
@@ -95,15 +99,29 @@ describe("attackOf under modifiers", () => {
 
 describe("attackOf out of supply", () => {
   it("should keep only the unsupplied share of its worth when the division gets no supply", () => {
-    expect(
-      attackOf(division({}), { air: 1, fill: 0, modifiers: NO_MODIFIERS })
-    ).toBeCloseTo(1.8);
+    expect(attackOf(division({}), { ...SUPPLIED, fill: 0 })).toBeCloseTo(1.8);
   });
 });
 
 describe("attackOf under the enemy's air superiority", () => {
   it("should keep only the share the enemy's sky leaves it when the enemy holds the air overhead", () => {
     expect(attackOf(division({}), { ...SUPPLIED, air: 0.65 })).toBeCloseTo(3.9);
+  });
+});
+
+describe("attackOf with what its nation knows", () => {
+  it("should hit harder by the share its insight adds when its nation knows the enemy better", () => {
+    expect(attackOf(division({}), { ...SUPPLIED, insight: 0.15 })).toBeCloseTo(
+      6.9
+    );
+  });
+});
+
+describe("defenceOf with what its nation knows", () => {
+  it("should hold harder by the share its insight adds when its nation knows the enemy better", () => {
+    expect(defenceOf(division({}), { ...SUPPLIED, insight: 0.15 })).toBeCloseTo(
+      11.5
+    );
   });
 });
 
@@ -137,11 +155,8 @@ describe(rested, () => {
 
   it("should recover nothing when the division gets no supply", () => {
     expect(
-      rested(division({ organisation: 20 }), {
-        air: 1,
-        fill: 0,
-        modifiers: NO_MODIFIERS,
-      }).organisation
+      rested(division({ organisation: 20 }), { ...SUPPLIED, fill: 0 })
+        .organisation
     ).toBe(20);
   });
 

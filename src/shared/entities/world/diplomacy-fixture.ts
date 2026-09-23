@@ -7,9 +7,12 @@ import { startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
+import { openingServices } from "./espionage";
 import type { World } from "./index";
+import { noGleaned } from "./intel";
 import { NO_NATION } from "./nations";
 import { NO_NAVY } from "./navy";
+import { noNetworks } from "./networks";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
@@ -52,10 +55,14 @@ export const ROW_SIMULATION: Simulation = {
     ...NO_ECONOMY,
     population: 300_000,
   })),
+  gleaned: noGleaned(ROW_WORLD.nations.length),
   invasions: [],
   navies: ROW_WORLD.nations.map(() => NO_NAVY),
   negotiations: [],
+  networks: noNetworks(ROW_WORLD.nations.length, ROW_WORLD.provinces.length),
   owners: ROW_OWNERS,
   quiet: noQuiet(ROW_WORLD.nations.length),
+  services: openingServices(ROW_WORLD.nations.length),
   stances: ROW_WORLD.nations.map(() => START_STANCE),
+  unrest: [],
 };

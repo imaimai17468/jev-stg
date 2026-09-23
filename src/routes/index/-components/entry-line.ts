@@ -16,6 +16,7 @@ import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
 import { techOf } from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
+import { destinationName, OPERATION_NAMES, projectName } from "./intel-names";
 import {
   AIRCRAFT_NAMES,
   AVIATION_NAMES,
@@ -70,6 +71,10 @@ const sourceLabel = (source: Source): string => {
   return "規則";
 };
 
+/** How many operatives an operation lost as it ended, in the feed's words, or nothing where it lost none. */
+const caughtNote = (captured: number): string =>
+  itemAt(["", `（${captured}人が捕まった）`], Number(captured > 0), "");
+
 /** Who decided, and what, in the feed's words. */
 const described = (
   decision: Decision,
@@ -123,6 +128,27 @@ const described = (
   }
   if (decision.kind === "focus") {
     return { action: `国家方針 → ${focusOf(decision.focus).name}`, actor };
+  }
+  if (decision.kind === "agency") {
+    return { action: `諜報機関 → ${projectName(decision.project)}`, actor };
+  }
+  if (decision.kind === "espionage") {
+    return {
+      action: `工作員 → ${destinationName(decision.target, nameOf)}`,
+      actor,
+    };
+  }
+  if (decision.kind === "operation") {
+    return {
+      action: `${nameOf(decision.target)}で${OPERATION_NAMES[decision.operation]}${caughtNote(decision.captured)}`,
+      actor,
+    };
+  }
+  if (decision.kind === "captured") {
+    return { action: `${nameOf(decision.spy)}の工作員を捕らえた`, actor };
+  }
+  if (decision.kind === "cipher") {
+    return { action: `${nameOf(decision.target)}の暗号を解読`, actor };
   }
   return { action: `${nameOf(decision.faction)}陣営に加盟`, actor };
 };

@@ -7,8 +7,11 @@ import { START_CLOCK } from "@/shared/entities/world/clock";
 import { startCompliance } from "@/shared/entities/world/compliance";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { openingServices } from "@/shared/entities/world/espionage";
+import { noGleaned } from "@/shared/entities/world/intel";
 import type { Nation } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
+import { noNetworks } from "@/shared/entities/world/networks";
 import type { Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -80,11 +83,15 @@ export const fixtureSimulation = (
   diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],
+  gleaned: noGleaned(2),
   invasions: [],
   navies: [NO_NAVY, NO_NAVY],
   negotiations: [],
+  networks: noNetworks(2, 3),
   quiet: noQuiet(2),
   owners: HELD_BY_TWO,
+  services: openingServices(2),
   stances: [START_STANCE, START_STANCE],
+  unrest: [],
   ...patch,
 });

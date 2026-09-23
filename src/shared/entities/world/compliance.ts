@@ -40,13 +40,16 @@ export const startCompliance = (owners: Int32Array): Compliance => ({
  * One province's compliance with `holder` now, given the level it had with
  * `before`: full on the holder's own ground, none on ground just taken from the
  * nation it belongs to, half on ground passed on from one occupier to another,
- * and otherwise a day more of coming round.
+ * and otherwise a day more of coming round, whose gain the province's
+ * `resistance` slows by its own share. Hearts of Iron IV raises a resistance
+ * target without saying by how much it slows compliance, so the slowing is
+ * this game's own.
  */
 const levelNow = (
   native: number,
   before: number,
   holder: number,
-  level: number
+  { level, resistance }: { readonly level: number; readonly resistance: number }
 ): number => {
   if (holder === native) {
     return 1;
@@ -57,13 +60,19 @@ const levelNow = (
   if (holder !== before) {
     return level * KEPT_ON_TRANSFER;
   }
-  return level + GAIN_PER_DAY - LOSS_PER_DAY * level;
+  return (
+    level + GAIN_PER_DAY * Math.max(0, 1 - resistance) - LOSS_PER_DAY * level
+  );
 };
 
-/** Compliance one day on, read against who holds each province now. */
+/**
+ * Compliance one day on, read against who holds each province now and the
+ * resistance each province's operatives have stirred, by province id.
+ */
 export const compliedOneDay = (
   compliance: Compliance,
-  owners: Int32Array
+  owners: Int32Array,
+  resistance: Float32Array
 ): Compliance => ({
   ...compliance,
   holders: Int32Array.from(owners),
@@ -72,7 +81,7 @@ export const compliedOneDay = (
       valueAt(compliance.natives, province),
       valueAt(compliance.holders, province),
       valueAt(owners, province),
-      level
+      { level, resistance: valueAt(resistance, province) }
     )
   ),
 });
@@ -138,12 +147,19 @@ export const reachUnder = (occupancy: Occupancy): Reach => {
   };
 };
 
-/** Each nation's reach, by nation id, weighing each province by its people. */
+/**
+ * Each nation's reach, by nation id, weighing each province by its people,
+ * with the share of each province's factories that sabotage keeps idle, by
+ * province id, taken off.
+ */
 export const reachByNation = (
   provinces: readonly Province[],
   owners: Int32Array,
   compliance: Compliance,
-  nations: number
+  {
+    nations,
+    sabotage,
+  }: { readonly nations: number; readonly sabotage: Float32Array }
 ): readonly Reach[] => {
   const summed = holderSums(provinces, owners, nations);
   const people = summed(provincePeople);
@@ -152,14 +168,16 @@ export const reachByNation = (
       occupancyOf(compliance, valueAt(owners, province.id), province.id)
     )
   );
-  const drawnOn = (share: (reach: Reach) => number) =>
-    summed(
-      (province) =>
-        provincePeople(province) *
-        share(itemAt(reaches, province.id, FULL_REACH))
-    );
-  const recruitable = drawnOn((reach) => reach.manpower);
-  const working = drawnOn((reach) => reach.factories);
+  const recruitable = summed(
+    (province) =>
+      provincePeople(province) *
+      itemAt(reaches, province.id, FULL_REACH).manpower
+  );
+  const workingShare = (id: number) =>
+    itemAt(reaches, id, FULL_REACH).factories * (1 - valueAt(sabotage, id));
+  const working = summed(
+    (province) => provincePeople(province) * workingShare(province.id)
+  );
   return Array.from({ length: nations }, (_, nation): Reach => {
     const total = valueAt(people, nation);
     if (total === 0) {

@@ -55,6 +55,8 @@ export interface Works {
   readonly landmasses: Int32Array;
   /** Where each nation musters, by nation id. */
   readonly musters: readonly number[];
+  /** The civilian factories each nation's intelligence agency ties up today, by nation id. */
+  readonly tiedUp: readonly number[];
 }
 
 /** A day of trade and work: the economies, the navies, the air forces, and the trade struck. */
@@ -159,8 +161,8 @@ const heldAfter = (extracted: ResourceNeed, balance: Balance): ResourceNeed =>
  * One day of trade and work. The market clears first on what each nation
  * digs and what its industry takes, the trade across the sea as far as the
  * convoys brought it yesterday; then every economy works with the resources
- * and the civilian factories that trade left it and refines the oil into its
- * fuel; and last every dockyard puts its day into the ship or the convoy it
+ * and the civilian factories that trade and its intelligence agency left it,
+ * and refines the oil into its fuel; and last every dockyard puts its day into the ship or the convoy it
  * is building, and every factory on planes into the plane it is building,
  * which goes to the air base with the most room.
  */
@@ -203,6 +205,7 @@ export const commerceOneDay = (works: Works): Exchange => {
       modifiers: itemAt(works.modifiers, nation, NO_MODIFIERS),
       reach: itemAt(works.reach, nation, FULL_REACH),
       supplied: supplied.arms,
+      tiedUp: itemAt(works.tiedUp, nation, 0),
       traded: balance.factories,
     };
     return {

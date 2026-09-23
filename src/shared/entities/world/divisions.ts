@@ -124,6 +124,8 @@ export interface Backing {
   readonly fill: number;
   /** The share of its worth the enemy's air superiority overhead leaves it, from 0 to 1. */
   readonly air: number;
+  /** The share it adds to its attack and defence from what its nation knows of the enemy. */
+  readonly insight: number;
 }
 
 /** What a division fighting with no supply at all is still worth. */
@@ -142,7 +144,8 @@ const worthIn = (division: Division, backing: Backing, role: Role): number =>
   TEMPLATES[division.kind][role] *
   (1 + backing.modifiers[role]) *
   suppliedWorth(backing.fill) *
-  backing.air;
+  backing.air *
+  (1 + backing.insight);
 
 /**
  * The share of its attack a division keeps while it fights off a beach, after

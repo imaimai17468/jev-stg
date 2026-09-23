@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
+import { agencyStarted } from "./agency";
 import type { AirForce } from "./air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air-force";
 import type { Decision, Order, Ruling } from "./chronicle";
@@ -11,6 +12,7 @@ import {
   joined,
   NO_FACTION,
   sideOf,
+  standsAlone,
   warDeclared,
 } from "./diplomacy";
 import type { NationEconomy } from "./economy";
@@ -20,6 +22,8 @@ import {
   withPlan,
   withTradeLaw,
 } from "./economy";
+import type { Service } from "./espionage";
+import { HOME, NO_SERVICE } from "./espionage";
 import { availableFocuses, focusStarted } from "./focus";
 import type { World } from "./index";
 import { itemAt, replacedAt } from "./lookup";
@@ -171,6 +175,41 @@ const airForceRuled = (
 };
 
 /**
+ * The service with its agency set to work on the project decided, or its
+ * operatives sent where it was decided, or none where the project is no longer
+ * on offer, the target is the nation itself or one no longer standing, or
+ * nothing changes.
+ */
+const serviceRuled = (
+  simulation: Simulation,
+  service: Service,
+  decision: Extract<Decision, { kind: "agency" | "espionage" }>
+): Option.Option<Service> => {
+  if (decision.kind === "agency") {
+    return Option.map(
+      agencyStarted(
+        service.agency,
+        decision.project,
+        itemAt(simulation.advancements, decision.nation, START_ADVANCEMENT)
+          .research.researched
+      ),
+      (agency) => ({ ...service, agency })
+    );
+  }
+  const { target } = decision;
+  const reachable =
+    target === HOME ||
+    (target !== decision.nation && standsAlone(simulation.diplomacy, target));
+  if (!reachable) {
+    return Option.none();
+  }
+  return changedTo(service.target, target, (to) => ({
+    ...service,
+    target: to,
+  }));
+};
+
+/**
  * The simulation with `ruled` in place of the nation's entry in `items`, put
  * back by `into`, or `simulation` itself where the ruling changed nothing.
  */
@@ -247,6 +286,19 @@ const carriedOut = (
       ...simulation,
       stances: replacedAt(simulation.stances, decision.nation, decision.stance),
     };
+  }
+  if (decision.kind === "agency" || decision.kind === "espionage") {
+    return replacedFor(
+      simulation,
+      simulation.services,
+      decision.nation,
+      serviceRuled(
+        simulation,
+        itemAt(simulation.services, decision.nation, NO_SERVICE),
+        decision
+      ),
+      (services) => ({ ...simulation, services })
+    );
   }
   if (decision.kind === "research" || decision.kind === "focus") {
     return replacedFor(

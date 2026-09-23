@@ -14,7 +14,10 @@ import {
 } from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { openingServices } from "@/shared/entities/world/espionage";
+import { noGleaned } from "@/shared/entities/world/intel";
 import { NO_NAVY } from "@/shared/entities/world/navy";
+import { noNetworks } from "@/shared/entities/world/networks";
 import type { Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -98,6 +101,10 @@ const SIMULATION: Simulation = {
   economies: ECONOMIES,
   owners: OWNERS,
   diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
+  gleaned: noGleaned(2),
+  networks: noNetworks(2, 5),
+  services: openingServices(2),
+  unrest: [],
 };
 
 /** What the panel says of a nation with no dockyard and nothing afloat. */
@@ -140,6 +147,20 @@ const NO_TRADE = [
   { label: "交易で増減した民需工場", value: "0" },
 ];
 
+/**
+ * What the panel says of the intelligence work of a nation with no agency,
+ * which still sees what nation 1's trade law shows of its economy and navy.
+ */
+const FRESH_SERVICE = [
+  { label: "諜報機関", value: "未設立" },
+  { label: "工作員", value: "0/0人（作戦中 0、捕まっている 0）" },
+  { label: "工作員の置き場所", value: "自国で防諜" },
+  { label: "作戦", value: "なし" },
+  { label: "防諜", value: "0.0" },
+  { label: "暗号解読", value: "なし" },
+  { label: "国1の諜報", value: "経済20%・陸軍0%・海軍10%・空軍0%" },
+];
+
 /** What the panel says of a nation that has researched and pursued nothing. */
 const UNADVANCED: AdvancementSummary = {
   focus: { label: "進めている方針", value: "なし" },
@@ -161,12 +182,15 @@ describe(summaryOf, () => {
       enemies: ["国1"],
       faction: Option.some({ members: ["国0"], name: "国0陣営" }),
       id: 0,
+      intel: FRESH_SERVICE,
       name: "国0",
       navy: NO_FLEET,
       neighbours: ["国1"],
       occupation: [
         { label: "占領している州", value: "0" },
         { label: "平均の服従度", value: "—" },
+        { label: "抵抗運動が強まっている州", value: "0" },
+        { label: "破壊工作を受けている州", value: "0" },
         { label: "召集できる人口", value: "100%" },
         { label: "動かせる工場", value: "100%" },
       ],
@@ -199,6 +223,7 @@ describe(summaryOf, () => {
       enemies: [],
       faction: Option.none(),
       id: -1,
+      intel: [],
       name: "",
       navy: [],
       neighbours: [],

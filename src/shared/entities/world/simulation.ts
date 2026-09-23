@@ -4,6 +4,7 @@ import {
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./advancement";
+import { factoriesTiedUp } from "./agency";
 import { openingAirBases } from "./air-bases";
 import { supportOf } from "./air-cover";
 import type { AirForce } from "./air-force";
@@ -17,7 +18,7 @@ import {
 } from "./armistice";
 import type { Quiet } from "./armistice";
 import { armiesAfterOneDay } from "./army";
-import type { Entry, Negotiation } from "./chronicle";
+import type { Decision, Entry, Negotiation } from "./chronicle";
 import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
@@ -30,8 +31,24 @@ import type { Division } from "./divisions";
 import { fieldedBy } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy";
+import type { Service } from "./espionage";
+import {
+  heldCaptives,
+  openingServices,
+  plottedOneDay,
+  serviceFor,
+} from "./espionage";
 import { valueAt } from "./grid";
 import type { World } from "./index";
+import type { Espial } from "./insight";
+import { insightOf, intelOf } from "./insight";
+import type { Gleaned } from "./intel";
+import {
+  clashesOf,
+  extractedOneDay,
+  foughtOneDay as gleanedFromFighting,
+  noGleaned,
+} from "./intel";
 import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import { homeZonesOf, seafaredOneDay } from "./maritime";
@@ -40,7 +57,11 @@ import { musteringAt } from "./muster";
 import { initialOwners, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
+import type { Networks } from "./networks";
+import { noNetworks } from "./networks";
+import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
+import { randomFromSeed, streamSeed } from "./random";
 import { landmassesOf } from "./seas";
 import type { Skies } from "./skies";
 import { skiesBelow } from "./skies";
@@ -52,6 +73,8 @@ import { conductedOneDay, factionFounders } from "./statecraft";
 import type { Lines, SupplyNetwork } from "./supply";
 import { supplyNetwork } from "./supply";
 import type { Deal } from "./trade";
+import type { Stirred, Unrest } from "./unrest";
+import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";
 
 /** Everything about a world that the calendar moves. */
@@ -85,6 +108,14 @@ export interface Simulation {
   readonly airBases: Uint8Array;
   /** The air power each nation flew over each region today, by nation id and then region id. */
   readonly airPower: readonly Float32Array[];
+  /** One intelligence service per nation, by nation id. */
+  readonly services: readonly Service[];
+  /** How strong each nation's intelligence network is in each province, by nation id and then province id. */
+  readonly networks: Networks;
+  /** The intelligence fighting and captured operatives have given. */
+  readonly gleaned: Gleaned;
+  /** The resistance work every nation's operatives have running. */
+  readonly unrest: readonly Unrest[];
   /** What the governments decided and the world carried out, the newest first. */
   readonly chronicle: readonly Entry[];
 }
@@ -117,16 +148,44 @@ export const startSimulation = (world: World): Simulation => {
     ),
     divisions: [],
     economies,
+    gleaned: noGleaned(world.nations.length),
     invasions: [],
     navies: economies.map((economy, nation) =>
       openingNavy(economy.dockyards, itemAt(homes, nation, UNASSIGNED))
     ),
     negotiations: [],
+    networks: noNetworks(world.nations.length, world.provinces.length),
     owners,
     quiet: noQuiet(world.nations.length),
+    services: openingServices(world.nations.length),
     stances: world.nations.map(() => START_STANCE),
+    unrest: [],
   };
 };
+
+/** What the resistance work every nation's operatives have running does to each province in `simulation`. */
+export const stirredIn = (simulation: Simulation): Stirred =>
+  stirredBy(
+    simulation.unrest,
+    simulation.networks,
+    simulation.owners,
+    simulation.compliance
+  );
+
+/** What every nation's intelligence on the others is read from in `simulation`. */
+export const espialOf = (
+  simulation: Simulation,
+  graph: ProvinceGraph
+): Espial => ({
+  diplomacy: simulation.diplomacy,
+  economies: simulation.economies,
+  gleaned: simulation.gleaned,
+  graph,
+  networks: simulation.networks,
+  owners: simulation.owners,
+  services: simulation.services,
+  unrest: simulation.unrest,
+});
 
 /** The air power every nation flew today, and who is fighting whom under it. */
 export const skiesOf = (simulation: Simulation): Skies => ({
@@ -225,8 +284,38 @@ const keptWhileStanding = <T>(
   });
 
 /**
- * The world once the nations annexed today have lost their navies and their
- * air forces with the rest of what they held, and every pair at war that has not touched in long
+ * The intelligence work once the nations annexed today are gone from it: their
+ * services start over, their networks and their resistance work end with
+ * them, and the operatives they held captive are nobody's any more, so the
+ * nations that lost them stop counting them as caught. Those operatives stay
+ * lost, since they were taken off their service when they were caught.
+ */
+const intrigueSettled = (
+  world: World,
+  simulation: Simulation,
+  diplomacy: Diplomacy
+): Pick<Simulation, "services" | "networks" | "unrest"> => ({
+  networks: keptWhileStanding(
+    simulation.networks,
+    diplomacy,
+    new Float32Array(world.provinces.length)
+  ),
+  services: keptWhileStanding(
+    simulation.services,
+    diplomacy,
+    serviceFor(world.nations.length)
+  ).map((service) => ({
+    ...service,
+    captured: service.captured.filter((captor) =>
+      standsAlone(diplomacy, captor)
+    ),
+  })),
+  unrest: simulation.unrest.filter((work) => standsAlone(diplomacy, work.spy)),
+});
+
+/**
+ * The world once the nations annexed today have lost their navies, their
+ * air forces and their intelligence services with the rest of what they held, and every pair at war that has not touched in long
  * enough has signed a white peace.
  */
 const settledAtSea = (
@@ -259,7 +348,31 @@ const settledAtSea = (
     diplomacy: { ...diplomacy, wars },
     navies: keptWhileStanding(simulation.navies, diplomacy, NO_NAVY),
     quiet,
+    ...intrigueSettled(world, simulation, diplomacy),
   };
+};
+
+/**
+ * The streams the day's intelligence work and the day's interrogations draw
+ * from, apart from each other and from the council's.
+ */
+const ESPIONAGE_STREAM = 17;
+const EXTRACTION_STREAM = 19;
+
+/** The chronicle with what the day's intelligence work did in it. */
+const eventsChronicled = (
+  chronicle: readonly Entry[],
+  events: readonly Decision[],
+  day: number
+): readonly Entry[] => {
+  let entries = chronicle;
+  for (const decision of events) {
+    entries = chronicled(entries, {
+      day,
+      ruling: { decision, source: BY_RULES },
+    });
+  }
+  return entries;
 };
 
 /** The chronicle with every landing that went ashore today in it. */
@@ -294,17 +407,23 @@ const landingsChronicled = (
  * wings, their battles and their strikes on the enemy's ships; then the fleets, the battles at sea, the
  * landings and the convoys; then the supply those convoys leave; then the
  * armies; then the research and the national focuses; then the diplomacy;
- * then the white peaces between nations that no longer touch; and last each
- * province's compliance with whoever holds it once all that is done. So a
- * nation surrenders the day its homeland falls, and a month's declarations
- * read the armies as that day left them. The economies and the armies work
- * with what the nation had researched when the day began, and the ships and
- * the divisions under the air superiority the day's air battles left.
+ * then the agencies, the operatives and the codebreakers, and what the day's
+ * fighting and the captured operatives told each nation; then the white
+ * peaces between nations that no longer touch; and last each province's
+ * compliance with whoever holds it once all that is done. So a nation
+ * surrenders the day its homeland falls, and a month's declarations read the
+ * armies as that day left them. The economies and the armies work with what
+ * the nation had researched and what it knew of its enemies when the day
+ * began, the ships and the divisions under the air superiority the day's air
+ * battles left, and the occupied ground under the resistance and the sabotage
+ * the operatives had stirred by then.
  */
 export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
   const graph = graphOf(world.provinces);
   const modifiers = modifiersOfAll(simulation);
+  const intel = intelOf(espialOf(simulation, graph));
+  const stirred = stirredIn(simulation);
   const musters = world.nations.map((nation) =>
     musteringAt(world, simulation.owners, nation)
   );
@@ -333,7 +452,13 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       world.provinces,
       simulation.owners,
       simulation.compliance,
-      world.nations.length
+      {
+        nations: world.nations.length,
+        sabotage: stirred.sabotage,
+      }
+    ),
+    tiedUp: simulation.services.map((service) =>
+      factoriesTiedUp(service.agency)
     ),
     world,
   });
@@ -414,6 +539,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
           provinces
         ),
       },
+      insight: insightOf(intel, simulation.services, simulation.networks),
       modifiers,
       stances: simulation.stances,
       supply: supplyOf(world, afloat),
@@ -433,25 +559,76 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       armies: { ...armies, economies: advanced.economies },
     })
   );
+  const plotted = plottedOneDay(
+    {
+      networks: simulation.networks,
+      services: simulation.services,
+      unrest: simulation.unrest,
+    },
+    {
+      capitals: world.nations.map((nation) => nation.capital),
+      compliance: simulation.compliance,
+      day: clock.days,
+      diplomacy: conducted.diplomacy,
+      economies: conducted.economies,
+      graph,
+      owners: conducted.owners,
+      random: randomFromSeed(
+        streamSeed(streamSeed(world.seed, ESPIONAGE_STREAM), clock.days)
+      ),
+    },
+    advanced.advancements
+  );
+  const fought = gleanedFromFighting(
+    simulation.gleaned,
+    clashesOf({
+      divisions: afloat.divisions,
+      nations: world.nations.length,
+      navies: seafaring.navies,
+      power: aloft.power,
+      wars: simulation.diplomacy.wars,
+    })
+  );
   const done = settledAtSea(
     world,
     {
       ...afloat,
       ...conducted,
-      advancements: advanced.advancements,
-      chronicle: landingsChronicled(
-        conducted.chronicle,
-        seafaring.landings,
-        simulation.owners,
+      advancements: plotted.advancements,
+      chronicle: eventsChronicled(
+        landingsChronicled(
+          conducted.chronicle,
+          seafaring.landings,
+          simulation.owners,
+          clock.days
+        ),
+        plotted.events,
         clock.days
       ),
       clock,
+      gleaned: extractedOneDay(
+        fought,
+        {
+          agencies: plotted.intrigue.services.map((service) => service.agency),
+          held: heldCaptives(plotted.intrigue.services),
+        },
+        randomFromSeed(
+          streamSeed(streamSeed(world.seed, EXTRACTION_STREAM), clock.days)
+        )
+      ),
+      networks: plotted.intrigue.networks,
+      services: plotted.intrigue.services,
+      unrest: plotted.intrigue.unrest,
     },
     clock.days
   );
   return {
     ...done,
-    compliance: compliedOneDay(simulation.compliance, done.owners),
+    compliance: compliedOneDay(
+      simulation.compliance,
+      done.owners,
+      stirred.resistance
+    ),
   };
 };
 

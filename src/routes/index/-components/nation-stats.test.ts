@@ -23,6 +23,7 @@ const SUMMARY: NationSummary = {
   enemies: [],
   faction: Option.none(),
   id: 0,
+  intel: [],
   name: "国0",
   navy: [],
   neighbours: ["国1"],

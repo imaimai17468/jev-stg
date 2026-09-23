@@ -8,6 +8,8 @@ const RESEARCH: Decision = { kind: "research", nation: 0, tech: "tools-1" };
 
 const FOCUS: Decision = { focus: "army-effort", kind: "focus", nation: 0 };
 
+const AGENCY: Decision = { kind: "agency", nation: 0, project: "found" };
+
 const STANCE: Decision = { kind: "stance", nation: 0, stance: "offensive" };
 
 /** The numbers of the 60 entries a full strand keeps once a 61st arrives. */
@@ -33,31 +35,30 @@ describe(chronicled, () => {
     ]);
   });
 
-  it("should keep a declaration when research and focus entries fill their own cap", () => {
-    const crowded = [
-      ...entriesOf(RESEARCH, 59),
-      ...entriesOf(DECLARATION, 1),
-    ].map((entry, place) => ({ ...entry, seq: 100 - place }));
+  it.each<{ condition: string; crowd: Decision; next: Decision }>([
+    {
+      condition: "research and focus entries fill their own cap",
+      crowd: RESEARCH,
+      next: FOCUS,
+    },
+    {
+      condition: "stance changes fill their own cap",
+      crowd: STANCE,
+      next: STANCE,
+    },
+    {
+      condition: "agency entries fill their own cap",
+      crowd: AGENCY,
+      next: AGENCY,
+    },
+  ])("should keep a declaration when $condition", ({ crowd, next }) => {
+    const crowded = [...entriesOf(crowd, 59), ...entriesOf(DECLARATION, 1)].map(
+      (entry, place) => ({ ...entry, seq: 100 - place })
+    );
 
     const after = chronicled(crowded, {
       day: 1,
-      ruling: { decision: FOCUS, source: BY_RULES },
-    });
-
-    expect(
-      after.filter((entry) => entry.ruling.decision.kind === "declare")
-    ).toHaveLength(1);
-  });
-
-  it("should keep a declaration when stance changes fill their own cap", () => {
-    const crowded = [
-      ...entriesOf(STANCE, 59),
-      ...entriesOf(DECLARATION, 1),
-    ].map((entry, place) => ({ ...entry, seq: 100 - place }));
-
-    const after = chronicled(crowded, {
-      day: 1,
-      ruling: { decision: STANCE, source: BY_RULES },
+      ruling: { decision: next, source: BY_RULES },
     });
 
     expect(
@@ -83,6 +84,33 @@ describe(chronicled, () => {
     "should drop the oldest stance change when a $decision.kind decision passes the policy strand's cap",
     ({ decision }) => {
       const full = entriesOf(STANCE, 60);
+
+      const after = chronicled(full, {
+        day: 1,
+        ruling: { decision, source: BY_RULES },
+      });
+
+      expect(after.map((entry) => entry.seq)).toStrictEqual(KEPT_SEQS);
+    }
+  );
+
+  it.each<{ decision: Decision }>([
+    { decision: { kind: "espionage", nation: 0, target: 1 } },
+    {
+      decision: {
+        captured: 1,
+        kind: "operation",
+        nation: 0,
+        operation: "infiltrate-army",
+        target: 1,
+      },
+    },
+    { decision: { kind: "captured", nation: 1, spy: 0 } },
+    { decision: { kind: "cipher", nation: 0, target: 1 } },
+  ])(
+    "should drop the oldest agency entry when a $decision.kind entry passes the intelligence strand's cap",
+    ({ decision }) => {
+      const full = entriesOf(AGENCY, 60);
 
       const after = chronicled(full, {
         day: 1,

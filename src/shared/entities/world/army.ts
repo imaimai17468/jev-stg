@@ -19,6 +19,7 @@ import { combatWidth } from "./frontage";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
+import type { Insight } from "./insight";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import { musteringAt } from "./muster";
@@ -146,6 +147,8 @@ export interface Command {
   readonly supply: SupplyNetwork;
   /** What the planes overhead do to the divisions below them today. */
   readonly air: AirCover;
+  /** What each nation brings to a battle from what it knows of the enemy. */
+  readonly insight: Insight;
 }
 
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
@@ -174,6 +177,7 @@ const foughtEverywhere = (
     const battle = foughtOneDay(
       {
         air: command.air,
+        insight: command.insight,
         modifiers: command.modifiers,
         owners: before.owners,
         supply: command.supply,

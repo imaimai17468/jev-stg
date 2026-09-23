@@ -4,6 +4,7 @@ import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { World } from "./index";
+import { NO_INSIGHT } from "./insight";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
@@ -100,6 +101,7 @@ export const FULL_SUPPLY: SupplyNetwork = {
 /** The two nations at war, both attacking at the stance every nation opens with. */
 export const WAR_COMMAND: Command = {
   air: NO_AIR_COVER,
+  insight: NO_INSIGHT,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   stances: [START_STANCE, START_STANCE],
   supply: FULL_SUPPLY,

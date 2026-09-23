@@ -22,7 +22,8 @@ const ADVANCED: Advancement = {
   },
   research: {
     researched: ["electronics-1", "tools-1"],
-    studies: [{ progress: 0, tech: "artillery-1" }],
+    studies: [{ bonus: 0, progress: 0, tech: "artillery-1" }],
+    vouchers: [],
   },
 };
 
@@ -65,7 +66,8 @@ describe(progressedOneDay, () => {
         },
         research: {
           researched: ["electronics-1", "tools-1"],
-          studies: [{ progress: 1.08, tech: "artillery-1" }],
+          studies: [{ bonus: 0, progress: 1.08, tech: "artillery-1" }],
+          vouchers: [],
         },
       },
       economy: { ...NO_ECONOMY, civilianFactories: 3 },

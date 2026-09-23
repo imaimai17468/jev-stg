@@ -113,6 +113,62 @@ describe(entryLine, () => {
       decision: { kind: "white-peace", one: 0, other: 1 },
       what: "two nations that no longer touch sign a white peace",
     },
+    {
+      action: "諜報機関 → 設立",
+      decision: { kind: "agency", nation: 0, project: "found" },
+      what: "a nation sets out to found its intelligence agency",
+    },
+    {
+      action: "諜報機関 → 暗号部",
+      decision: {
+        kind: "agency",
+        nation: 0,
+        project: "cryptology-department",
+      },
+      what: "a nation's agency buys an upgrade",
+    },
+    {
+      action: "工作員 → 国1",
+      decision: { kind: "espionage", nation: 0, target: 1 },
+      what: "a nation sends its operatives abroad",
+    },
+    {
+      action: "工作員 → 自国で防諜",
+      decision: { kind: "espionage", nation: 0, target: -1 },
+      what: "a nation keeps its operatives home",
+    },
+    {
+      action: "国1で陸軍への潜入",
+      decision: {
+        captured: 0,
+        kind: "operation",
+        nation: 0,
+        operation: "infiltrate-army",
+        target: 1,
+      },
+      what: "an operation ends with nobody caught",
+    },
+    {
+      action: "国1で暗号の奪取（2人が捕まった）",
+      decision: {
+        captured: 2,
+        kind: "operation",
+        nation: 0,
+        operation: "capture-cipher",
+        target: 1,
+      },
+      what: "an operation ends with operatives caught",
+    },
+    {
+      action: "国1の工作員を捕らえた",
+      decision: { kind: "captured", nation: 0, spy: 1 },
+      what: "a nation catches another's operative",
+    },
+    {
+      action: "国1の暗号を解読",
+      decision: { kind: "cipher", nation: 0, target: 1 },
+      what: "a nation's codebreakers break another's cipher",
+    },
   ] satisfies readonly { action: string; decision: Decision; what: string }[])(
     "should word it as $action when $what",
     ({ action, decision }) => {

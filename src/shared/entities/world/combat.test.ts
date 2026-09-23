@@ -12,6 +12,8 @@ import {
 import type { Battle, Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
+import type { Insight } from "./insight";
+import { NO_INSIGHT } from "./insight";
 import { itemAt, replacedAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
@@ -33,6 +35,7 @@ const FALLBACK: LandProvince = {
 /** The line under `wars`, with neither nation's divisions improved by anything. */
 const theatreOf = (wars: Wars): Theatre => ({
   air: NO_AIR_COVER,
+  insight: NO_INSIGHT,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
   supply: FULL_SUPPLY,
@@ -237,11 +240,12 @@ const supportedBy = (nation: number, planes: number): AirCover => ({
 });
 
 /** The organisation each of one attacker and one defender holds after a day on province 2 under `air`. */
-const organisationUnder = (air: AirCover) => {
-  const battle = foughtOneDay({ ...theatreOf(AT_WAR), air }, CONTESTED, [
-    division({ nation: 0, province: 2 }),
-    division({ nation: 1, province: 2 }),
-  ]);
+const organisationUnder = (air: AirCover, insight: Insight = NO_INSIGHT) => {
+  const battle = foughtOneDay(
+    { ...theatreOf(AT_WAR), air, insight },
+    CONTESTED,
+    [division({ nation: 0, province: 2 }), division({ nation: 1, province: 2 })]
+  );
   return battle.standing.map((fighter) => fighter.organisation);
 };
 
@@ -271,6 +275,50 @@ describe("foughtOneDay under the planes", () => {
     });
 
     expect(attacker).toBeCloseTo(60 - 5 * 0.65, 10);
+  });
+});
+
+/** Three nations where only `nation` reads `enemy`'s revealed cipher. */
+const readingOf = (nation: number, enemy: number): Insight => ({
+  lead: new Float32Array(9),
+  nations: 3,
+  networks: [],
+  revealed: Uint8Array.from({ length: 9 }, (_, pair) =>
+    Number(pair === nation * 3 + enemy)
+  ),
+});
+
+/** Nations 0 and 2 both at war with nation 1, the holder of province 2. */
+const TWO_FRONTS = declared(declared(noWars(3), { one: 0, other: 1 }), {
+  one: 1,
+  other: 2,
+});
+
+/** The organisation each division keeps after a day on province 2 under `insight`, with two of nation 0 and one of nation 2 attacking one of nation 1. */
+const organisationKnowing = (insight: Insight): readonly number[] =>
+  foughtOneDay({ ...theatreOf(TWO_FRONTS), insight }, CONTESTED, [
+    ...stackOf(2, 0),
+    ...stackOf(1, 2),
+    ...stackOf(1, 1),
+  ]).standing.map((fighter) => fighter.organisation);
+
+describe("foughtOneDay with what each side knows", () => {
+  it("should strike the defender harder when the attacker reads the holder's revealed cipher", () => {
+    const [, defender] = organisationUnder(NO_AIR_COVER, readingOf(0, 1));
+
+    expect(defender).toBeCloseTo(60 - 3 * 1.15, 5);
+  });
+
+  it("should strike the attackers harder when the holder reads the cipher of the attacker with the most men", () => {
+    const [attacker] = organisationKnowing(readingOf(1, 0));
+
+    expect(attacker).toBeCloseTo(60 - (5 * 1.15) / 3, 10);
+  });
+
+  it("should fight as though it knew nothing when the holder reads only the cipher of the weaker attacker", () => {
+    expect(organisationKnowing(readingOf(1, 2))).toStrictEqual(
+      organisationKnowing(NO_INSIGHT)
+    );
   });
 });
 

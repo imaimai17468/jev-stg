@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Research } from "./research";
+import type { Research, Voucher } from "./research";
 import {
   availableTechs,
   costOf,
@@ -9,7 +9,20 @@ import {
   studyStarted,
   TechIdSchema,
   techOf,
+  voucherGranted,
 } from "./research";
+
+const INDUSTRY_VOUCHER: Voucher = { branches: ["industry"], share: 0.5 };
+
+const ARTILLERY_VOUCHER: Voucher = {
+  branches: ["infantry", "artillery"],
+  share: 0.2,
+};
+
+const LATER_ARTILLERY_VOUCHER: Voucher = {
+  branches: ["artillery"],
+  share: 0.3,
+};
 
 describe(costOf, () => {
   it("should take the technology's own days when it is researched in its year", () => {
@@ -39,7 +52,7 @@ describe(availableTechs, () => {
   });
 
   it("should offer what a finished technology leads to when its prerequisite is researched", () => {
-    const research: Research = { researched: ["tools-1"], studies: [] };
+    const research: Research = { ...START_RESEARCH, researched: ["tools-1"] };
 
     expect(availableTechs(research)).toStrictEqual([
       "infantry-weapons-1",
@@ -62,7 +75,7 @@ describe(availableTechs, () => {
 
   it("should leave out the other of an exclusive pair when one of them is started", () => {
     const research = studyStarted(
-      { researched: ["modern-tactics"], studies: [] },
+      { ...START_RESEARCH, researched: ["modern-tactics"] },
       "superior-firepower-1"
     );
 
@@ -71,7 +84,7 @@ describe(availableTechs, () => {
 
   it("should leave out the other of an exclusive pair when the one naming it is started", () => {
     const research = studyStarted(
-      { researched: ["modern-tactics"], studies: [] },
+      { ...START_RESEARCH, researched: ["modern-tactics"] },
       "mass-assault-1"
     );
 
@@ -91,28 +104,83 @@ describe(techOf, () => {
   });
 });
 
+describe(studyStarted, () => {
+  it("should take the oldest research bonus covering the branch when several are waiting", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      vouchers: [INDUSTRY_VOUCHER, ARTILLERY_VOUCHER, LATER_ARTILLERY_VOUCHER],
+    };
+
+    expect(studyStarted(research, "artillery-1")).toStrictEqual({
+      ...START_RESEARCH,
+      studies: [{ bonus: 0.2, progress: 0, tech: "artillery-1" }],
+      vouchers: [INDUSTRY_VOUCHER, LATER_ARTILLERY_VOUCHER],
+    });
+  });
+
+  it("should start with no bonus and keep every voucher when none covers the branch", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      vouchers: [INDUSTRY_VOUCHER],
+    };
+
+    expect(studyStarted(research, "artillery-1")).toStrictEqual({
+      ...START_RESEARCH,
+      studies: [{ bonus: 0, progress: 0, tech: "artillery-1" }],
+      vouchers: [INDUSTRY_VOUCHER],
+    });
+  });
+});
+
+describe(voucherGranted, () => {
+  it("should put the voucher after those already waiting when one is granted", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      vouchers: [INDUSTRY_VOUCHER],
+    };
+
+    expect(voucherGranted(research, ARTILLERY_VOUCHER)).toStrictEqual({
+      ...START_RESEARCH,
+      vouchers: [INDUSTRY_VOUCHER, ARTILLERY_VOUCHER],
+    });
+  });
+});
+
 describe(researchedOneDay, () => {
   it("should put one research-day and the bonus into every slot when the day passes", () => {
     const research = studyStarted(START_RESEARCH, "artillery-1");
 
     expect(researchedOneDay(research, 0.5, 1936)).toStrictEqual({
-      researched: [],
-      studies: [{ progress: 1.5, tech: "artillery-1" }],
+      ...START_RESEARCH,
+      studies: [{ bonus: 0, progress: 1.5, tech: "artillery-1" }],
     });
   });
 
   it("should move a technology to the researched list and free its slot when it reaches its cost", () => {
     const research: Research = {
-      researched: [],
+      ...START_RESEARCH,
       studies: [
-        { progress: 99, tech: "artillery-1" },
-        { progress: 0, tech: "tools-1" },
+        { bonus: 0, progress: 99, tech: "artillery-1" },
+        { bonus: 0, progress: 0, tech: "tools-1" },
       ],
     };
 
     expect(researchedOneDay(research, 0, 1936)).toStrictEqual({
+      ...START_RESEARCH,
       researched: ["artillery-1"],
-      studies: [{ progress: 1, tech: "tools-1" }],
+      studies: [{ bonus: 0, progress: 1, tech: "tools-1" }],
+    });
+  });
+
+  it("should put the study's research bonus on top of every day when the study was started on a voucher", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      studies: [{ bonus: 0.25, progress: 0, tech: "artillery-1" }],
+    };
+
+    expect(researchedOneDay(research, 0.5, 1936)).toStrictEqual({
+      ...START_RESEARCH,
+      studies: [{ bonus: 0.25, progress: 1.75, tech: "artillery-1" }],
     });
   });
 });
@@ -120,7 +188,10 @@ describe(researchedOneDay, () => {
 describe(researchBonuses, () => {
   it("should list what each researched technology adds when some are researched", () => {
     expect(
-      researchBonuses({ researched: ["tools-1", "artillery-1"], studies: [] })
+      researchBonuses({
+        ...START_RESEARCH,
+        researched: ["tools-1", "artillery-1"],
+      })
     ).toStrictEqual([{ production: 0.1 }, { attack: 0.1 }]);
   });
 });

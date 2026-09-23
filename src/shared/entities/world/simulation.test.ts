@@ -1,6 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { START_ADVANCEMENT } from "./advancement";
+import type { Agency } from "./agency";
+import { NO_AGENCY } from "./agency";
 import { openingAirBases } from "./air-bases";
 import { NO_AIR_FORCE } from "./air-force";
 import { airForceOf, flying, wing } from "./air-war-fixture";
@@ -10,9 +12,14 @@ import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
+import type { Service } from "./espionage";
+import { openingServices, serviceFor } from "./espionage";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
+import { noGleaned } from "./intel";
+import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
+import { noNetworks } from "./networks";
 import { START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";
@@ -46,12 +53,16 @@ const OPENING: Simulation = {
       population: 600_000,
     },
   ],
+  gleaned: noGleaned(2),
   invasions: [],
   navies: [NO_NAVY, NO_NAVY],
   negotiations: [],
+  networks: noNetworks(2, LINE_WORLD.provinces.length),
   owners: LINE_OWNERS,
   quiet: noQuiet(2),
+  services: openingServices(2),
   stances: ["balanced", "balanced"],
+  unrest: [],
 };
 
 /** The two nations of the line at war. */
@@ -132,7 +143,8 @@ describe(ranOneDay, () => {
         },
         research: {
           researched: [],
-          studies: [{ progress: 1.05, tech: "tools-1" }],
+          studies: [{ bonus: 0, progress: 1.05, tech: "tools-1" }],
+          vouchers: [],
         },
       },
       START_ADVANCEMENT,
@@ -216,6 +228,29 @@ describe(ranOneDay, () => {
     expect(ranOneDay(LINE_WORLD, annexed).navies[1]).toBe(NO_NAVY);
   });
 
+  it("should clear the annexed nation's network, its resistance work and the operatives it held when a day passes", () => {
+    const annexed: Simulation = {
+      ...OPENING,
+      diplomacy: {
+        ...OPENING.diplomacy,
+        standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
+      },
+      networks: [new Float32Array(5), Float32Array.from([30, 30, 0, 0, 0])],
+      services: [{ ...serviceFor(2), captured: [1, 1] }, serviceFor(2)],
+      unrest: [
+        { daysLeft: 30, kind: "contacts", occupier: 0, share: 0.1, spy: 1 },
+      ],
+    };
+
+    const after = ranOneDay(LINE_WORLD, annexed);
+
+    expect({
+      captured: after.services[0]?.captured,
+      network: [...(after.networks[1] ?? [])],
+      unrest: after.unrest,
+    }).toStrictEqual({ captured: [], network: [0, 0, 0, 0, 0], unrest: [] });
+  });
+
   it("should ground an annexed nation's air force when a day passes", () => {
     const annexed: Simulation = {
       ...OPENING,
@@ -247,6 +282,161 @@ describe(ranOneDay, () => {
         region: 0,
       }),
     ]);
+  });
+});
+
+/** A pair of nations with nothing gathered of any of the four kinds. */
+const NOTHING_OF_ANY_KIND = [false, false, false, false];
+
+/** A founded agency with `upgrades` bought and nothing under way. */
+const foundedWith = (upgrades: Agency["upgrades"]): Agency => ({
+  ...NO_AGENCY,
+  standing: "founded",
+  upgrades,
+});
+
+/** `simulation` with nation 0's service patched by `patch`. */
+const servedBy = (
+  simulation: Simulation,
+  patch: Partial<Service>
+): Simulation => ({
+  ...simulation,
+  services: replacedAt(simulation.services, 0, {
+    ...serviceFor(2),
+    ...patch,
+  }),
+});
+
+describe("ranOneDay for the intelligence services", () => {
+  it("should put a day into every agency's project when a day passes", () => {
+    const founding = servedBy(OPENING, {
+      agency: {
+        ...NO_AGENCY,
+        work: { daysLeft: 5, kind: "working", project: "found" },
+      },
+    });
+
+    expect(ranOneDay(LINE_WORLD, founding).services[0]?.agency).toStrictEqual({
+      ...NO_AGENCY,
+      work: { daysLeft: 4, kind: "working", project: "found" },
+    });
+  });
+
+  it("should build the network where the operatives work when a nation has them in another", () => {
+    const spying = servedBy(OPENING, {
+      agency: foundedWith([]),
+      operatives: 1,
+      target: 1,
+    });
+
+    expect(ranOneDay(LINE_WORLD, spying).networks[0]).toStrictEqual(
+      Float32Array.from([0, 0, 0.2, 0.4, 0])
+    );
+  });
+
+  it("should draw intelligence from a captive when a nation holds another's operative", () => {
+    const holding: Simulation = {
+      ...OPENING,
+      services: replacedAt(OPENING.services, 1, {
+        ...serviceFor(2),
+        captured: [0],
+      }),
+    };
+
+    expect(
+      Array.from(
+        ranOneDay(LINE_WORLD, holding).gleaned.extracted,
+        (level) => level > 0
+      )
+    ).toStrictEqual([
+      ...NOTHING_OF_ANY_KIND,
+      true,
+      true,
+      true,
+      true,
+      ...NOTHING_OF_ANY_KIND,
+      ...NOTHING_OF_ANY_KIND,
+    ]);
+  });
+
+  it("should run the resistance work a day nearer its end when a day passes", () => {
+    const stirring: Simulation = {
+      ...OPENING,
+      unrest: [
+        { daysLeft: 5, kind: "contacts", occupier: 1, share: 0.1, spy: 0 },
+      ],
+    };
+
+    expect(ranOneDay(LINE_WORLD, stirring).unrest).toStrictEqual([
+      { daysLeft: 4, kind: "contacts", occupier: 1, share: 0.1, spy: 0 },
+    ]);
+  });
+
+  it("should chronicle the operation when a mission ends", () => {
+    const ending = servedBy(OPENING, {
+      agency: foundedWith([]),
+      missions: [
+        {
+          daysLeft: 1,
+          location: 3,
+          operation: "infiltrate-army",
+          operatives: 2,
+          target: 1,
+        },
+      ],
+      operatives: 2,
+    });
+
+    expect(decisionsOf(ranOneDay(LINE_WORLD, ending))).toStrictEqual([
+      {
+        captured: 0,
+        kind: "operation",
+        nation: 0,
+        operation: "infiltrate-army",
+        target: 1,
+      },
+    ]);
+  });
+
+  it("should chronicle the broken cipher when the codebreakers finish it", () => {
+    const breaking = servedBy(OPENING, {
+      agency: foundedWith(["cryptology-department"]),
+      ciphers: {
+        progress: Float64Array.from([0, 11_999]),
+        revealed: new Uint8Array(2),
+      },
+      target: 1,
+    });
+
+    expect(decisionsOf(ranOneDay(LINE_WORLD, breaking))).toStrictEqual([
+      { kind: "cipher", nation: 0, target: 1 },
+    ]);
+  });
+
+  it("should chronicle the operatives caught when a host's counter-intelligence finds them", () => {
+    const spied = servedBy(OPENING, {
+      agency: foundedWith([]),
+      operatives: 5000,
+      target: 1,
+    });
+    const crowded: Simulation = {
+      ...spied,
+      services: replacedAt(spied.services, 1, {
+        ...serviceFor(2),
+        agency: foundedWith([
+          "passive-defense",
+          "passive-defense",
+          "passive-defense",
+          "passive-defense",
+          "interrogation-techniques",
+        ]),
+        operatives: 10,
+      }),
+    };
+
+    expect(decisionsOf(ranOneDay(LINE_WORLD, crowded))).toStrictEqual(
+      Array.from({ length: 4 }, () => ({ kind: "captured", nation: 1, spy: 0 }))
+    );
   });
 });
 
