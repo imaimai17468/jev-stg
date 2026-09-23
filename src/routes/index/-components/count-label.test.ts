@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { countLabel } from "./count-label";
+import { countLabel, percentLabel } from "./count-label";
 
 describe(countLabel, () => {
   it("should separate the digits in threes when the count runs to millions", () => {
@@ -20,5 +20,11 @@ describe(countLabel, () => {
 
   it("should keep the leading group when the count is negative", () => {
     expect(countLabel(-123_456)).toBe("-123,456");
+  });
+});
+
+describe(percentLabel, () => {
+  it("should round the share to a whole percentage when it falls between two", () => {
+    expect(percentLabel(0.756)).toBe("76%");
   });
 });
