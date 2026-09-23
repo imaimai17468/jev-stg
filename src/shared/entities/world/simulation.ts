@@ -8,6 +8,13 @@ import { armiesAfterOneDay } from "./army";
 import type { Entry, Negotiation } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
+import type { Compliance } from "./compliance";
+import {
+  compliedOneDay,
+  FULL_REACH,
+  reachByNation,
+  startCompliance,
+} from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
@@ -37,6 +44,8 @@ export interface Simulation {
   readonly divisions: readonly Division[];
   /** How boldly each nation's army attacks, by nation id. */
   readonly stances: readonly Stance[];
+  /** How far the people of each province go along with whoever holds it. */
+  readonly compliance: Compliance;
   /** What each nation has researched and how far along its focus tree it is, by nation id. */
   readonly advancements: readonly Advancement[];
   /** Surrendered nations waiting to hear their terms. */
@@ -53,6 +62,7 @@ export const startSimulation = (world: World): Simulation => {
     advancements: world.nations.map(() => START_ADVANCEMENT),
     chronicle: [],
     clock: START_CLOCK,
+    compliance: startCompliance(owners),
     diplomacy: openingDiplomacy(
       owners,
       world.nations.length,
@@ -134,10 +144,12 @@ export const supplyOf = (world: World, simulation: Simulation): SupplyNetwork =>
   });
 
 /**
- * The whole simulation one day on: the economies and the upkeep the depots
- * pay the army, then the supply that upkeep leaves, then the armies, then the
- * research and the national focuses, then the diplomacy, so a nation
- * surrenders the day its homeland falls and a month's declarations read the
+ * The whole simulation one day on: the economies, drawing on occupied ground
+ * as far as its compliance lets them, and the upkeep the depots pay the army;
+ * then the supply that upkeep leaves; then the armies; then the research and
+ * the national focuses; then the diplomacy; and last each province's
+ * compliance with whoever holds it once all that is done. So a nation
+ * surrenders the day its homeland falls, and a month's declarations read the
  * armies as that day left them. The economies and the armies work with what
  * the nation had researched when the day began.
  */
@@ -145,9 +157,18 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
   const modifiers = simulation.advancements.map(modifiersOf);
   const fielded = fieldedBy(simulation.divisions, world.nations.length);
+  const reach = reachByNation(
+    world.provinces,
+    simulation.owners,
+    simulation.compliance,
+    world.nations.length
+  );
   const economies = simulation.economies.map((economy, nation) =>
     upkept(
-      producedOneDay(economy, itemAt(modifiers, nation, NO_MODIFIERS)),
+      producedOneDay(economy, {
+        modifiers: itemAt(modifiers, nation, NO_MODIFIERS),
+        reach: itemAt(reach, nation, FULL_REACH),
+      }),
       itemAt(fielded, nation, 0)
     )
   );
@@ -167,16 +188,18 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     armies.economies,
     dateOf(clock).year
   );
+  const conducted = fromRealm(
+    conductedOneDay(world, clock, {
+      ...realmOf(simulation),
+      armies: { ...armies, economies: advanced.economies },
+    })
+  );
   return {
     ...simulation,
-    ...fromRealm(
-      conductedOneDay(world, clock, {
-        ...realmOf(simulation),
-        armies: { ...armies, economies: advanced.economies },
-      })
-    ),
+    ...conducted,
     advancements: advanced.advancements,
     clock,
+    compliance: compliedOneDay(simulation.compliance, conducted.owners),
   };
 };
 

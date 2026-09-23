@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Reach } from "./compliance";
+import { FULL_REACH } from "./compliance";
 import type { NationEconomy } from "./economy";
 import {
   constructionProgress,
@@ -113,7 +115,9 @@ describe(constructionProgress, () => {
 
 describe(producedOneDay, () => {
   it("should turn out equipment and advance the site when a day passes", () => {
-    expect(producedOneDay(INDUSTRY, NO_MODIFIERS)).toStrictEqual({
+    expect(
+      producedOneDay(INDUSTRY, { modifiers: NO_MODIFIERS, reach: FULL_REACH })
+    ).toStrictEqual({
       ...INDUSTRY,
       construction: 65,
       equipment: 50,
@@ -123,16 +127,22 @@ describe(producedOneDay, () => {
   it("should turn out more equipment and put more into the site when the nation's modifiers raise production and construction", () => {
     expect(
       producedOneDay(INDUSTRY, {
-        ...NO_MODIFIERS,
-        construction: 0.2,
-        production: 0.5,
+        modifiers: {
+          ...NO_MODIFIERS,
+          construction: 0.2,
+          production: 0.5,
+        },
+        reach: FULL_REACH,
       })
     ).toStrictEqual({ ...INDUSTRY, construction: 78, equipment: 75 });
   });
 
   it("should turn out less and build slower when the nation's law calls up its workers", () => {
     expect(
-      producedOneDay({ ...INDUSTRY, conscription: "all-adults" }, NO_MODIFIERS)
+      producedOneDay(
+        { ...INDUSTRY, conscription: "all-adults" },
+        { modifiers: NO_MODIFIERS, reach: FULL_REACH }
+      )
     ).toStrictEqual({
       ...INDUSTRY,
       conscription: "all-adults",
@@ -148,7 +158,9 @@ describe(producedOneDay, () => {
       plan: "total-war",
     };
 
-    expect(producedOneDay(arming, NO_MODIFIERS)).toStrictEqual({
+    expect(
+      producedOneDay(arming, { modifiers: NO_MODIFIERS, reach: FULL_REACH })
+    ).toStrictEqual({
       ...arming,
       construction: 0,
       equipment: 50,
@@ -159,7 +171,9 @@ describe(producedOneDay, () => {
   it("should finish a civilian factory when the nation already holds the share its plan wants", () => {
     const building: NationEconomy = { ...INDUSTRY, construction: 10_735 };
 
-    expect(producedOneDay(building, NO_MODIFIERS)).toStrictEqual({
+    expect(
+      producedOneDay(building, { modifiers: NO_MODIFIERS, reach: FULL_REACH })
+    ).toStrictEqual({
       ...building,
       civilianFactories: 21,
       construction: 0,
@@ -168,7 +182,9 @@ describe(producedOneDay, () => {
   });
 
   it("should grow the population and open the whole reach of the law when nobody has been called up yet", () => {
-    expect(producedOneDay(PEOPLE, NO_MODIFIERS)).toStrictEqual({
+    expect(
+      producedOneDay(PEOPLE, { modifiers: NO_MODIFIERS, reach: FULL_REACH })
+    ).toStrictEqual({
       ...PEOPLE,
       manpower: 15_000.492813141684,
       population: 1_000_032.8542094456,
@@ -177,21 +193,47 @@ describe(producedOneDay, () => {
 
   it("should leave out everyone already called up when the nation has recruited some", () => {
     expect(
-      producedOneDay({ ...PEOPLE, recruited: 10_000 }, NO_MODIFIERS).manpower
+      producedOneDay(
+        { ...PEOPLE, recruited: 10_000 },
+        { modifiers: NO_MODIFIERS, reach: FULL_REACH }
+      ).manpower
     ).toBe(5000.492813141684);
   });
 
   it("should leave nobody to call when the nation has called up more than its law reaches", () => {
     expect(
-      producedOneDay({ ...PEOPLE, recruited: 20_000 }, NO_MODIFIERS).manpower
+      producedOneDay(
+        { ...PEOPLE, recruited: 20_000 },
+        { modifiers: NO_MODIFIERS, reach: FULL_REACH }
+      ).manpower
     ).toBe(0);
+  });
+});
+
+describe("producedOneDay on occupied ground", () => {
+  /** A nation drawing on half of what it holds. */
+  const HALF: Reach = { factories: 0.5, manpower: 0.5 };
+
+  it("should turn out and build half as much when it can work only half its factories", () => {
+    expect(
+      producedOneDay(INDUSTRY, { modifiers: NO_MODIFIERS, reach: HALF })
+    ).toStrictEqual({ ...INDUSTRY, construction: 32.5, equipment: 25 });
+  });
+
+  it("should reach half as many people when it can call up only half its people", () => {
+    expect(
+      producedOneDay(PEOPLE, { modifiers: NO_MODIFIERS, reach: HALF }).manpower
+    ).toBeCloseTo(7500.2464, 4);
   });
 });
 
 describe("producedOneDay under a wider reach", () => {
   it("should open a wider pool when the nation's modifiers widen the law's reach", () => {
     expect(
-      producedOneDay(PEOPLE, { ...NO_MODIFIERS, manpower: 1 }).manpower
+      producedOneDay(PEOPLE, {
+        modifiers: { ...NO_MODIFIERS, manpower: 1 },
+        reach: FULL_REACH,
+      }).manpower
     ).toBeCloseTo(30_000.9856, 4);
   });
 });
@@ -227,7 +269,7 @@ describe(shareTransferred, () => {
     ]);
   });
 
-  it("should move the share of the loser's call-ups with its people when ground changes hands", () => {
+  it("should leave everyone the loser has called up with the loser when ground changes hands", () => {
     const drafted = [
       { ...NO_ECONOMY, population: 100, recruited: 20_000 },
       NO_ECONOMY,
@@ -235,7 +277,7 @@ describe(shareTransferred, () => {
 
     expect(
       shareTransferred(drafted, 0, 1, 0.5).map((economy) => economy.recruited)
-    ).toStrictEqual([10_000, 10_000]);
+    ).toStrictEqual([20_000, 0]);
   });
 
   it("should move no more than the loser holds when the share runs over one", () => {

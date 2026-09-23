@@ -1,8 +1,14 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { startCompliance } from "@/shared/entities/world/compliance";
 import { paintWorld } from "./map-bitmap";
 import type { Tint } from "./map-mode";
-import { HATCH_SHADE, MAP_COLOURS, SUPPLY_COLOURS } from "./map-palette";
+import {
+  COMPLIANCE_COLOURS,
+  HATCH_SHADE,
+  MAP_COLOURS,
+  SUPPLY_COLOURS,
+} from "./map-palette";
 import {
   FIXTURE_WORLD,
   HELD_BY_NOBODY,
@@ -165,6 +171,44 @@ describe(paintWorld, () => {
       Math.round(SUPPLY_COLOURS.starved.red * HATCH_SHADE),
       Math.round(SUPPLY_COLOURS.starved.green * HATCH_SHADE),
       Math.round(SUPPLY_COLOURS.starved.blue * HATCH_SHADE),
+      255,
+    ]);
+  });
+
+  it("should fill a province with its compliance level's colour when the map shows compliance", () => {
+    const compliance: Tint = {
+      compliance: startCompliance(HELD_BY_TWO),
+      mode: "compliance",
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_TWO, NO_HIGHLIGHT, compliance),
+        0
+      )
+    ).toStrictEqual([
+      COMPLIANCE_COLOURS.home.red,
+      COMPLIANCE_COLOURS.home.green,
+      COMPLIANCE_COLOURS.home.blue,
+      255,
+    ]);
+  });
+
+  it("should paint land nobody holds as unowned when the map shows compliance", () => {
+    const compliance: Tint = {
+      compliance: startCompliance(HELD_BY_NOBODY),
+      mode: "compliance",
+    };
+
+    expect(
+      channelsAt(
+        paintWorld(FIXTURE_WORLD, HELD_BY_NOBODY, NO_HIGHLIGHT, compliance),
+        0
+      )
+    ).toStrictEqual([
+      MAP_COLOURS.unowned.red,
+      MAP_COLOURS.unowned.green,
+      MAP_COLOURS.unowned.blue,
       255,
     ]);
   });

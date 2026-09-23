@@ -1,3 +1,4 @@
+import type { Reach } from "./compliance";
 import type { World } from "./index";
 import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
@@ -77,6 +78,12 @@ const PLAN_SHARES = {
   military: { consumerGoods: 0.15, military: 0.6 },
   "total-war": { consumerGoods: 0.05, military: 0.8 },
 } satisfies Readonly<Record<IndustryPlan, Shares>>;
+
+/** What a nation works with beyond its economy: what it has researched and pursued, and how much of what it holds it can draw on. */
+export interface Footing {
+  readonly modifiers: Modifiers;
+  readonly reach: Reach;
+}
 
 /** What a nation's economy holds on one day. */
 export interface NationEconomy {
@@ -174,13 +181,14 @@ export const constructionProgress = (economy: NationEconomy): number =>
 /** What the nation's civilian factories put into construction in a day. */
 const constructionPerDay = (
   economy: NationEconomy,
-  modifiers: Modifiers
+  { modifiers, reach }: Footing
 ): number =>
   economy.civilianFactories *
   (1 - PLAN_SHARES[economy.plan].consumerGoods) *
   CONSTRUCTION_PER_FACTORY *
   (1 + modifiers.construction) *
-  outputUnder(economy.conscription);
+  outputUnder(economy.conscription) *
+  reach.factories;
 
 /**
  * The people a nation of `population` can still call up: what its law reaches,
@@ -191,11 +199,12 @@ const constructionPerDay = (
 const freeManpower = (
   economy: NationEconomy,
   population: number,
-  modifiers: Modifiers
+  { modifiers, reach }: Footing
 ): number =>
   Math.max(
     0,
-    manpowerCap(population, economy.conscription) * (1 + modifiers.manpower) -
+    manpowerCap(population * reach.manpower, economy.conscription) *
+      (1 + modifiers.manpower) -
       economy.recruited
   );
 
@@ -226,16 +235,18 @@ const splitBuilt = (economy: NationEconomy, built: number): Built => {
 /**
  * The economy after one day of work, which is the step the calendar takes,
  * with the nation's technologies and focuses speeding up its construction,
- * its equipment and the reach of its conscription law, and a heavy law taking
- * some of the construction and the equipment back.
+ * its equipment and the reach of its conscription law, a heavy law taking
+ * some of the construction and the equipment back, and occupied ground giving
+ * only the people and the factories its compliance lets the nation draw on.
  */
 export const producedOneDay = (
   economy: NationEconomy,
-  modifiers: Modifiers
+  footing: Footing
 ): NationEconomy => {
+  const { modifiers, reach } = footing;
   const population = economy.population * (1 + POPULATION_GROWTH_PER_DAY);
   const progressed =
-    economy.construction + constructionPerDay(economy, modifiers);
+    economy.construction + constructionPerDay(economy, footing);
   const built = splitBuilt(economy, Math.floor(progressed / FACTORY_COST));
   return {
     ...economy,
@@ -246,8 +257,9 @@ export const producedOneDay = (
       economy.militaryFactories *
         EQUIPMENT_PER_FACTORY *
         (1 + modifiers.production) *
-        outputUnder(economy.conscription),
-    manpower: freeManpower(economy, population, modifiers),
+        outputUnder(economy.conscription) *
+        reach.factories,
+    manpower: freeManpower(economy, population, footing),
     militaryFactories: economy.militaryFactories + built.military,
     population,
   };
@@ -289,7 +301,6 @@ const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
   militaryFactories:
     economy.militaryFactories - Math.round(economy.militaryFactories * share),
   population: economy.population - economy.population * share,
-  recruited: economy.recruited - economy.recruited * share,
 });
 
 /** One nation's economy with what another lost added to it. */
@@ -306,7 +317,6 @@ const enlarged = (
     economy.militaryFactories +
     (lost.militaryFactories - keeping.militaryFactories),
   population: economy.population + (lost.population - keeping.population),
-  recruited: economy.recruited + (lost.recruited - keeping.recruited),
 });
 
 /**
@@ -315,9 +325,10 @@ const enlarged = (
  *
  * What the loser gives up is worked out first and the winner is handed exactly
  * that, so a province taken and retaken leaves the two of them holding between
- * them what they held before. The same share of everyone the loser has called
- * up moves with the people, so the winner cannot call them up a second time;
- * the equipment in the depots stays, because it marched away with the army.
+ * them what they held before. Everyone the loser has called up stays counted
+ * against the loser, and the winner reaches the people it takes only as far as
+ * their compliance lets it; the equipment in the depots stays too, because it
+ * marched away with the army.
  */
 export const shareTransferred = (
   economies: readonly NationEconomy[],

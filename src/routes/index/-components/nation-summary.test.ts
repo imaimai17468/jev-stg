@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import { startCompliance } from "@/shared/entities/world/compliance";
 import {
   INDEPENDENT,
   openingDiplomacy,
@@ -59,6 +60,7 @@ const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
 const SIMULATION: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
+  compliance: startCompliance(OWNERS),
   negotiations: [],
   stances: ["balanced", "balanced"],
   clock: START_CLOCK,
@@ -100,6 +102,12 @@ describe(summaryOf, () => {
       id: 0,
       name: "国0",
       neighbours: ["国1"],
+      occupation: [
+        { label: "占領している州", value: "0" },
+        { label: "平均の服従度", value: "—" },
+        { label: "召集できる人口", value: "100%" },
+        { label: "動かせる工場", value: "100%" },
+      ],
       provinces: 3,
       puppets: [],
       standing: { kind: "independent" },
@@ -129,6 +137,7 @@ describe(summaryOf, () => {
       id: -1,
       name: "",
       neighbours: [],
+      occupation: [],
       provinces: 0,
       puppets: [],
       standing: { kind: "independent" },

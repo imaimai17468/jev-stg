@@ -3,9 +3,10 @@ import type { Clock, Speed } from "@/shared/entities/world/clock";
 import { dateOf, SPEEDS } from "@/shared/entities/world/clock";
 import { Button } from "@/shared/ui/button";
 import { ChoiceButton } from "./choice-button";
+import { legendFor } from "./legend-entries";
+import { MapLegend } from "./map-legend";
 import type { MapMode } from "./map-mode";
 import { MAP_MODES } from "./map-mode";
-import { SupplyLegend } from "./supply-legend";
 
 interface HudClockBarProps {
   readonly clock: Clock;
@@ -16,6 +17,7 @@ interface HudClockBarProps {
 }
 
 const MODE_LABELS = {
+  compliance: "服従度",
   political: "政治",
   supply: "補給",
 } satisfies Record<MapMode, string>;
@@ -47,7 +49,7 @@ export const HudClockBar = ({
           </ChoiceButton>
         ))}
       </fieldset>
-      <SupplyLegend hidden={mode !== "supply"} />
+      <MapLegend entries={legendFor(mode)} />
     </div>
     <p className="font-mono text-lg tabular-nums">{dateLabel(dateOf(clock))}</p>
     <Button onClick={onTogglePause} size="tap" type="button" variant="outline">

@@ -1,12 +1,17 @@
 import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
+import { occupancyOf } from "@/shared/entities/world/compliance";
 import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour, Nation } from "@/shared/entities/world/nations";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
+import { UNASSIGNED } from "@/shared/entities/world/spread";
+import { complianceLevelOf } from "./compliance-level";
 import type { Tint } from "./map-mode";
 import {
+  COMPLIANCE_COLOURS,
+  COMPLIANCE_HATCH,
   HATCH_SHADE,
   MAP_COLOURS,
   SUPPLY_COLOURS,
@@ -73,6 +78,19 @@ const paintOf = (
     return {
       colour: SUPPLY_COLOURS[level],
       hatch: SUPPLY_HATCH[level],
+      shade: 1,
+    };
+  }
+  if (tint.mode === "compliance" && holder === UNASSIGNED) {
+    return { colour: MAP_COLOURS.unowned, hatch: 0, shade: 1 };
+  }
+  if (tint.mode === "compliance") {
+    const level = complianceLevelOf(
+      occupancyOf(tint.compliance, holder, province.id)
+    );
+    return {
+      colour: COMPLIANCE_COLOURS[level],
+      hatch: COMPLIANCE_HATCH[level],
       shade: 1,
     };
   }

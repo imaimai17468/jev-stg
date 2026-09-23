@@ -2,6 +2,7 @@ import { Option } from "effect";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
+import type { ComplianceLevel } from "./compliance-level";
 import type { SupplyLevel } from "./supply-level";
 
 interface MapColours {
@@ -70,6 +71,29 @@ export const SUPPLY_HATCH = {
   starved: 2,
   stretched: 0,
 } satisfies Readonly<Record<SupplyLevel, number>>;
+
+/**
+ * What the compliance map paints each level: a flat grey for a nation's own
+ * ground, so the eye goes to the occupied ground, and green, yellow and red for
+ * occupied ground from the most compliant to the least.
+ */
+export const COMPLIANCE_COLOURS = {
+  complying: { blue: 90, green: 170, red: 70 },
+  defiant: { blue: 40, green: 40, red: 200 },
+  home: { blue: 96, green: 90, red: 86 },
+  wavering: { blue: 50, green: 190, red: 220 },
+} satisfies Readonly<Record<ComplianceLevel, Colour>>;
+
+/**
+ * The stripes across each compliance level, which mark the two less compliant
+ * levels by pattern as well as hue, closer stripes for the least compliant.
+ */
+export const COMPLIANCE_HATCH = {
+  complying: 0,
+  defiant: 2,
+  home: 0,
+  wavering: 4,
+} satisfies Readonly<Record<ComplianceLevel, number>>;
 
 /** How much a stripe darkens the colour under it. */
 export const HATCH_SHADE = 0.55;

@@ -22,6 +22,7 @@ import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
+import { occupationSummaryOf } from "./occupation-summary";
 import type { Stat } from "./stat";
 import { supplySummaryOf } from "./supply-summary";
 
@@ -66,6 +67,7 @@ export interface NationSummary {
   readonly puppets: readonly string[];
   readonly advancement: AdvancementSummary;
   readonly supply: readonly Stat[];
+  readonly occupation: readonly Stat[];
 }
 
 const EMPTY: NationSummary = {
@@ -79,6 +81,7 @@ const EMPTY: NationSummary = {
   id: -1,
   name: "",
   neighbours: [],
+  occupation: [],
   provinces: 0,
   puppets: [],
   standing: { kind: "independent" },
@@ -190,6 +193,12 @@ export const summaryOf = (
     id: nation,
     name: named.name,
     neighbours: [...neighbours].map(nameOf),
+    occupation: occupationSummaryOf(
+      world,
+      owners,
+      simulation.compliance,
+      nation
+    ),
     provinces,
     supply: supplySummaryOf(
       supply,

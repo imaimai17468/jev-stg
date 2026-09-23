@@ -7,6 +7,7 @@ import type {
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
+import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { divisionMarks } from "./division-marks";
@@ -27,6 +28,8 @@ interface WorldMapProps {
   readonly divisions: readonly Division[];
   /** What every nation's supply can do today. */
   readonly supply: SupplyNetwork;
+  /** How far the people of each province go along with whoever holds it. */
+  readonly compliance: Compliance;
   /** What the provinces are coloured by. */
   readonly mode: MapMode;
   /** The nation drawn brighter than the rest, where one is picked. */
@@ -150,6 +153,7 @@ const zoomForKey = (key: string): number => {
 };
 
 const WorldMapSurface = ({
+  compliance,
   divisions,
   highlighted,
   mode,
@@ -193,7 +197,10 @@ const WorldMapSurface = ({
     };
   }, [attached]);
 
-  const tint = useMemo(() => tintFor(mode, supply), [mode, supply]);
+  const tint = useMemo(
+    () => tintFor(mode, { compliance, network: supply }),
+    [mode, supply, compliance]
+  );
 
   // One bitmap per world, painted at cell resolution and scaled by the canvas,
   // so a pan or a zoom repaints nothing.

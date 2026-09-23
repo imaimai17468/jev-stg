@@ -24,6 +24,7 @@ const SUMMARY: NationSummary = {
   id: 0,
   name: "国0",
   neighbours: ["国1"],
+  occupation: [],
   provinces: 61,
   puppets: [],
   standing: { kind: "independent" },

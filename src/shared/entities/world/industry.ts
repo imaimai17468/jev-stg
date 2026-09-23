@@ -41,6 +41,27 @@ interface Industry {
 }
 
 /**
+ * What `weigh` makes of each land province, added up for the nation holding it,
+ * by nation id. Land nobody holds counts for nobody.
+ */
+export const summedByHolder = (
+  provinces: readonly Province[],
+  owners: Int32Array,
+  nations: number,
+  weigh: (province: LandProvince, holder: number) => number
+): Float64Array => {
+  const totals = new Float64Array(nations);
+  for (const province of landProvinces(provinces)) {
+    const owner = valueAt(owners, province.id);
+    if (owner === UNASSIGNED) {
+      continue;
+    }
+    totals[owner] = valueAt(totals, owner) + weigh(province, owner);
+  }
+  return totals;
+};
+
+/**
  * What each nation's land adds up to, by nation id.
  *
  * The factories are summed as fractions and rounded once at the end, so a
@@ -51,20 +72,15 @@ export const industryByNation = (
   owners: Int32Array,
   nations: number
 ): readonly Industry[] => {
-  const population = new Float64Array(nations);
-  const factories = new Float64Array(nations);
-  for (const province of landProvinces(provinces)) {
-    const owner = valueAt(owners, province.id);
-    if (owner === UNASSIGNED) {
-      continue;
-    }
-    const carried = TERRAIN_YIELD[province.terrain];
-    const people = provincePeople(province);
-    population[owner] = valueAt(population, owner) + people;
-    factories[owner] =
-      valueAt(factories, owner) +
-      (people / PER_MILLION) * carried.factoriesPerMillion;
-  }
+  const population = summedByHolder(provinces, owners, nations, provincePeople);
+  const factories = summedByHolder(
+    provinces,
+    owners,
+    nations,
+    (province) =>
+      (provincePeople(province) / PER_MILLION) *
+      TERRAIN_YIELD[province.terrain].factoriesPerMillion
+  );
   return Array.from({ length: nations }, (_, nation): Industry => ({
     factories: Math.round(valueAt(factories, nation)),
     population: valueAt(population, nation),
