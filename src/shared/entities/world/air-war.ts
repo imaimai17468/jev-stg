@@ -408,21 +408,21 @@ const fuelDemandOf = (airForce: AirForce): number =>
  * them fighters and half naval bombers, which fly only while the nation is
  * `fighting` a war.
  */
-const deckFuelDemandOf = (navy: Navy, fighting: boolean): number =>
-  navy.fleets
-    .filter(
-      (force) =>
-        fighting && force.zone !== UNASSIGNED && force.mission !== "repair"
-    )
-    .flatMap((force) => force.ships)
-    .reduce(
-      (total, ship) =>
-        total +
-        (ship.planes / 2) *
-          (airframeOf("fighter").fuel + airframeOf("naval-bomber").fuel) *
-          PLANE_FUEL_PER_DAY,
-      0
-    );
+const deckFuelDemandOf = (navy: Navy, fighting: boolean): number => {
+  const perPlane =
+    ((airframeOf("fighter").fuel + airframeOf("naval-bomber").fuel) / 2) *
+    PLANE_FUEL_PER_DAY;
+  let demand = 0;
+  for (const force of navy.fleets) {
+    if (!fighting || force.zone === UNASSIGNED || force.mission === "repair") {
+      continue;
+    }
+    for (const ship of force.ships) {
+      demand += ship.planes * perPlane;
+    }
+  }
+  return demand;
+};
 
 /** Every wing sent out today as a flight over the region it was sent to. */
 const wingSorties = (
