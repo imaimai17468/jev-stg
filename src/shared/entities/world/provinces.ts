@@ -1,6 +1,7 @@
 import type { Grid } from "./grid";
 import { cellX, cellY, valueAt, visitNeighbours } from "./grid";
 import { itemAt } from "./lookup";
+import { distanceFrom } from "./spread";
 import type { Terrain } from "./terrain";
 
 /** One land province: the smallest piece of ground an army can hold. */
@@ -73,6 +74,23 @@ export const overTheProvinces =
       visit(neighbour);
     }
   };
+
+/**
+ * How many provinces each one is from the nearest of `seeds`, walking only
+ * through the provinces `mayEnter` accepts, with `UNASSIGNED` wherever the
+ * walk never reaches.
+ */
+export const distanceOver = (
+  graph: ProvinceGraph,
+  mayEnter: (province: number) => boolean,
+  seeds: readonly number[]
+): Int32Array =>
+  distanceFrom(
+    graph.adjacency.length,
+    overTheProvinces(graph.adjacency),
+    mayEnter,
+    seeds
+  );
 
 /** The terrain of the land province with this id, plains where there is none. */
 export const provinceTerrain = (

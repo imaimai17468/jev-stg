@@ -11,6 +11,7 @@ import {
   menFor,
   paidForDivision,
   raisedAt,
+  regroupedEnough,
   rested,
   terrainDefenceOf,
   worn,
@@ -37,6 +38,7 @@ describe(raisedAt, () => {
       organisation: 60,
       province: 7,
       strength: 20_000,
+      task: "line",
     });
   });
 });
@@ -255,4 +257,18 @@ describe(terrainDefenceOf, () => {
       terrainDefenceOf("plains")
     );
   });
+});
+
+describe(regroupedEnough, () => {
+  it.each([
+    { organisation: 47, ready: false },
+    { organisation: 48, ready: true },
+  ])(
+    "should answer $ready when a regrouping division has $organisation cohesion",
+    ({ organisation, ready }) => {
+      expect(regroupedEnough(division({ organisation, task: "regroup" }))).toBe(
+        ready
+      );
+    }
+  );
 });

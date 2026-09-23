@@ -4,7 +4,12 @@ import type { World } from "./index";
 import { itemAt } from "./lookup";
 import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
-import { isLand, neighboursOf, overTheProvinces } from "./provinces";
+import {
+  distanceOver,
+  isLand,
+  neighboursOf,
+  overTheProvinces,
+} from "./provinces";
 import {
   distanceFrom,
   spreadFrom,
@@ -31,12 +36,7 @@ export const seaDistanceFrom = (
   graph: ProvinceGraph,
   zones: readonly number[]
 ): Int32Array =>
-  distanceFrom(
-    graph.adjacency.length,
-    overTheProvinces(graph.adjacency),
-    (province) => !isLand(graph, province),
-    zones
-  );
+  distanceOver(graph, (province) => !isLand(graph, province), zones);
 
 /** The next zone on the way from `zone` toward the zones `distance` counts from. */
 export const stepAtSea = (

@@ -1,5 +1,7 @@
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
+import type { BattlePlan } from "./battle-plan";
+import { battlePlansOf, NO_PLAN } from "./battle-plan";
 import type { Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
@@ -8,6 +10,7 @@ import {
   marchDaysFor,
   paidForDivision,
   raisedAt,
+  regroupedEnough,
   strengthOf,
   terrainDefenceOf,
   worn,
@@ -46,6 +49,7 @@ const NO_FIELD = new Int32Array(0);
 const NO_FIELDS: Fields = {
   line: NO_FIELD,
   open: { field: NO_FIELD, room: "full" },
+  plan: NO_PLAN,
 };
 
 /** What one day of the depots produced and what it cost. */
@@ -141,16 +145,20 @@ export interface Command extends Omit<Theatre, "owners"> {
   readonly stances: readonly Stance[];
 }
 
-/** A day of fighting everywhere, and the provinces nobody marches out of. */
+/**
+ * A day of fighting everywhere, the divisions that broke in it, and the
+ * provinces nobody marches out of.
+ */
 interface Fighting {
   readonly armies: Armies;
+  /** The divisions that broke today, still standing where they broke. */
+  readonly broken: readonly Division[];
   readonly engaged: ReadonlySet<number>;
 }
 
 /** The world after every province that holds divisions has had its day. */
 const foughtEverywhere = (
   world: World,
-  graph: ProvinceGraph,
   before: Armies,
   command: Command
 ): Fighting => {
@@ -191,17 +199,9 @@ const foughtEverywhere = (
       to: battle.captured,
     });
   }
-  const after = occupied(world, { ...before, divisions: survivors }, taken);
   return {
-    armies: {
-      ...after,
-      divisions: [
-        ...after.divisions,
-        ...broken.flatMap((division) =>
-          withdrawn(graph, after.owners, division)
-        ),
-      ],
-    },
+    armies: occupied(world, { ...before, divisions: survivors }, taken),
+    broken,
     engaged,
   };
 };
@@ -292,17 +292,62 @@ const attackGroupOf = (
     1 + combatWidth(provinceTerrain(line.world.provinces, target), 1)
   );
 
+/** An enemy province a stack on the line could attack, and what holds it. */
+interface Prospect {
+  readonly province: number;
+  /** The holder's strength standing in it, counted with the ground. */
+  readonly defended: number;
+  /** How far it is from the plan's nearest objective over enemy ground, `UNASSIGNED` where no such walk reaches one. */
+  readonly approach: number;
+}
+
+/** Whether `one` is a better attack for the plan than `other`: nearer an objective, then weaker. */
+const plannedBefore = (one: Prospect, other: Prospect): boolean =>
+  one.approach < other.approach ||
+  (one.approach === other.approach && one.defended < other.defended);
+
+/**
+ * The enemy neighbour the battle plan sends the stack at, which is the one
+ * nearest an objective, the weakest of those on a tie, or none where no
+ * neighbour reaches an objective over enemy ground.
+ */
+const plannedOf = (prospects: readonly Prospect[]): readonly Prospect[] => {
+  let planned: readonly Prospect[] = [];
+  for (const prospect of prospects) {
+    if (prospect.approach === UNASSIGNED) {
+      continue;
+    }
+    if (planned.every((held) => plannedBefore(prospect, held))) {
+      planned = [prospect];
+    }
+  }
+  return planned;
+};
+
+/** The enemy neighbour that is weakest held, the first of them on a tie. */
+const weakestOf = (prospects: readonly Prospect[]): readonly Prospect[] => {
+  let weakest: readonly Prospect[] = [];
+  for (const prospect of prospects) {
+    if (weakest.every((held) => prospect.defended < held.defended)) {
+      weakest = [prospect];
+    }
+  }
+  return weakest;
+};
+
 /**
  * The enemy province a stack on the line attacks today, or its own where it
  * holds.
  *
  * The first division of the stack stays behind as the garrison, so a stack of
  * one never attacks and the province it stands in is never left empty by it.
- * The rest attack when they outweigh the weakest enemy neighbour by the odds
- * the nation's stance asks for.
+ * The rest attack where the battle plan's offensive sends them when they
+ * outweigh the defence there by the odds the nation's stance asks for, and
+ * otherwise the weakest enemy neighbour when they outweigh that one.
  */
 const attackTarget = (
   line: Line,
+  plan: BattlePlan,
   province: number,
   stack: readonly Division[],
   onTheLine: boolean
@@ -311,43 +356,38 @@ const attackTarget = (
   if (!onTheLine) {
     return province;
   }
-  let target = province;
-  let weakest = Number.POSITIVE_INFINITY;
-  for (const beside of enemyNeighbours(
+  const prospects = enemyNeighbours(
     line.graph,
     line.owners,
     line.wars,
     nation,
     province
-  )) {
-    const defended =
+  ).map((beside): Prospect => ({
+    approach: valueAt(plan.approach, beside),
+    defended:
       (line.garrisons.get(beside) ?? 0) *
-      terrainDefenceOf(provinceTerrain(line.world.provinces, beside));
-    if (defended >= weakest) {
-      continue;
-    }
-    weakest = defended;
-    target = beside;
-  }
-  const attacking = strengthOf(attackGroupOf(line, stack, target));
+      terrainDefenceOf(provinceTerrain(line.world.provinces, beside)),
+    province: beside,
+  }));
   const odds = attackOddsFor(itemAt(line.stances, nation, START_STANCE));
-  if (attacking === 0 || attacking < odds * weakest) {
-    return province;
-  }
-  return target;
+  const sent = [...plannedOf(prospects), ...weakestOf(prospects)].find(
+    (prospect) => {
+      const attacking = strengthOf(
+        attackGroupOf(line, stack, prospect.province)
+      );
+      return attacking > 0 && attacking >= odds * prospect.defended;
+    }
+  );
+  return sent?.province ?? province;
 };
 
-/** One nation's divisions standing in one province, out of contact. */
+/** The divisions grouped by the nation and the province they stand in. */
 const stacksOf = (
   divisions: readonly Division[],
-  engaged: ReadonlySet<number>,
   nations: number
 ): ReadonlyMap<number, readonly Division[]> => {
   const stacks = new Map<number, Division[]>();
   for (const division of divisions) {
-    if (engaged.has(division.province)) {
-      continue;
-    }
     const key = stackKey(nations, division.nation, division.province);
     const stack = stacks.get(key) ?? [];
     stack.push(division);
@@ -362,6 +402,7 @@ interface Fields {
   readonly line: Int32Array;
   /** Where the nation has room for another division. */
   readonly open: Deployment;
+  readonly plan: BattlePlan;
 }
 
 /**
@@ -404,7 +445,7 @@ const orderedStack = (
     postingAt(line, nation, province),
     onward === province
   );
-  const target = attackTarget(line, province, staying, onTheLine);
+  const target = attackTarget(line, fields.plan, province, staying, onTheLine);
   const attacking = new Set(attackGroupOf(line, staying, target));
   const kept = new Set(staying);
   return stack.map((division) => {
@@ -419,15 +460,42 @@ const orderedStack = (
 };
 
 /**
- * The world after every division out of contact has had its orders: behind the
- * line it walks toward it, and on the line its stack holds or attacks.
+ * Where a regrouping division is today: walking toward its nation's fallback
+ * line, or back under the line's orders once it has recovered enough, which it
+ * takes up tomorrow from where it stands.
+ */
+const regrouped = (
+  line: Line,
+  plan: BattlePlan,
+  division: Division
+): Division => {
+  if (regroupedEnough(division)) {
+    return {
+      ...division,
+      marched: 0,
+      movingTo: division.province,
+      task: "line",
+    };
+  }
+  return walkedToward(
+    line,
+    division,
+    stepToward(line.graph, plan.retreat, division.province)
+  );
+};
+
+/**
+ * The world after every division out of contact has had its orders: a broken
+ * one falls back to regroup, behind the line one walks toward it, and on the
+ * line its stack holds or attacks.
  */
 const marchedEverywhere = (
   world: World,
   graph: ProvinceGraph,
   armies: Armies,
   command: Command,
-  engaged: ReadonlySet<number>
+  engaged: ReadonlySet<number>,
+  plans: readonly BattlePlan[]
 ): Armies => {
   const { wars } = command;
   const line: Line = {
@@ -452,13 +520,23 @@ const marchedEverywhere = (
         postOf(command.supply, nation.id, province).demand <
         postingAt(line, nation.id, province)
     ),
+    plan: itemAt(plans, nation.id, NO_PLAN),
   }));
   const moved = armies.divisions.filter((division) =>
     engaged.has(division.province)
   );
+  const free = armies.divisions.filter(
+    (division) => !engaged.has(division.province)
+  );
+  for (const division of free) {
+    if (division.task === "regroup") {
+      moved.push(
+        regrouped(line, itemAt(plans, division.nation, NO_PLAN), division)
+      );
+    }
+  }
   for (const stack of stacksOf(
-    armies.divisions,
-    engaged,
+    free.filter((division) => division.task === "line"),
     world.nations.length
   ).values()) {
     const first = itemAt(stack, 0, raisedAt(UNASSIGNED, UNASSIGNED));
@@ -499,8 +577,10 @@ const attrited = (
  * The supply wears on every division first, then the depots, then the
  * fighting, then the marching, so a division
  * raised today takes its first day of marching the same day, and a province
- * taken today already belongs to the attacker when the marchers read their
- * fronts.
+ * taken today already belongs to the attacker when the battle plans are drawn.
+ * Every nation's plan is drawn once the day's ground has changed hands, so a
+ * division that broke today falls back toward the same fallback line the
+ * marchers read.
  */
 export const armiesAfterOneDay = (
   world: World,
@@ -511,7 +591,6 @@ export const armiesAfterOneDay = (
   const raised = raisedOneDay(world, armies.owners, armies.economies);
   const fought = foughtEverywhere(
     world,
-    graph,
     {
       divisions: [
         ...attrited(armies.divisions, command.supply),
@@ -522,11 +601,33 @@ export const armiesAfterOneDay = (
     },
     command
   );
+  const { owners } = fought.armies;
+  const plans = battlePlansOf(
+    world.provinces,
+    world.nations,
+    graph,
+    owners,
+    command.wars
+  );
   return marchedEverywhere(
     world,
     graph,
-    fought.armies,
+    {
+      ...fought.armies,
+      divisions: [
+        ...fought.armies.divisions,
+        ...fought.broken.flatMap((division) =>
+          withdrawn(
+            graph,
+            owners,
+            itemAt(plans, division.nation, NO_PLAN).retreat,
+            division
+          )
+        ),
+      ],
+    },
     command,
-    fought.engaged
+    fought.engaged,
+    plans
   );
 };

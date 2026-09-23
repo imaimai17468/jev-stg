@@ -37,6 +37,12 @@ const TEMPLATES = {
  */
 export type Arrival = "march" | "landing";
 
+/**
+ * What a division is doing: standing to the orders of its nation's line, or
+ * falling back to the fallback line after it broke, to regroup there.
+ */
+export type Task = "line" | "regroup";
+
 /** One division: where it stands, what is left of it, and where it is walking. */
 export interface Division {
   readonly nation: number;
@@ -52,6 +58,7 @@ export interface Division {
   /** The days it has spent walking toward `movingTo`. */
   readonly marched: number;
   readonly arrival: Arrival;
+  readonly task: Task;
 }
 
 /** The days it takes a division to walk into a province of each terrain. */
@@ -74,6 +81,17 @@ const TERRAIN_DEFENCE = {
   tundra: 1.1,
 } satisfies Readonly<Record<Terrain, number>>;
 
+/**
+ * The share of its template's cohesion a regrouping division recovers before
+ * it goes back to the line. The share is this game's own.
+ */
+const REGROUPED_SHARE = 0.8;
+
+/** Whether a regrouping division has recovered enough to go back to the line. */
+export const regroupedEnough = (division: Division): boolean =>
+  division.organisation >=
+  TEMPLATES[division.kind].organisation * REGROUPED_SHARE;
+
 /** Cohesion a division out of contact recovers in a day. */
 const ORGANISATION_PER_DAY = 3;
 
@@ -92,6 +110,7 @@ export const raisedAt = (nation: number, province: number): Division => ({
   organisation: TEMPLATES.infantry.organisation,
   province,
   strength: TEMPLATES.infantry.manpower,
+  task: "line",
 });
 
 /** The men it takes to raise `count` divisions. */

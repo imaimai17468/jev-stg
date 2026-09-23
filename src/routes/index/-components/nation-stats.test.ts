@@ -22,6 +22,7 @@ const SUMMARY: NationSummary = {
   economy: { ...NO_ECONOMY, population: 125_166_336 },
   enemies: [],
   faction: Option.none(),
+  front: [],
   id: 0,
   intel: [],
   name: "国0",

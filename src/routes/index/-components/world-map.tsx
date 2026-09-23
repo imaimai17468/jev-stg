@@ -10,6 +10,7 @@ import type { World } from "@/shared/entities/world";
 import type { AirForce } from "@/shared/entities/world/air-force";
 import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
+import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { Navy } from "@/shared/entities/world/navy";
 import { watersOf } from "@/shared/entities/world/navy";
@@ -21,9 +22,14 @@ import type {
   SupplyNetwork,
   SupplyState,
 } from "@/shared/entities/world/supply";
+import type { Wars } from "@/shared/entities/world/wars";
 import { divisionMarks } from "./division-marks";
+import type { LineKind, Segment } from "./draw-map";
 import { drawMap } from "./draw-map";
 import { fleetMarks } from "./fleet-marks";
+import { FrontLegend } from "./front-legend";
+import type { Point as MapPoint } from "./front-marks";
+import { frontsOf } from "./front-marks";
 import { paintWorld } from "./map-bitmap";
 import type { MapMode } from "./map-mode";
 import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
@@ -39,6 +45,8 @@ interface WorldMapProps {
   readonly world: World;
   /** Who holds each province now, by province id. */
   readonly owners: Int32Array;
+  /** Who is fighting whom, which decides where the fronts run. */
+  readonly wars: Wars;
   readonly divisions: readonly Division[];
   /** What every nation's supply can do today. */
   readonly supply: SupplyNetwork;
@@ -153,6 +161,26 @@ const WING_CHORD = 8;
 const WING_INSET = 2;
 const FUSELAGE_WIDTH = 10;
 const FUSELAGE_LENGTH = 18;
+/**
+ * How a nation's lines are drawn, in screen pixels: its colour over a dark
+ * casing, so a line keeps showing over land painted the same colour, the front
+ * solid and the fallback line dashed so the two read apart without colour.
+ */
+const LINE_CASING = "rgba(12, 14, 20, 0.85)";
+const LINE_STYLES = {
+  fallback: { casing: 4, dash: [6, 4], width: 2 },
+  front: { casing: 5, dash: [], width: 3 },
+} satisfies Record<
+  LineKind,
+  { casing: number; dash: readonly number[]; width: number }
+>;
+/** How an offensive's arrow is drawn, in screen pixels. */
+const ARROW_WIDTH = 5;
+const ARROW_CASING = 8;
+const ARROW_HEAD = 12;
+const ARROW_HEAD_HALF_WIDTH = 7;
+/** The most of its last leg an arrow's head takes, so a short arrow keeps a shaft. */
+const ARROW_HEAD_SHARE = 0.6;
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
 const LABEL_OUTLINE = "rgba(0, 0, 0, 0.65)";
 const LABEL_OUTLINE_WIDTH = 3;
@@ -261,6 +289,110 @@ const drawWing = (pen: CanvasRenderingContext2D, counter: Counter): void => {
   pen.fillStyle = LABEL_INK;
 };
 
+/** Strokes `path` twice: the dark casing, then the colour over it. */
+const strokeCased = (
+  pen: CanvasRenderingContext2D,
+  path: Path2D,
+  colour: Colour,
+  line: { readonly casing: number; readonly width: number }
+): void => {
+  pen.strokeStyle = LINE_CASING;
+  pen.lineWidth = line.casing;
+  pen.stroke(path);
+  pen.strokeStyle = inkOf(colour);
+  pen.lineWidth = line.width;
+  pen.stroke(path);
+};
+
+/** The SVG path data that runs through `points` in order. */
+const pathThrough = (points: readonly MapPoint[]): string =>
+  `M${points.map((point) => `${point.x} ${point.y}`).join("L")}`;
+
+/**
+ * Draws a nation's front or fallback line, every segment in one path, and
+ * leaves the pen set for the names again.
+ */
+const drawLines = (
+  pen: CanvasRenderingContext2D,
+  segments: readonly Segment[],
+  colour: Colour,
+  kind: LineKind
+): void => {
+  const style = LINE_STYLES[kind];
+  const path = new Path2D(
+    segments
+      .map((segment) =>
+        pathThrough([
+          { x: segment.x1, y: segment.y1 },
+          { x: segment.x2, y: segment.y2 },
+        ])
+      )
+      .join("")
+  );
+  pen.setLineDash(style.dash);
+  pen.lineCap = "butt";
+  strokeCased(pen, path, colour, style);
+  pen.setLineDash([]);
+  pen.lineWidth = LABEL_OUTLINE_WIDTH;
+  pen.strokeStyle = LABEL_OUTLINE;
+};
+
+const ORIGIN: MapPoint = { x: 0, y: 0 };
+
+/**
+ * Draws an offensive's arrow: a cased shaft along the points and a head on
+ * the last of them pointing the way the last step runs, and leaves the pen set
+ * for the names again.
+ */
+const drawArrow = (
+  pen: CanvasRenderingContext2D,
+  points: readonly MapPoint[],
+  colour: Colour
+): void => {
+  const tip = itemAt(points, points.length - 1, ORIGIN);
+  const before = itemAt(points, points.length - 2, tip);
+  const angle = Math.atan2(tip.y - before.y, tip.x - before.x);
+  const head = Math.min(
+    ARROW_HEAD,
+    Math.hypot(tip.x - before.x, tip.y - before.y) * ARROW_HEAD_SHARE
+  );
+  const neck = {
+    x: tip.x - Math.cos(angle) * head,
+    y: tip.y - Math.sin(angle) * head,
+  };
+  const halfWidth = (ARROW_HEAD_HALF_WIDTH * head) / ARROW_HEAD;
+  const across = {
+    x: Math.cos(angle + Math.PI / 2) * halfWidth,
+    y: Math.sin(angle + Math.PI / 2) * halfWidth,
+  };
+  pen.lineCap = "round";
+  pen.lineJoin = "round";
+  strokeCased(
+    pen,
+    new Path2D(pathThrough([...points.slice(0, -1), neck])),
+    colour,
+    {
+      casing: ARROW_CASING,
+      width: ARROW_WIDTH,
+    }
+  );
+  pen.beginPath();
+  pen.moveTo(tip.x, tip.y);
+  pen.lineTo(neck.x + across.x, neck.y + across.y);
+  pen.lineTo(neck.x - across.x, neck.y - across.y);
+  pen.closePath();
+  pen.strokeStyle = LINE_CASING;
+  pen.lineWidth = ARROW_CASING - ARROW_WIDTH;
+  pen.stroke();
+  pen.fillStyle = inkOf(colour);
+  pen.fill();
+  pen.lineCap = "butt";
+  pen.lineJoin = "miter";
+  pen.lineWidth = LABEL_OUTLINE_WIDTH;
+  pen.strokeStyle = LABEL_OUTLINE;
+  pen.fillStyle = LABEL_INK;
+};
+
 const keepWheelOnMap = (event: Event) => {
   event.preventDefault();
 };
@@ -311,6 +443,7 @@ const WorldMapSurface = ({
   owners,
   skies,
   supply,
+  wars,
   world,
 }: WorldMapProps) => {
   const canvas = useRef(NO_CANVAS);
@@ -401,14 +534,20 @@ const WorldMapSurface = ({
     return Option.some(offscreen);
   }, [world, owners, highlighted, tint]);
 
+  const fronts = useMemo(
+    () => frontsOf(world, owners, wars),
+    [world, owners, wars]
+  );
+
   const overlay = useMemo(
     () => ({
       fleets: fleetMarks(world, navies),
+      fronts,
       labels: nationLabels(world, owners),
       marks: divisionMarks(world, divisions, supply),
       wings: wingMarks(world, airForces),
     }),
-    [world, owners, divisions, supply, navies, airForces]
+    [world, owners, divisions, supply, navies, airForces, fronts]
   );
 
   const {
@@ -456,6 +595,12 @@ const WorldMapSurface = ({
         },
         counter: (value, x, y, colour, crate) => {
           drawCounter(pen, { colour, value, x, y }, crate);
+        },
+        arrow: (points, colour) => {
+          drawArrow(pen, points, colour);
+        },
+        lines: (segments, colour, kind) => {
+          drawLines(pen, segments, colour, kind);
         },
         fleet: (value, x, y, colour) => {
           drawFleet(pen, { colour, value, x, y });
@@ -571,6 +716,7 @@ const WorldMapSurface = ({
         ref={attach}
         tabIndex={0}
       />
+      <FrontLegend shown={fronts.length > 0} />
       <MapZoomControls
         onFit={fit}
         onZoom={(factor) => {

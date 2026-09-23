@@ -1,14 +1,9 @@
 import { valueAt } from "./grid";
 import type { LandProvince, Province, ProvinceGraph } from "./provinces";
-import {
-  isLand,
-  landIdsWhere,
-  neighboursOf,
-  overTheProvinces,
-} from "./provinces";
-import { distanceFrom, UNASSIGNED } from "./spread";
+import { distanceOver, isLand, landIdsWhere, neighboursOf } from "./provinces";
+import { UNASSIGNED } from "./spread";
 import type { Wars } from "./wars";
-import { atWar, enemiesOf } from "./wars";
+import { atWar } from "./wars";
 
 /** Whether the province is held by a nation that `accepts` names. */
 const heldBy = (
@@ -20,21 +15,17 @@ const heldBy = (
   return owner !== UNASSIGNED && accepts(owner);
 };
 
-/**
- * What the nation's army lines up against: the enemy's ground at war, and at
- * peace any foreign ground, since a border is where an army waits.
- */
-const facingFor = (
-  owners: Int32Array,
-  wars: Wars,
-  nation: number
-): ((province: number) => boolean) => {
-  if (enemiesOf(wars, nation).length > 0) {
-    return (province) =>
-      heldBy(owners, province, (owner) => atWar(wars, nation, owner));
-  }
-  return (province) => heldBy(owners, province, (owner) => owner !== nation);
-};
+/** Whether the province is held by a nation `nation` is at war with. */
+const enemyHeld =
+  (owners: Int32Array, wars: Wars, nation: number) =>
+  (province: number): boolean =>
+    heldBy(owners, province, (owner) => atWar(wars, nation, owner));
+
+/** Whether the province is held by a nation other than `nation`. */
+const foreignHeld =
+  (owners: Int32Array, nation: number) =>
+  (province: number): boolean =>
+    heldBy(owners, province, (owner) => owner !== nation);
 
 /** The nation's own land provinces that `accepts` names. */
 const ownWhere = (
@@ -59,9 +50,28 @@ const touching = (
     province.neighbours.some(facing)
   );
 
+/** Who holds what and who is fighting whom, which is all a front is drawn from. */
+export interface Standoff {
+  readonly provinces: readonly Province[];
+  readonly owners: Int32Array;
+  readonly wars: Wars;
+}
+
+/**
+ * The nation's own provinces touching ground held by a nation it is at war
+ * with, which is where its battle plans draw their fronts.
+ */
+export const enemyContact = (
+  { owners, provinces, wars }: Standoff,
+  nation: number
+): readonly number[] =>
+  touching(provinces, owners, nation, enemyHeld(owners, wars, nation));
+
 /**
  * The nation's own provinces that touch what it faces, which is where its
- * divisions stand to hold the line and where they attack from.
+ * divisions stand to hold the line and where they attack from: the enemy's
+ * ground, and where no enemy's ground touches its own, any foreign ground,
+ * since a border is where an army waits.
  *
  * A war against a nation whose ground no longer touches this one's leaves no
  * line to face, so the army falls back to watching its borders rather than
@@ -73,35 +83,40 @@ const frontLine = (
   wars: Wars,
   nation: number
 ): readonly number[] => {
-  const facing = touching(
-    provinces,
-    owners,
-    nation,
-    facingFor(owners, wars, nation)
-  );
+  const facing = enemyContact({ owners, provinces, wars }, nation);
   if (facing.length > 0) {
     return facing;
   }
-  return touching(provinces, owners, nation, (province) =>
-    heldBy(owners, province, (owner) => owner !== nation)
-  );
+  return touching(provinces, owners, nation, foreignHeld(owners, nation));
 };
 
-/** How many provinces of the nation's own ground each one is from `seeds`. */
-const fieldFrom = (
-  provinces: readonly Province[],
+/**
+ * How many provinces each one is from `seeds`, walking only over land held
+ * by a nation `holds` accepts, with `UNASSIGNED` where no such walk reaches.
+ */
+export const heldGroundDistance = (
+  graph: ProvinceGraph,
+  owners: Int32Array,
+  holds: (owner: number) => boolean,
+  seeds: readonly number[]
+): Int32Array =>
+  distanceOver(
+    graph,
+    (province) => isLand(graph, province) && holds(valueAt(owners, province)),
+    seeds
+  );
+
+/**
+ * How many provinces of the nation's own ground each one is from `seeds`,
+ * with `UNASSIGNED` where no march over its own ground reaches them.
+ */
+export const fieldFrom = (
   graph: ProvinceGraph,
   owners: Int32Array,
   nation: number,
   seeds: readonly number[]
 ): Int32Array =>
-  distanceFrom(
-    provinces.length,
-    overTheProvinces(graph.adjacency),
-    (province) =>
-      isLand(graph, province) && valueAt(owners, province) === nation,
-    seeds
-  );
+  heldGroundDistance(graph, owners, (owner) => owner === nation, seeds);
 
 /**
  * How many provinces of the nation's own ground each one is from its front
@@ -119,13 +134,7 @@ export const frontField = (
   wars: Wars,
   nation: number
 ): Int32Array =>
-  fieldFrom(
-    provinces,
-    graph,
-    owners,
-    nation,
-    frontLine(provinces, owners, wars, nation)
-  );
+  fieldFrom(graph, owners, nation, frontLine(provinces, owners, wars, nation));
 
 /**
  * Where a nation has room for another division: on its front line, in reserve
@@ -184,7 +193,7 @@ export const deploymentOf = (
   open: (province: number) => boolean
 ): Deployment => {
   const { room, seeds } = roomFor(provinces, owners, wars, nation, open);
-  return { field: fieldFrom(provinces, graph, owners, nation, seeds), room };
+  return { field: fieldFrom(graph, owners, nation, seeds), room };
 };
 /** The enemy-held land provinces touching `province`. */
 export const enemyNeighbours = (
@@ -195,9 +204,7 @@ export const enemyNeighbours = (
   province: number
 ): readonly number[] =>
   neighboursOf(graph, province).filter(
-    (beside) =>
-      isLand(graph, beside) &&
-      heldBy(owners, beside, (owner) => atWar(wars, nation, owner))
+    (beside) => isLand(graph, beside) && enemyHeld(owners, wars, nation)(beside)
   );
 
 /**

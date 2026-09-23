@@ -3,8 +3,20 @@ import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { CounterMark } from "./counter-mark";
 import type { DivisionMark } from "./division-marks";
+import type { Edge, FrontMark, Point } from "./front-marks";
 import type { NationLabel } from "./nation-labels";
 import type { Surface, Viewport } from "./viewport";
+
+/** A straight line on the screen, in screen pixels. */
+export interface Segment {
+  readonly x1: number;
+  readonly y1: number;
+  readonly x2: number;
+  readonly y2: number;
+}
+
+/** What a run of segments is drawn as: the front solid, the fallback line dashed. */
+export type LineKind = "front" | "fallback";
 
 /**
  * What the map needs a drawing surface to do.
@@ -39,6 +51,14 @@ export interface MapPen {
    * shaped as a plane so it reads apart from an army's and a fleet's.
    */
   readonly wing: (value: string, x: number, y: number, colour: Colour) => void;
+  /** Draws a nation's front or fallback line, every segment of it in one stroke. */
+  readonly lines: (
+    segments: readonly Segment[],
+    colour: Colour,
+    kind: LineKind
+  ) => void;
+  /** Draws an offensive's arrow along the points, its head on the last of them. */
+  readonly arrow: (points: readonly Point[], colour: Colour) => void;
 }
 
 /** What the map draws over the painted world. */
@@ -47,6 +67,7 @@ export interface MapOverlay {
   readonly marks: readonly DivisionMark[];
   readonly fleets: readonly CounterMark[];
   readonly wings: readonly CounterMark[];
+  readonly fronts: readonly FrontMark[];
 }
 
 /**
@@ -59,8 +80,16 @@ export interface MapOverlay {
 const LABEL_MIN_CELLS = 900;
 
 /**
- * Draws one frame: the painted world at the current viewport, the names over
- * it, an army counter on every province that holds one, a fleet counter on
+ * How far a line is drawn off the border into its own nation's ground, in
+ * screen pixels, so two enemies' fronts lie side by side rather than over
+ * each other.
+ */
+const SIDE_OFFSET = 2;
+
+/**
+ * Draws one frame: the painted world at the current viewport, every nation's
+ * fallback line, front and offensive arrows over it, the names over those, an
+ * army counter on every province that holds one, a fleet counter on
  * every sea zone that holds warships, and a wing counter over every region
  * planes fly a mission over.
  */
@@ -78,6 +107,33 @@ export const drawMap = (
     world.grid.width * view.scale,
     world.grid.height * view.scale
   );
+  const toScreen = (point: Point): Point => ({
+    x: (point.x - view.x) * view.scale,
+    y: (point.y - view.y) * view.scale,
+  });
+  const offsetOf = (edge: Edge): Segment => {
+    const from = toScreen({ x: edge.x1, y: edge.y1 });
+    const to = toScreen({ x: edge.x2, y: edge.y2 });
+    const byX = edge.towardX * SIDE_OFFSET;
+    const byY = edge.towardY * SIDE_OFFSET;
+    return {
+      x1: from.x + byX,
+      x2: to.x + byX,
+      y1: from.y + byY,
+      y2: to.y + byY,
+    };
+  };
+  for (const front of overlay.fronts) {
+    pen.lines(front.fallback.map(offsetOf), front.colour, "fallback");
+  }
+  for (const front of overlay.fronts) {
+    pen.lines(front.front.map(offsetOf), front.colour, "front");
+  }
+  for (const front of overlay.fronts) {
+    for (const offensive of front.offensives) {
+      pen.arrow(offensive.map(toScreen), front.colour);
+    }
+  }
   for (const label of overlay.labels) {
     if (label.weight < LABEL_MIN_CELLS) {
       continue;
