@@ -1,5 +1,5 @@
 import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
+import { itemAt, replacedAt } from "./lookup";
 import type { Wars } from "./wars";
 import { declared, noWars, peaceFor } from "./wars";
 
@@ -185,12 +185,7 @@ export const leftTheWar = (
 ): Diplomacy => ({
   ...peaceMade(diplomacy, nation),
   factions: factionsWithout(diplomacy.factions, nation),
-  standings: diplomacy.standings.map((before, other) => {
-    if (other === nation) {
-      return standing;
-    }
-    return before;
-  }),
+  standings: replacedAt(diplomacy.standings, nation, standing),
 });
 
 /** The puppets that answer to `overlord`, by nation id. */
