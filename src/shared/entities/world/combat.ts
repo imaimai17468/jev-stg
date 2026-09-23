@@ -1,4 +1,4 @@
-import type { Division } from "./divisions";
+import type { Backing, Division } from "./divisions";
 import {
   attackOf,
   defenceOf,
@@ -6,6 +6,7 @@ import {
   strengthOf,
   terrainDefenceOf,
 } from "./divisions";
+import { combatWidth } from "./frontage";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
@@ -13,6 +14,8 @@ import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { isLand, neighboursOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
+import type { SupplyNetwork } from "./supply";
+import { postOf } from "./supply";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
 
@@ -107,7 +110,33 @@ export interface Theatre {
   readonly wars: Wars;
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
+  readonly supply: SupplyNetwork;
 }
+
+/**
+ * How many neighbouring provinces the province is attacked from: every one held
+ * by a nation at war with its holder.
+ */
+const attackDirections = (
+  theatre: Theatre,
+  province: LandProvince,
+  holder: number
+): number =>
+  province.neighbours.filter((beside) =>
+    atWar(theatre.wars, holder, valueAt(theatre.owners, beside))
+  ).length;
+
+/**
+ * The divisions of one side that fight today: the `width` with the most
+ * cohesion left, so a reserve steps in for one that is close to breaking.
+ */
+const lineOf = (
+  side: readonly Division[],
+  width: number
+): readonly Division[] =>
+  side
+    .toSorted((one, other) => other.organisation - one.organisation)
+    .slice(0, width);
 
 /**
  * One day of whatever is happening in a province that divisions stand in.
@@ -115,7 +144,9 @@ export interface Theatre {
  * The nation holding the ground defends it, and every nation at war with that
  * one attacks together, which is as close to a coalition as a world with no
  * diplomacy gets. A division that has already broken takes no part: it is
- * neither counted in the defence nor struck, and it leaves the province.
+ * neither counted in the defence nor struck, and it leaves the province. Each
+ * side fights with no more divisions than the battle's width holds, and the
+ * rest wait in reserve, neither firing nor struck.
  */
 export const foughtOneDay = (
   theatre: Theatre,
@@ -123,8 +154,10 @@ export const foughtOneDay = (
   present: readonly Division[]
 ): Battle => {
   const { owners, wars } = theatre;
-  const modifiersOf = (division: Division) =>
-    itemAt(theatre.modifiers, division.nation, NO_MODIFIERS);
+  const backingOf = (division: Division): Backing => ({
+    fill: postOf(theatre.supply, division.nation, division.province).fill,
+    modifiers: itemAt(theatre.modifiers, division.nation, NO_MODIFIERS),
+  });
   const holder = valueAt(owners, province.id);
   const fighting = present.filter(canFight);
   const broken = present.filter((division) => !canFight(division));
@@ -137,7 +170,7 @@ export const foughtOneDay = (
       captured: UNASSIGNED,
       fought: false,
       standing: present.map((division) =>
-        rested(division, modifiersOf(division))
+        rested(division, backingOf(division))
       ),
     };
   }
@@ -150,25 +183,32 @@ export const foughtOneDay = (
       standing: fighting,
     };
   }
-  const attack = attackers.reduce(
-    (total, division) => total + attackOf(division, modifiersOf(division)),
+  const width = combatWidth(
+    province.terrain,
+    attackDirections(theatre, province, holder)
+  );
+  const attackLine = lineOf(attackers, width);
+  const defenceLine = lineOf(defenders, width);
+  const inLine = new Set([...attackLine, ...defenceLine]);
+  const attack = attackLine.reduce(
+    (total, division) => total + attackOf(division, backingOf(division)),
     0
   );
   const defence =
-    defenders.reduce(
-      (total, division) => total + defenceOf(division, modifiersOf(division)),
+    defenceLine.reduce(
+      (total, division) => total + defenceOf(division, backingOf(division)),
       0
     ) * terrainDefenceOf(province.terrain);
-  const toDefender = (attack * ORGANISATION_PER_POWER) / defenders.length;
-  const toAttacker = (defence * ORGANISATION_PER_POWER) / attackers.length;
+  const toDefender = (attack * ORGANISATION_PER_POWER) / defenceLine.length;
+  const toAttacker = (defence * ORGANISATION_PER_POWER) / attackLine.length;
   const afterFire = fighting.map((division) => {
+    if (!inLine.has(division)) {
+      return division;
+    }
     if (division.nation === holder) {
       return struck(division, toDefender);
     }
-    if (attacking(division)) {
-      return struck(division, toAttacker);
-    }
-    return division;
+    return struck(division, toAttacker);
   });
   return {
     broken: [...broken, ...afterFire.filter((division) => !canFight(division))],

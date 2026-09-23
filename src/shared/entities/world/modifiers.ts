@@ -8,6 +8,7 @@ export const MODIFIERS: readonly Modifier[] = [
   "construction",
   "research",
   "manpower",
+  "supply",
 ];
 
 /**
@@ -29,6 +30,8 @@ export interface Modifiers {
   readonly research: number;
   /** The share of the people the conscription law reaches. */
   readonly manpower: number;
+  /** The divisions a province can keep supplied. */
+  readonly supply: number;
 }
 
 /** Something a technology or a national focus makes a nation better at. */
@@ -47,6 +50,7 @@ export const NO_MODIFIERS: Modifiers = {
   production: 0,
   recovery: 0,
   research: 0,
+  supply: 0,
 };
 
 /** The share `bonus` adds to `modifier`, which is none where it names none. */
@@ -63,6 +67,7 @@ const added = (total: Modifiers, bonus: Bonus): Modifiers => ({
   production: total.production + shareOf(bonus, "production"),
   recovery: total.recovery + shareOf(bonus, "recovery"),
   research: total.research + shareOf(bonus, "research"),
+  supply: total.supply + shareOf(bonus, "supply"),
 });
 
 /** Every one of `bonuses` added together. */

@@ -61,6 +61,7 @@ const BRIEF: NationBrief = {
   rivals: [{ nation: 2, strength: 0 }],
   strength: 0,
   techs: [],
+  undersupplied: 0,
 };
 
 const COUNCIL: Council = {
@@ -226,6 +227,7 @@ describe(councilOf, () => {
         "tools-1",
         "construction-1",
         "electronics-1",
+        "logistics-1",
       ],
     });
   });
@@ -404,6 +406,7 @@ describe(ruledByRules, () => {
             "tools-1",
             "construction-1",
             "electronics-1",
+            "logistics-1",
           ]),
           COUNCIL_DAY
         )

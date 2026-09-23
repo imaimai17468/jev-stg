@@ -3,6 +3,11 @@ import type { Division } from "@/shared/entities/world/divisions";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour } from "@/shared/entities/world/nations";
 import { NO_NATION } from "@/shared/entities/world/nations";
+import type {
+  SupplyNetwork,
+  SupplyState,
+} from "@/shared/entities/world/supply";
+import { postOf, supplyStateOf } from "@/shared/entities/world/supply";
 
 /** One counter the map draws over a province. */
 export interface DivisionMark {
@@ -12,6 +17,8 @@ export interface DivisionMark {
   readonly y: number;
   readonly count: number;
   readonly colour: Colour;
+  /** How well the divisions the counter stands for are supplied. */
+  readonly supply: SupplyState;
 }
 
 const NO_COUNTS: ReadonlyMap<number, number> = new Map();
@@ -48,11 +55,13 @@ const strongestIn = (counts: ReadonlyMap<number, number>) => {
  * most of them there.
  *
  * A province two armies are fighting over shows the larger of them, because two
- * counters on one province overlap into a smudge at every zoom the map offers.
+ * counters on one province overlap into a smudge at every zoom the map offers,
+ * and the counter carries how well that army is supplied there.
  */
 export const divisionMarks = (
   world: World,
-  divisions: readonly Division[]
+  divisions: readonly Division[],
+  supply: SupplyNetwork
 ): readonly DivisionMark[] => {
   const standing = tally(divisions);
   const marks: DivisionMark[] = [];
@@ -66,6 +75,7 @@ export const divisionMarks = (
       colour: itemAt(world.nations, strongest.nation, NO_NATION).colour,
       count: strongest.count,
       province: province.id,
+      supply: supplyStateOf(postOf(supply, strongest.nation, province.id).fill),
       x: province.x,
       y: province.y,
     });

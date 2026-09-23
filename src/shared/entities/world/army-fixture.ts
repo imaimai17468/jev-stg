@@ -8,6 +8,7 @@ import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
+import type { SupplyNetwork } from "./supply";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 
@@ -57,10 +58,21 @@ export const LINE_GRAPH: ProvinceGraph = graphOf(LINE_WORLD.provinces);
 /** The two nations fighting each other. */
 export const AT_WAR: Wars = declared(noWars(2), { one: 0, other: 1 });
 
+/** Every province supplying far more divisions than a test stands in it, for both nations. */
+export const FULL_SUPPLY: SupplyNetwork = {
+  capacity: [0, 1].map(() =>
+    Float32Array.from(LINE_WORLD.provinces, () => 1000)
+  ),
+  demand: new Map(),
+  nations: 2,
+  upkeepMet: [1, 1],
+};
+
 /** The two nations at war, both attacking at the stance every nation opens with. */
 export const WAR_COMMAND: Command = {
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   stances: [START_STANCE, START_STANCE],
+  supply: FULL_SUPPLY,
   wars: AT_WAR,
 };
 

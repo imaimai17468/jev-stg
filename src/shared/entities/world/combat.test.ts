@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import {
   AT_WAR,
   division,
+  FULL_SUPPLY,
   LINE_GRAPH,
   LINE_OWNERS,
   LINE_WORLD,
@@ -13,6 +14,7 @@ import { itemAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
+import { UNASSIGNED } from "./spread";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 
@@ -30,6 +32,7 @@ const FALLBACK: LandProvince = {
 const theatreOf = (wars: Wars): Theatre => ({
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
+  supply: FULL_SUPPLY,
   wars,
 });
 
@@ -118,6 +121,37 @@ describe(foughtOneDay, () => {
       attacker: 60 - itemAt(battle.standing, 0, division({})).organisation,
       defender: 60 - itemAt(battle.standing, 10, division({})).organisation,
     }).toStrictEqual({ attacker: 5, defender: 3 });
+  });
+
+  it("should leave the attackers past the combat width in reserve when more attack than the plains hold", () => {
+    const battle = foughtOneDay(theatreOf(AT_WAR), CONTESTED, [
+      ...stackOf(10, 0),
+      ...stackOf(1, 1),
+    ]);
+
+    expect(
+      battle.standing.filter(
+        (fighter) => fighter.nation === 0 && fighter.organisation === 60
+      )
+    ).toHaveLength(2);
+  });
+
+  it("should widen the battle when the province is attacked from both sides", () => {
+    const surrounded: Theatre = {
+      ...theatreOf(AT_WAR),
+      owners: Int32Array.from([0, 0, 1, 0, UNASSIGNED]),
+    };
+
+    const battle = foughtOneDay(surrounded, CONTESTED, [
+      ...stackOf(14, 0),
+      ...stackOf(1, 1),
+    ]);
+
+    expect(
+      battle.standing.filter(
+        (fighter) => fighter.nation === 0 && fighter.organisation === 60
+      )
+    ).toHaveLength(2);
   });
 
   it("should break the defenders first when three attack two on plains", () => {

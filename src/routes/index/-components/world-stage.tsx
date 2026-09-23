@@ -11,6 +11,7 @@ import {
 import {
   ranOneDay,
   startSimulation,
+  supplyOf,
   withClock,
 } from "@/shared/entities/world/simulation";
 import { askJev } from "./ask-jev";
@@ -20,6 +21,7 @@ import { HudClockBar } from "./hud-clock-bar";
 import { HudDecisionFeed } from "./hud-decision-feed";
 import { HudNationPanel } from "./hud-nation-panel";
 import { HudTopBar } from "./hud-top-bar";
+import type { MapMode } from "./map-mode";
 import type { NationSummary } from "./nation-summary";
 import { summaryOf } from "./nation-summary";
 import { useJevCouncil } from "./use-jev-council";
@@ -42,6 +44,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   const world = useMemo(() => generateWorld(seed), [seed]);
   const [simulation, setSimulation] = useState(() => startSimulation(world));
   const [selected, setSelected] = useState(NO_SELECTION);
+  const [mode, setMode] = useState<MapMode>("political");
   const { clock } = simulation;
 
   useEffect(() => {
@@ -57,13 +60,19 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
     });
   }, [clock, world]);
 
+  const supply = useMemo(
+    () => supplyOf(world, simulation),
+    [world, simulation]
+  );
+
   const selection = useMemo(
     () =>
       Option.match(selected, {
         onNone: () => NO_SUMMARY,
-        onSome: (nation) => Option.some(summaryOf(world, simulation, nation)),
+        onSome: (nation) =>
+          Option.some(summaryOf(world, simulation, supply, nation)),
       }),
-    [selected, world, simulation]
+    [selected, world, simulation, supply]
   );
 
   const chooseSpeed = useCallback((speed: Speed) => {
@@ -87,9 +96,11 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
       <WorldMap
         divisions={simulation.divisions}
         highlighted={selected}
+        mode={mode}
         onSelectNation={setSelected}
         onTogglePause={flipPause}
         owners={simulation.owners}
+        supply={supply}
         world={world}
       />
       <HudTopBar
@@ -99,6 +110,8 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
       <HudDecisionFeed lines={lines} voice={voice} />
       <HudClockBar
         clock={clock}
+        mode={mode}
+        onChooseMode={setMode}
         onChooseSpeed={chooseSpeed}
         onTogglePause={flipPause}
       />

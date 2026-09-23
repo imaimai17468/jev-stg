@@ -1,5 +1,6 @@
 import type { World } from "@/shared/entities/world";
 import type { Colour } from "@/shared/entities/world/nations";
+import type { SupplyState } from "@/shared/entities/world/supply";
 import type { DivisionMark } from "./division-marks";
 import type { NationLabel } from "./nation-labels";
 import type { Surface, Viewport } from "./viewport";
@@ -16,12 +17,16 @@ export interface MapPen {
   /** Draws the painted world, scaled and offset into place. */
   readonly world: (x: number, y: number, width: number, height: number) => void;
   readonly text: (value: string, x: number, y: number) => void;
-  /** Draws one army counter, centred on the point, in its nation's colour. */
+  /**
+   * Draws one army counter, centred on the point, in its nation's colour, with
+   * a crate on it where its divisions are not fully supplied.
+   */
   readonly counter: (
     value: string,
     x: number,
     y: number,
-    colour: Colour
+    colour: Colour,
+    supply: SupplyState
   ) => void;
 }
 
@@ -73,7 +78,8 @@ export const drawMap = (
       String(mark.count),
       (mark.x - view.x) * view.scale,
       (mark.y - view.y) * view.scale,
-      mark.colour
+      mark.colour,
+      mark.supply
     );
   }
 };

@@ -30,7 +30,7 @@ import type { TechBranch, TechId } from "./research";
 import { availableTechs, techOf } from "./research";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
-import { realmOf } from "./simulation";
+import { realmOf, supplyOf } from "./simulation";
 import type { Stance } from "./stance";
 import { START_STANCE, STANCES } from "./stance";
 import type { Standoff } from "./statecraft";
@@ -44,6 +44,8 @@ import {
   strengthAmong,
   warTarget,
 } from "./statecraft";
+import type { SupplyNetwork } from "./supply";
+import { undersuppliedShare } from "./supply";
 import { enemiesOf } from "./wars";
 
 /**
@@ -67,6 +69,12 @@ const standoffOf = (world: World, simulation: Simulation): Standoff => ({
   borders: neighbouringNations(world, simulation.owners),
   world,
 });
+
+/** What a government is briefed with beyond its standoff. */
+interface Dossier {
+  readonly advancement: Advancement;
+  readonly supply: SupplyNetwork;
+}
 
 /** The men every nation fighting `nation` has in the field. */
 const enemyStrength = (standoff: Standoff, nation: number): number =>
@@ -144,12 +152,12 @@ const offersOf = (advancement: Advancement): Offers => {
 /** One government's brief for the month. */
 const briefOf = (
   standoff: Standoff,
-  advancement: Advancement,
+  dossier: Dossier,
   nation: number
 ): NationBrief => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   return {
-    ...offersOf(advancement),
+    ...offersOf(dossier.advancement),
     atWar: enemiesOf(standoff.diplomacy.wars, nation).length > 0,
     civilianFactories: economy.civilianFactories,
     enemyStrength: enemyStrength(standoff, nation),
@@ -161,6 +169,11 @@ const briefOf = (
     population: economy.population,
     rivals: rivalsOf(standoff, nation),
     strength: sideStrength(standoff, nation),
+    undersupplied: undersuppliedShare(
+      dossier.supply,
+      standoff.armies.divisions,
+      nation
+    ),
   };
 };
 
@@ -180,13 +193,21 @@ const governments = (world: World, simulation: Simulation): readonly number[] =>
  */
 export const councilOf = (world: World, simulation: Simulation): Council => {
   const standoff = standoffOf(world, simulation);
+  const supply = supplyOf(world, simulation);
   return {
     _tag: "council",
     date: dateLabel(dateOf(simulation.clock)),
     nations: governments(world, simulation).map((nation) =>
       briefOf(
         standoff,
-        itemAt(simulation.advancements, nation, START_ADVANCEMENT),
+        {
+          advancement: itemAt(
+            simulation.advancements,
+            nation,
+            START_ADVANCEMENT
+          ),
+          supply,
+        },
         nation
       )
     ),
@@ -278,6 +299,7 @@ const ARMY_BRANCHES: ReadonlySet<TechBranch> = new Set([
   "infantry",
   "artillery",
   "doctrine",
+  "logistics",
 ]);
 
 /**

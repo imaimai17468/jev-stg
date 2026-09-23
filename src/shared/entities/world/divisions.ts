@@ -104,26 +104,73 @@ export const strengthOf = (divisions: readonly Division[]): number =>
 const fitnessOf = (division: Division): number =>
   division.strength / TEMPLATES[division.kind].manpower;
 
-/** What a division of a nation with `modifiers` is worth in a day of attacking. */
-export const attackOf = (division: Division, modifiers: Modifiers): number =>
+/** What a division fights with beyond its own men: its nation's modifiers and its supply. */
+export interface Backing {
+  readonly modifiers: Modifiers;
+  /** The share of what it needs the division gets, from 0 to 1. */
+  readonly fill: number;
+}
+
+/** What a division fighting with no supply at all is still worth. */
+const UNSUPPLIED_WORTH = 0.3;
+
+/** The share of a full day's worth that `fill` leaves a division. */
+const suppliedWorth = (fill: number): number =>
+  UNSUPPLIED_WORTH + (1 - UNSUPPLIED_WORTH) * fill;
+
+/** What a division does in a battle: attack, or hold the ground it stands on. */
+type Role = "attack" | "defence";
+
+/** What a division is worth in a day of battle in `role`. */
+const worthIn = (division: Division, backing: Backing, role: Role): number =>
   fitnessOf(division) *
-  TEMPLATES[division.kind].attack *
-  (1 + modifiers.attack);
+  TEMPLATES[division.kind][role] *
+  (1 + backing.modifiers[role]) *
+  suppliedWorth(backing.fill);
+
+/** What a division is worth in a day of attacking. */
+export const attackOf = (division: Division, backing: Backing): number =>
+  worthIn(division, backing, "attack");
 
 /** What it is worth in a day of holding the ground it stands on. */
-export const defenceOf = (division: Division, modifiers: Modifiers): number =>
-  fitnessOf(division) *
-  TEMPLATES[division.kind].defence *
-  (1 + modifiers.defence);
+export const defenceOf = (division: Division, backing: Backing): number =>
+  worthIn(division, backing, "defence");
 
 /**
  * The division with a day of rest behind it, up to its template's cohesion as
- * its nation's doctrine raises it, recovering as fast as the doctrine lets it.
+ * its nation's doctrine raises it, recovering as fast as the doctrine lets it
+ * and only as far as its supply does: a division with none recovers nothing.
  */
-export const rested = (division: Division, modifiers: Modifiers): Division => ({
+export const rested = (division: Division, backing: Backing): Division => ({
   ...division,
   organisation: Math.min(
-    TEMPLATES[division.kind].organisation * (1 + modifiers.organisation),
-    division.organisation + ORGANISATION_PER_DAY * (1 + modifiers.recovery)
+    TEMPLATES[division.kind].organisation *
+      (1 + backing.modifiers.organisation),
+    division.organisation +
+      ORGANISATION_PER_DAY * (1 + backing.modifiers.recovery) * backing.fill
   ),
 });
+
+/** The share of a full division's men lost in a day with no supply at all. */
+const ATTRITION_PER_DAY = 0.005;
+
+/** The division with a day of whatever its supply falls short by worn off its men. */
+export const worn = (division: Division, fill: number): Division => ({
+  ...division,
+  strength: Math.max(
+    0,
+    division.strength -
+      TEMPLATES[division.kind].manpower * ATTRITION_PER_DAY * (1 - fill)
+  ),
+});
+
+/** How many divisions each nation has in the field, by nation id. */
+export const fieldedBy = (
+  divisions: readonly Division[],
+  nations: number
+): readonly number[] =>
+  Array.from(
+    { length: nations },
+    (_, nation) =>
+      divisions.filter((division) => division.nation === nation).length
+  );

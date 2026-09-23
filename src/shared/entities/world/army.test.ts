@@ -1,7 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Armies } from "./army";
 import { armiesAfterOneDay } from "./army";
-import { division, LINE_OWNERS, LINE_WORLD, WAR_COMMAND } from "./army-fixture";
+import {
+  division,
+  FULL_SUPPLY,
+  LINE_OWNERS,
+  LINE_WORLD,
+  WAR_COMMAND,
+} from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { noWars } from "./wars";
@@ -235,6 +241,71 @@ describe(armiesAfterOneDay, () => {
       civilianFactories: 0,
       militaryFactories: 0,
       population: 0,
+    });
+  });
+
+  it("should lose a division whose last men the day's attrition wears away when its supply does not reach it", () => {
+    const cutOff = {
+      ...WAR_COMMAND,
+      supply: {
+        ...FULL_SUPPLY,
+        capacity: [0, 1].map(() =>
+          Float32Array.from(LINE_WORLD.provinces, () => 0)
+        ),
+      },
+    };
+    const spent = startingWith({
+      divisions: [division({ nation: 1, province: 3, strength: 50 })],
+      economies: [NO_ECONOMY, NO_ECONOMY],
+    });
+
+    expect(
+      armiesAfterOneDay(LINE_WORLD, cutOff, spent).divisions
+    ).toStrictEqual([]);
+  });
+
+  describe("with the line full", () => {
+    /** Nation 0's front province 1 supplies two divisions and already holds ten. */
+    const fullLine = {
+      ...WAR_COMMAND,
+      supply: {
+        ...FULL_SUPPLY,
+        capacity: [
+          Float32Array.from([1000, 2, 1000, 1000, 0]),
+          Float32Array.from(LINE_WORLD.provinces, () => 1000),
+        ],
+        demand: new Map([[2, 10]]),
+      },
+    };
+
+    it("should send the divisions past the line province's posting back into reserve when the whole line is full", () => {
+      const crowded = startingWith({
+        divisions: Array.from({ length: 10 }, () =>
+          division({ nation: 0, province: 1 })
+        ),
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, fullLine, crowded).divisions.map(
+          (moved) => moved.movingTo
+        )
+      ).toStrictEqual([1, 2, 0, 0, 0, 0, 0, 0, 0, 0]);
+    });
+
+    it("should keep a reserve where it stands when the province behind the line has room for it", () => {
+      const reserve = startingWith({
+        divisions: Array.from({ length: 3 }, () =>
+          division({ nation: 0, province: 0 })
+        ),
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, fullLine, reserve).divisions.map(
+          (moved) => moved.movingTo
+        )
+      ).toStrictEqual([0, 0, 0]);
     });
   });
 });

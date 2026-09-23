@@ -1,10 +1,11 @@
-import type { Speed } from "@/shared/entities/world/clock";
+import type { ReactNode } from "react";
 import { Button } from "@/shared/ui/button";
 
-interface SpeedButtonProps {
-  readonly speed: Speed;
+interface ChoiceButtonProps<T> {
+  readonly value: T;
   readonly active: boolean;
-  readonly onChoose: (speed: Speed) => void;
+  readonly onChoose: (value: T) => void;
+  readonly children: ReactNode;
 }
 
 // Reading the variant out of a table keeps the choice out of a ternary, which
@@ -14,16 +15,22 @@ const VARIANT_FOR_ACTIVE = {
   true: "secondary",
 } satisfies Record<`${boolean}`, "ghost" | "secondary">;
 
-export const SpeedButton = ({ active, onChoose, speed }: SpeedButtonProps) => (
+/** One option of a row the viewer picks one of, pressed while it is the one chosen. */
+export const ChoiceButton = <T,>({
+  active,
+  children,
+  onChoose,
+  value,
+}: ChoiceButtonProps<T>) => (
   <Button
     aria-pressed={active}
     onClick={() => {
-      onChoose(speed);
+      onChoose(value);
     }}
     size="tap"
     type="button"
     variant={VARIANT_FOR_ACTIVE[`${active}`]}
   >
-    {speed}
+    {children}
   </Button>
 );
