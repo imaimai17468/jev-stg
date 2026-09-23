@@ -1,7 +1,7 @@
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
 import type { BattlePlan } from "./battle-plan";
-import { battlePlansOf, NO_PLAN } from "./battle-plan";
+import { battlePlansOf, NO_PLAN, onItsFront } from "./battle-plan";
 import type { Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
@@ -25,6 +25,8 @@ import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
 import { musteringAt } from "./muster";
+import type { Activity } from "./preparation";
+import { prepared } from "./preparation";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
 import { paceUnder } from "./skies";
@@ -34,6 +36,7 @@ import { attackOddsFor, START_STANCE } from "./stance";
 import type { SupplyNetwork } from "./supply";
 import { postOf, stackKey } from "./supply";
 import type { Wars } from "./wars";
+import { atWar } from "./wars";
 
 /** The armies of a world, the ground they hold, and what it all costs. */
 export interface Armies {
@@ -256,6 +259,8 @@ interface Line {
   readonly world: World;
   readonly graph: ProvinceGraph;
   readonly owners: Int32Array;
+  /** Who held each province when the day began, before its battles changed hands. */
+  readonly heldAtDawn: Int32Array;
   readonly wars: Wars;
   /** Each nation's stance, by nation id. */
   readonly stances: readonly Stance[];
@@ -420,6 +425,12 @@ const heldBack = (
   return stack.slice(0, posted);
 };
 
+/** One division before its orders for the day and after them. */
+interface Order {
+  readonly before: Division;
+  readonly after: Division;
+}
+
 /**
  * Where every division in one stack is heading today. Behind the line, while
  * the line has room, it walks toward the nearest front province that does.
@@ -432,12 +443,16 @@ const orderedStack = (
   fields: Fields,
   province: number,
   stack: readonly Division[]
-): readonly Division[] => {
+): readonly Order[] => {
   const { open } = fields;
   const onward = stepToward(line.graph, open.field, province);
   const onTheLine = valueAt(fields.line, province) === 0;
+  const sent = (division: Division, target: number): Order => ({
+    after: walkedToward(line, division, target),
+    before: division,
+  });
   if (!onTheLine && open.room === "line" && onward !== province) {
-    return stack.map((division) => walkedToward(line, division, onward));
+    return stack.map((division) => sent(division, onward));
   }
   const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
   const staying = heldBack(
@@ -450,13 +465,45 @@ const orderedStack = (
   const kept = new Set(staying);
   return stack.map((division) => {
     if (!kept.has(division)) {
-      return walkedToward(line, division, onward);
+      return sent(division, onward);
     }
     if (attacking.has(division)) {
-      return walkedToward(line, division, target);
+      return sent(division, target);
     }
-    return walkedToward(line, division, province);
+    return sent(division, province);
   });
+};
+
+/**
+ * What a division in a battle did today: attacked ground the enemy held at
+ * dawn, which it may have taken since, or held its own.
+ */
+const inBattle = (line: Line, division: Division): Activity => {
+  if (
+    atWar(
+      line.wars,
+      division.nation,
+      valueAt(line.heldAtDawn, division.province)
+    )
+  ) {
+    return "attacking";
+  }
+  return "defending";
+};
+
+/**
+ * What a division out of battle did today, read off its orders: it marched
+ * where it changed province or set out for another, and otherwise held, on
+ * its front where it stands on it under the line's orders.
+ */
+const outOfBattle = (plan: BattlePlan, { after, before }: Order): Activity => {
+  if (after.province !== before.province || after.movingTo !== after.province) {
+    return "marching";
+  }
+  if (onItsFront(plan, after)) {
+    return "holding-front";
+  }
+  return "holding";
 };
 
 /**
@@ -484,6 +531,16 @@ const regrouped = (
   );
 };
 
+/** What the day's fighting leaves the marchers to read. */
+interface Aftermath {
+  /** The provinces a battle was fought in today, which nobody marches out of. */
+  readonly engaged: ReadonlySet<number>;
+  /** Who held each province before today's battles. */
+  readonly heldAtDawn: Int32Array;
+  /** Every nation's battle plan, drawn after today's battles, by nation id. */
+  readonly plans: readonly BattlePlan[];
+}
+
 /**
  * The world after every division out of contact has had its orders: a broken
  * one falls back to regroup, behind the line one walks toward it, and on the
@@ -494,14 +551,15 @@ const marchedEverywhere = (
   graph: ProvinceGraph,
   armies: Armies,
   command: Command,
-  engaged: ReadonlySet<number>,
-  plans: readonly BattlePlan[]
+  day: Aftermath
 ): Armies => {
   const { wars } = command;
+  const { engaged, plans } = day;
   const line: Line = {
     air: command.air,
     garrisons: garrisons(armies.owners, armies.divisions),
     graph,
+    heldAtDawn: day.heldAtDawn,
     owners: armies.owners,
     stances: command.stances,
     supply: command.supply,
@@ -522,26 +580,49 @@ const marchedEverywhere = (
     ),
     plan: itemAt(plans, nation.id, NO_PLAN),
   }));
-  const moved = armies.divisions.filter((division) =>
-    engaged.has(division.province)
-  );
+  const moved = armies.divisions.flatMap((division) => {
+    if (!engaged.has(division.province)) {
+      return [];
+    }
+    return [prepared(division, inBattle(line, division))];
+  });
   const free = armies.divisions.filter(
     (division) => !engaged.has(division.province)
   );
-  for (const division of free) {
-    if (division.task === "regroup") {
+  const preparedAfter = (orders: readonly Order[]): void => {
+    for (const order of orders) {
       moved.push(
-        regrouped(line, itemAt(plans, division.nation, NO_PLAN), division)
+        prepared(
+          order.after,
+          outOfBattle(itemAt(plans, order.after.nation, NO_PLAN), order)
+        )
       );
     }
-  }
+  };
+  preparedAfter(
+    free.flatMap((division): readonly Order[] => {
+      if (division.task !== "regroup") {
+        return [];
+      }
+      return [
+        {
+          after: regrouped(
+            line,
+            itemAt(plans, division.nation, NO_PLAN),
+            division
+          ),
+          before: division,
+        },
+      ];
+    })
+  );
   for (const stack of stacksOf(
     free.filter((division) => division.task === "line"),
     world.nations.length
   ).values()) {
     const first = itemAt(stack, 0, raisedAt(UNASSIGNED, UNASSIGNED));
-    moved.push(
-      ...orderedStack(
+    preparedAfter(
+      orderedStack(
         line,
         itemAt(fields, first.nation, NO_FIELDS),
         first.province,
@@ -627,7 +708,6 @@ export const armiesAfterOneDay = (
       ],
     },
     command,
-    fought.engaged,
-    plans
+    { engaged: fought.engaged, heldAtDawn: armies.owners, plans }
   );
 };

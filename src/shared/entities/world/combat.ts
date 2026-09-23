@@ -136,9 +136,11 @@ export const withdrawn = (
     {
       ...division,
       arrival: "march",
+      entrenchment: 0,
       marched: 0,
       movingTo: beside,
       organisation: 0,
+      planning: 0,
       province: beside,
       task: "regroup",
     },
