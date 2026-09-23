@@ -489,6 +489,30 @@ describe(plottedOneDay, () => {
     ]);
   });
 
+  it("should put the second naval voucher two years ahead when the draw falls in the third that does", () => {
+    const plotted = dayOf(finishing("steal-naval-blueprints", FOUNDED), {
+      random: drawing(0.3),
+    });
+
+    expect(
+      itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
+    ).toStrictEqual([
+      { ahead: 0, categories: ["naval"], share: 3 },
+      { ahead: 2, categories: ["naval"], share: 3 },
+    ]);
+  });
+
+  it("should grant two vouchers for air when aviation blueprints are stolen", () => {
+    const plotted = dayOf(finishing("steal-aviation-blueprints", FOUNDED));
+
+    expect(
+      itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
+    ).toStrictEqual([
+      { ahead: 0, categories: ["air"], share: 3 },
+      { ahead: 1, categories: ["air"], share: 3 },
+    ]);
+  });
+
   it("should raise both vouchers for industry and electronics by the agency's blueprint stealing when industrial blueprints are stolen", () => {
     const plotted = dayOf(
       finishing(

@@ -566,11 +566,17 @@ const EFFECTS = {
   "rescue-operative": rescue,
   "resistance-contacts": resistanceWork("contacts"),
   "sabotage-industry": resistanceWork("sabotage"),
+  "steal-aviation-blueprints": blueprint(
+    BLUEPRINT_CATEGORIES["steal-aviation-blueprints"]
+  ),
   "steal-industrial-blueprints": blueprint(
     BLUEPRINT_CATEGORIES["steal-industrial-blueprints"]
   ),
   "steal-military-blueprints": blueprint(
     BLUEPRINT_CATEGORIES["steal-military-blueprints"]
+  ),
+  "steal-naval-blueprints": blueprint(
+    BLUEPRINT_CATEGORIES["steal-naval-blueprints"]
   ),
   "strengthen-resistance": resistanceWork("strengthened"),
 } satisfies Readonly<Record<Operation, Effect>>;

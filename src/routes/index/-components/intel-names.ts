@@ -14,8 +14,10 @@ export const OPERATION_NAMES = {
   "rescue-operative": "工作員の救出",
   "resistance-contacts": "抵抗運動との接触",
   "sabotage-industry": "工場の破壊工作",
+  "steal-aviation-blueprints": "航空の設計図の窃取",
   "steal-industrial-blueprints": "工業の設計図の窃取",
   "steal-military-blueprints": "陸軍の設計図の窃取",
+  "steal-naval-blueprints": "海軍の設計図の窃取",
   "strengthen-resistance": "抵抗運動の強化",
 } satisfies Readonly<Record<Operation, string>>;
 
