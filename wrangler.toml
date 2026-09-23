@@ -9,3 +9,14 @@ compatibility_flags = ["nodejs_compat"]
 # Workers Logs: invocation records, console.*, uncaught exceptions.
 [observability]
 enabled = true
+
+# A consultation spends the AI Gateway key and takes no session, so each caller
+# is bounded by address. A world asks once a month of game time, which at the
+# fastest speed is about 25 times a minute, so the ceiling only meets scripts.
+[[ratelimits]]
+name = "JEV_RATE_LIMITER"
+namespace_id = "1001"
+
+[ratelimits.simple]
+limit = 30
+period = 60
