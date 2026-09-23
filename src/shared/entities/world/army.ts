@@ -15,6 +15,7 @@ import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
+import type { Modifiers } from "./modifiers";
 import { musteringAt } from "./muster";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
@@ -118,11 +119,16 @@ const occupied = (
   return { ...armies, economies, owners };
 };
 
-/** What the armies are ordered by: who is at war, and how boldly each attacks. */
+/**
+ * What the armies are ordered by: who is at war, how boldly each attacks, and
+ * how well each fights.
+ */
 export interface Command {
   readonly wars: Wars;
   /** Each nation's stance, by nation id. */
   readonly stances: readonly Stance[];
+  /** Each nation's modifiers, by nation id. */
+  readonly modifiers: readonly Modifiers[];
 }
 
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
@@ -136,7 +142,7 @@ const foughtEverywhere = (
   world: World,
   graph: ProvinceGraph,
   before: Armies,
-  wars: Wars
+  command: Command
 ): Fighting => {
   const standing = byProvince(before.divisions);
   const survivors: Division[] = [];
@@ -148,7 +154,15 @@ const foughtEverywhere = (
     if (present.length === 0) {
       continue;
     }
-    const battle = foughtOneDay(before.owners, wars, province, present);
+    const battle = foughtOneDay(
+      {
+        modifiers: command.modifiers,
+        owners: before.owners,
+        wars: command.wars,
+      },
+      province,
+      present
+    );
     survivors.push(...battle.standing);
     broken.push(...battle.broken);
     if (battle.fought) {
@@ -375,7 +389,7 @@ export const armiesAfterOneDay = (
       economies: raised.economies,
       owners: armies.owners,
     },
-    command.wars
+    command
   );
   return marchedEverywhere(
     world,

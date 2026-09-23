@@ -6,12 +6,14 @@ import {
   LINE_OWNERS,
   LINE_WORLD,
 } from "./army-fixture";
-import type { Battle } from "./combat";
+import type { Battle, Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
 import { itemAt } from "./lookup";
+import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
+import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 
 const FALLBACK: LandProvince = {
@@ -23,6 +25,13 @@ const FALLBACK: LandProvince = {
   x: 0,
   y: 0,
 };
+
+/** The line under `wars`, with neither nation's divisions improved by anything. */
+const theatreOf = (wars: Wars): Theatre => ({
+  modifiers: [NO_MODIFIERS, NO_MODIFIERS],
+  owners: LINE_OWNERS,
+  wars,
+});
 
 const provinceAt = (id: number): LandProvince =>
   itemAt(landProvinces(LINE_WORLD.provinces), id, FALLBACK);
@@ -38,9 +47,9 @@ const firstToBreak = (
   province: LandProvince,
   present: readonly Division[]
 ): number => {
-  let battle: Battle = foughtOneDay(LINE_OWNERS, AT_WAR, province, present);
+  let battle: Battle = foughtOneDay(theatreOf(AT_WAR), province, present);
   while (battle.broken.length === 0) {
-    battle = foughtOneDay(LINE_OWNERS, AT_WAR, province, battle.standing);
+    battle = foughtOneDay(theatreOf(AT_WAR), province, battle.standing);
   }
   return itemAt(battle.broken, 0, division({ nation: -1 })).nation;
 };
@@ -50,7 +59,7 @@ describe(foughtOneDay, () => {
     const garrison = division({ nation: 1, organisation: 50, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [garrison])
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [garrison])
     ).toStrictEqual({
       broken: [],
       captured: -1,
@@ -63,7 +72,7 @@ describe(foughtOneDay, () => {
     const attacker = division({ nation: 0, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [attacker])
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [attacker])
     ).toStrictEqual({
       broken: [],
       captured: 0,
@@ -79,9 +88,7 @@ describe(foughtOneDay, () => {
     });
     const present = [...stackOf(2, 0), ...stackOf(1, 2)];
 
-    expect(foughtOneDay(LINE_OWNERS, wars, CONTESTED, present).captured).toBe(
-      0
-    );
+    expect(foughtOneDay(theatreOf(wars), CONTESTED, present).captured).toBe(0);
   });
 
   it("should cost the attacker more than the defender when the two are even", () => {
@@ -89,7 +96,7 @@ describe(foughtOneDay, () => {
     const defender = division({ nation: 1, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [attacker, defender])
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [attacker, defender])
     ).toStrictEqual({
       broken: [],
       captured: -1,
@@ -102,7 +109,7 @@ describe(foughtOneDay, () => {
   });
 
   it("should take five cohesion off each attacker and three off each defender when ten meet ten on plains", () => {
-    const battle = foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [
+    const battle = foughtOneDay(theatreOf(AT_WAR), CONTESTED, [
       ...stackOf(10, 0),
       ...stackOf(10, 1),
     ]);
@@ -132,7 +139,7 @@ describe(foughtOneDay, () => {
     const defender = division({ nation: 1, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [attacker, defender]).broken
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [attacker, defender]).broken
     ).toStrictEqual([{ ...attacker, organisation: -4, strength: 19_700 }]);
   });
 
@@ -142,7 +149,7 @@ describe(foughtOneDay, () => {
     const attacker = division({ nation: 0, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [fresh, spent, attacker])
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [fresh, spent, attacker])
     ).toStrictEqual({
       broken: [spent],
       captured: -1,
@@ -159,7 +166,7 @@ describe(foughtOneDay, () => {
     const attacker = division({ nation: 0, province: 2 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, AT_WAR, CONTESTED, [spent, attacker])
+      foughtOneDay(theatreOf(AT_WAR), CONTESTED, [spent, attacker])
     ).toStrictEqual({
       broken: [spent],
       captured: 0,
@@ -173,7 +180,7 @@ describe(foughtOneDay, () => {
     const wars = declared(noWars(3), { one: 0, other: 1 });
 
     expect(
-      foughtOneDay(LINE_OWNERS, wars, CONTESTED, [
+      foughtOneDay(theatreOf(wars), CONTESTED, [
         division({ nation: 0, province: 2 }),
         division({ nation: 1, province: 2 }),
         bystander,

@@ -1,6 +1,7 @@
 import type { World } from "./index";
 import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
+import type { Modifiers } from "./modifiers";
 
 /** How much of its people a nation may call up, set by its conscription law. */
 export type ConscriptionLaw =
@@ -145,10 +146,14 @@ export const constructionProgress = (economy: NationEconomy): number =>
   economy.construction / FACTORY_COST;
 
 /** What the nation's civilian factories put into construction in a day. */
-const constructionPerDay = (economy: NationEconomy): number =>
+const constructionPerDay = (
+  economy: NationEconomy,
+  modifiers: Modifiers
+): number =>
   economy.civilianFactories *
   (1 - PLAN_SHARES[economy.plan].consumerGoods) *
-  CONSTRUCTION_PER_FACTORY;
+  CONSTRUCTION_PER_FACTORY *
+  (1 + modifiers.construction);
 
 /**
  * The pool one day of population growth and recovery leaves.
@@ -156,8 +161,13 @@ const constructionPerDay = (economy: NationEconomy): number =>
  * The pool is capped by what the conscription law reaches, so a nation that has
  * not spent any of it still gains what the year's births add to the cap.
  */
-const recoveredManpower = (economy: NationEconomy, population: number) => {
-  const cap = manpowerCap(population, economy.conscription);
+const recoveredManpower = (
+  economy: NationEconomy,
+  population: number,
+  modifiers: Modifiers
+) => {
+  const cap =
+    manpowerCap(population, economy.conscription) * (1 + modifiers.manpower);
   return Math.min(cap, economy.manpower + cap * MANPOWER_RECOVERY_PER_DAY);
 };
 
@@ -185,18 +195,29 @@ const splitBuilt = (economy: NationEconomy, built: number): Built => {
   return { civilian: built, military: 0 };
 };
 
-/** The economy after one day of work, which is the step the calendar takes. */
-export const producedOneDay = (economy: NationEconomy): NationEconomy => {
+/**
+ * The economy after one day of work, which is the step the calendar takes,
+ * with the nation's technologies and focuses speeding up its construction,
+ * its equipment and the reach of its conscription law.
+ */
+export const producedOneDay = (
+  economy: NationEconomy,
+  modifiers: Modifiers
+): NationEconomy => {
   const population = economy.population * (1 + POPULATION_GROWTH_PER_DAY);
-  const progressed = economy.construction + constructionPerDay(economy);
+  const progressed =
+    economy.construction + constructionPerDay(economy, modifiers);
   const built = splitBuilt(economy, Math.floor(progressed / FACTORY_COST));
   return {
     ...economy,
     civilianFactories: economy.civilianFactories + built.civilian,
     construction: progressed % FACTORY_COST,
     equipment:
-      economy.equipment + economy.militaryFactories * EQUIPMENT_PER_FACTORY,
-    manpower: recoveredManpower(economy, population),
+      economy.equipment +
+      economy.militaryFactories *
+        EQUIPMENT_PER_FACTORY *
+        (1 + modifiers.production),
+    manpower: recoveredManpower(economy, population, modifiers),
     militaryFactories: economy.militaryFactories + built.military,
     population,
   };

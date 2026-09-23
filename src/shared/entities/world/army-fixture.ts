@@ -2,6 +2,7 @@ import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { World } from "./index";
+import { NO_MODIFIERS } from "./modifiers";
 import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
@@ -58,6 +59,7 @@ export const AT_WAR: Wars = declared(noWars(2), { one: 0, other: 1 });
 
 /** The two nations at war, both attacking at the stance every nation opens with. */
 export const WAR_COMMAND: Command = {
+  modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   stances: [START_STANCE, START_STANCE],
   wars: AT_WAR,
 };

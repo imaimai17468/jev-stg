@@ -1,5 +1,7 @@
 import type { ConscriptionLaw, IndustryPlan } from "./economy";
+import type { FocusId } from "./focus";
 import type { Settlement } from "./peace";
+import type { TechId } from "./research";
 import type { Stance } from "./stance";
 
 /** One thing a government decided. */
@@ -25,6 +27,12 @@ export type Decision =
       readonly target: number;
     }
   | { readonly kind: "join"; readonly nation: number; readonly faction: number }
+  | {
+      readonly kind: "research";
+      readonly nation: number;
+      readonly tech: TechId;
+    }
+  | { readonly kind: "focus"; readonly nation: number; readonly focus: FocusId }
   | {
       readonly kind: "peace";
       readonly loser: number;

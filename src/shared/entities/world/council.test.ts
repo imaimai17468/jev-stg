@@ -1,5 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import type { Advancement } from "./advancement";
+import { START_ADVANCEMENT } from "./advancement";
 import { division } from "./army-fixture";
 import type { Negotiation } from "./chronicle";
 import type { Council, NationBrief, Verdict } from "./consultation";
@@ -50,12 +52,15 @@ const BRIEF: NationBrief = {
   enemyStrength: 0,
   equipment: 0,
   factions: [{ faction: 0, strength: 0 }],
+  focuses: [],
+  freeSlots: 0,
   manpower: 0,
   militaryFactories: 0,
   nation: 1,
   population: 0,
   rivals: [{ nation: 2, strength: 0 }],
   strength: 0,
+  techs: [],
 };
 
 const COUNCIL: Council = {
@@ -97,6 +102,38 @@ const TALKING: Simulation = {
   negotiations: [NEGOTIATION],
   owners: Int32Array.from([0, 0, 2, 3, UNASSIGNED]),
 };
+
+/** `simulation` with nation 0's advancement replaced by `advancement`. */
+const advancedTo = (
+  simulation: Simulation,
+  advancement: Advancement
+): Simulation => ({
+  ...simulation,
+  advancements: simulation.advancements.map((held, nation) => {
+    if (nation === 0) {
+      return advancement;
+    }
+    return held;
+  }),
+});
+
+/** Nation 0 with the technologies of `researched` finished. */
+const researchedAll = (
+  simulation: Simulation,
+  researched: Advancement["research"]["researched"]
+): Simulation =>
+  advancedTo(simulation, {
+    ...START_ADVANCEMENT,
+    research: { researched, studies: [] },
+  });
+
+/** What the rules put on nation 0's slots, in the order they started. */
+const startedTechs = (simulation: Simulation) =>
+  simulation.advancements[0]?.research.studies.map((study) => study.tech);
+
+/** The brief `council` gives nation 0. */
+const briefOfFirst = (council: Council) =>
+  council.nations.find((brief) => brief.nation === 0);
 
 describe(councilOf, () => {
   it("should brief every government that decides for itself when the month turns", () => {
@@ -165,6 +202,48 @@ describe(councilOf, () => {
       councilOf(ROW_WORLD, fighting).nations.find((entry) => entry.nation === 0)
         ?.enemyStrength
     ).toBe(20_000);
+  });
+
+  it("should offer the free slots every technology and focus without a prerequisite when a government has researched nothing", () => {
+    const brief = briefOfFirst(councilOf(ROW_WORLD, ROW_SIMULATION));
+
+    expect({
+      focuses: brief?.focuses,
+      freeSlots: brief?.freeSlots,
+      techs: brief?.techs,
+    }).toStrictEqual({
+      focuses: [
+        "industrialisation",
+        "research-bureau",
+        "army-effort",
+        "political-effort",
+      ],
+      freeSlots: 3,
+      techs: [
+        "infantry-weapons-1",
+        "artillery-1",
+        "modern-tactics",
+        "tools-1",
+        "construction-1",
+        "electronics-1",
+      ],
+    });
+  });
+
+  it("should offer no technology when every research slot is busy", () => {
+    const busy = advancedTo(ROW_SIMULATION, {
+      ...START_ADVANCEMENT,
+      research: {
+        researched: [],
+        studies: [
+          { progress: 0, tech: "tools-1" },
+          { progress: 0, tech: "construction-1" },
+          { progress: 0, tech: "electronics-1" },
+        ],
+      },
+    });
+
+    expect(briefOfFirst(councilOf(ROW_WORLD, busy))?.techs).toStrictEqual([]);
   });
 });
 
@@ -264,6 +343,20 @@ describe(ruledByRules, () => {
     ).toStrictEqual([2]);
   });
 
+  it("should start the army's technologies first when the rules declare war in the same council", () => {
+    const armed: Simulation = {
+      ...ROW_SIMULATION,
+      clock: { ...ROW_SIMULATION.clock, days: 60 },
+      divisions: [division({ nation: 3, province: 3 })],
+    };
+
+    expect(
+      ruledByRules(ROW_WORLD, armed, 60).advancements[3]?.research.studies.map(
+        (study) => study.tech
+      )
+    ).toStrictEqual(["infantry-weapons-1", "artillery-1", "modern-tactics"]);
+  });
+
   it("should join the faction across its border when a nation is threatened", () => {
     const threatened: Simulation = {
       ...withDiplomacy(openingDiplomacy(ROW_OWNERS, 4, [0])),
@@ -273,6 +366,67 @@ describe(ruledByRules, () => {
     expect([
       ...ruledByRules(ROW_WORLD, threatened, COUNCIL_DAY).diplomacy.factions,
     ]).toStrictEqual([0, 0, -1, -1]);
+  });
+
+  it("should start the economy's technologies first on every free slot when a nation is at peace", () => {
+    expect(
+      startedTechs(ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY))
+    ).toStrictEqual(["tools-1", "construction-1", "electronics-1"]);
+  });
+
+  it("should start the army's technologies first on every free slot when a nation is at war", () => {
+    expect(
+      startedTechs(ruledByRules(ROW_WORLD, atWar([]), COUNCIL_DAY))
+    ).toStrictEqual(["infantry-weapons-1", "artillery-1", "modern-tactics"]);
+  });
+
+  it("should start a technology meant for this year before a later one when both are on offer", () => {
+    expect(
+      startedTechs(
+        ruledByRules(
+          ROW_WORLD,
+          researchedAll(ROW_SIMULATION, ["tools-1"]),
+          COUNCIL_DAY
+        )
+      )
+    ).toStrictEqual(["construction-1", "electronics-1", "infantry-weapons-1"]);
+  });
+
+  it("should pass over a technology an earlier pick ruled out when the rules fill the slots", () => {
+    expect(
+      startedTechs(
+        ruledByRules(
+          ROW_WORLD,
+          researchedAll(ROW_SIMULATION, [
+            "infantry-weapons-1",
+            "artillery-1",
+            "modern-tactics",
+            "tools-1",
+            "construction-1",
+            "electronics-1",
+          ]),
+          COUNCIL_DAY
+        )
+      )
+    ).toStrictEqual([
+      "tools-2",
+      "concentrated-industry-1",
+      "support-weapons-1",
+    ]);
+  });
+
+  it("should pursue the first focus outside the army's branch when a nation is at peace", () => {
+    expect(
+      ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY).advancements[0]
+        ?.focuses.current
+    ).toStrictEqual(Option.some({ focus: "industrialisation", progress: 0 }));
+  });
+
+  it("should pursue the first focus in the army's branch when a nation is at war", () => {
+    expect(
+      ruledByRules(ROW_WORLD, atWar([]), COUNCIL_DAY).advancements[0]?.focuses
+        .current
+    ).toStrictEqual(Option.some({ focus: "army-effort", progress: 0 }));
   });
 });
 
@@ -412,6 +566,81 @@ describe(rulingsFrom, () => {
         ANY_DRAW
       )
     ).toStrictEqual([]);
+  });
+
+  it("should hand every offered technology on, the heaviest first, when Jev weighs the research", () => {
+    const researching: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, freeSlots: 1, techs: ["tools-1", "artillery-1"] }],
+    };
+
+    expect(
+      rulingsFrom(
+        researching,
+        [
+          verdict({
+            choice: "artillery-1",
+            question: "research",
+            weights: [
+              { choice: "tools-1", probability: 0.3 },
+              { choice: "artillery-1", probability: 0.6 },
+            ],
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { kind: "research", nation: 1, tech: "artillery-1" },
+        source: fromJev(0.6),
+      },
+      {
+        decision: { kind: "research", nation: 1, tech: "tools-1" },
+        source: fromJev(0.3),
+      },
+    ]);
+  });
+
+  it("should pass over a technology the brief never offered when Jev weighs one", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [
+          verdict({
+            choice: "tools-1",
+            question: "research",
+            weights: [{ choice: "tools-1", probability: 1 }],
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([]);
+  });
+
+  it("should pursue the focus Jev picked when a focus verdict names one", () => {
+    const choosing: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, focuses: ["army-effort"] }],
+    };
+
+    expect(
+      rulingsFrom(
+        choosing,
+        [
+          verdict({
+            choice: "army-effort",
+            probability: 0.2,
+            question: "focus",
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { focus: "army-effort", kind: "focus", nation: 1 },
+        source: fromJev(0.2),
+      },
+    ]);
   });
 });
 

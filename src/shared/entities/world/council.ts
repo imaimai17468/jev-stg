@@ -1,4 +1,6 @@
 import { Option } from "effect";
+import type { Advancement } from "./advancement";
+import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
 import { dateLabel } from "./calendar";
 import type { Decision, Negotiation, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
@@ -16,12 +18,16 @@ import type {
 import { factionChoice, rivalChoice } from "./consultation";
 import { allied, factionOf, NO_FACTION, sideOf } from "./diplomacy";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
+import type { FocusId } from "./focus";
+import { availableFocuses, focusOf } from "./focus";
 import type { World } from "./index";
 import { itemAt } from "./lookup";
 import { neighbouringNations } from "./nations";
 import { PEACE_TERMS } from "./peace";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
+import type { TechBranch, TechId } from "./research";
+import { availableTechs, techOf } from "./research";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
 import { realmOf } from "./simulation";
@@ -119,10 +125,31 @@ const factionsOf = (
   return [...reachable].map(([faction, strength]) => ({ faction, strength }));
 };
 
+/** What a government's research slots and focus tree offer it this month. */
+type Offers = Pick<NationBrief, "focuses" | "freeSlots" | "techs">;
+
+/**
+ * The technologies its free slots may start on, which are none where no slot
+ * is free, and the focuses it may pick next.
+ */
+const offersOf = (advancement: Advancement): Offers => {
+  const freeSlots = freeSlotsOf(advancement);
+  const focuses = availableFocuses(advancement.focuses);
+  if (freeSlots === 0) {
+    return { focuses, freeSlots, techs: [] };
+  }
+  return { focuses, freeSlots, techs: availableTechs(advancement.research) };
+};
+
 /** One government's brief for the month. */
-const briefOf = (standoff: Standoff, nation: number): NationBrief => {
+const briefOf = (
+  standoff: Standoff,
+  advancement: Advancement,
+  nation: number
+): NationBrief => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   return {
+    ...offersOf(advancement),
     atWar: enemiesOf(standoff.diplomacy.wars, nation).length > 0,
     civilianFactories: economy.civilianFactories,
     enemyStrength: enemyStrength(standoff, nation),
@@ -157,7 +184,11 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
     _tag: "council",
     date: dateLabel(dateOf(simulation.clock)),
     nations: governments(world, simulation).map((nation) =>
-      briefOf(standoff, nation)
+      briefOf(
+        standoff,
+        itemAt(simulation.advancements, nation, START_ADVANCEMENT),
+        nation
+      )
     ),
   };
 };
@@ -242,6 +273,66 @@ const decisionsByRules = (
   return decisions;
 };
 
+/** The branches that make a nation's army fight better. */
+const ARMY_BRANCHES: ReadonlySet<TechBranch> = new Set([
+  "infantry",
+  "artillery",
+  "doctrine",
+]);
+
+/**
+ * The technologies the rules would start, the first choice first: the ones
+ * meant for the earliest year first, since a later one takes longer, and within
+ * a year the army's branches first at war and the economy's first at peace.
+ * Carrying them out in order fills the free slots, and passes over one that an
+ * earlier pick ruled out.
+ */
+const techsByRules = (
+  advancement: Advancement,
+  atWar: boolean
+): readonly TechId[] => {
+  const rank = (tech: TechId) =>
+    Number(ARMY_BRANCHES.has(techOf(tech).branch) !== atWar);
+  return availableTechs(advancement.research).toSorted((one, other) => {
+    const byYear = techOf(one).year - techOf(other).year;
+    if (byYear !== 0) {
+      return byYear;
+    }
+    return rank(one) - rank(other);
+  });
+};
+
+/**
+ * The focus the rules pick next: the first on offer in the army's branch at
+ * war and outside it at peace, or the first on offer where none is.
+ */
+const focusByRules = (
+  advancement: Advancement,
+  atWar: boolean
+): Option.Option<FocusId> => {
+  const offered = availableFocuses(advancement.focuses);
+  const preferred = offered.filter(
+    (focus) => (focusOf(focus).branch === "army") === atWar
+  );
+  return Option.fromUndefinedOr([...preferred, ...offered].at(0));
+};
+
+/** What the rules put on a nation's research slots and focus tree this month. */
+const advancesByRules = (
+  advancement: Advancement,
+  nation: number,
+  atWar: boolean
+): readonly Decision[] => [
+  ...techsByRules(advancement, atWar).map((tech): Decision => ({
+    kind: "research",
+    nation,
+    tech,
+  })),
+  ...Option.toArray(focusByRules(advancement, atWar)).map(
+    (focus): Decision => ({ focus, kind: "focus", nation })
+  ),
+];
+
 /** The simulation once every one of `decisions` is carried out under `source`. */
 const allRuled = (
   world: World,
@@ -270,10 +361,20 @@ export const ruledByRules = (
   const random = drawsFor(world, councilDay);
   let current = simulation;
   for (const nation of shuffled(governments(world, simulation), random)) {
-    current = allRuled(
+    const decided = allRuled(
       world,
       current,
       decisionsByRules(standoffOf(world, current), nation, random),
+      BY_RULES
+    );
+    current = allRuled(
+      world,
+      decided,
+      advancesByRules(
+        itemAt(decided.advancements, nation, START_ADVANCEMENT),
+        nation,
+        enemiesOf(decided.diplomacy.wars, nation).length > 0
+      ),
       BY_RULES
     );
   }
@@ -327,6 +428,20 @@ const decisionOf = (
       (rival): Decision => ({ kind: "declare", nation, target: rival.nation })
     );
   }
+  if (question === "research") {
+    return Option.map(pickOf(brief.techs, choice), (tech): Decision => ({
+      kind: "research",
+      nation,
+      tech,
+    }));
+  }
+  if (question === "focus") {
+    return Option.map(pickOf(brief.focuses, choice), (focus): Decision => ({
+      focus,
+      kind: "focus",
+      nation,
+    }));
+  }
   if (question === "faction") {
     return Option.map(
       Option.fromUndefinedOr(
@@ -359,27 +474,34 @@ const drawn = (
 };
 
 /**
- * The option a verdict settles on. A war is drawn with Jev's weights, so a
+ * The options a verdict settles on. A war is drawn with Jev's weights, so a
  * declaration Jev gives one chance in ten happens in about one month in ten
  * rather than never; a law, a plan or a stance changes only where Jev is sure
  * of it, which keeps them from flipping on a near tie month after month; a
- * faction is the one Jev picked.
+ * faction and a focus are the one Jev picked; and the research comes back as
+ * every technology Jev weighed, the heaviest first, which fills the free slots
+ * when carried out in order and passes over one an earlier pick ruled out.
  */
-const settledOn = (verdict: Verdict, random: Random): Option.Option<Weight> => {
+const settledOn = (verdict: Verdict, random: Random): readonly Weight[] => {
   const picked: Weight = {
     choice: verdict.choice,
     probability: verdict.probability,
   };
   if (verdict.question === "war") {
-    return drawn(verdict.weights, random);
+    return Option.toArray(drawn(verdict.weights, random));
   }
-  if (verdict.question === "faction") {
-    return Option.some(picked);
+  if (verdict.question === "faction" || verdict.question === "focus") {
+    return [picked];
   }
-  return Option.filter(
-    Option.some(picked),
-    (weight) => weight.probability >= POLICY_CONFIDENCE
-  );
+  if (verdict.question === "research") {
+    return verdict.weights.toSorted(
+      (one, other) => other.probability - one.probability
+    );
+  }
+  if (picked.probability < POLICY_CONFIDENCE) {
+    return [];
+  }
+  return [picked];
 };
 
 /**
@@ -395,9 +517,9 @@ export const rulingsFrom = (
     const brief = council.nations.find(
       (entry) => entry.nation === verdict.nation
     );
-    return Option.toArray(
-      Option.flatMap(Option.fromUndefinedOr(brief), (found) =>
-        Option.flatMap(settledOn(verdict, random), (weight) =>
+    return Option.toArray(Option.fromUndefinedOr(brief)).flatMap((found) =>
+      settledOn(verdict, random).flatMap((weight) =>
+        Option.toArray(
           Option.map(
             decisionOf(found, verdict.question, weight.choice),
             (decision): Ruling => ({

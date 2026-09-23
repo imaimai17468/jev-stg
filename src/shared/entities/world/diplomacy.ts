@@ -74,7 +74,7 @@ export const factionOf = (diplomacy: Diplomacy, nation: number): number =>
   valueAt(diplomacy.factions, commanderOf(diplomacy, nation));
 
 /** Whether the nation still holds a seat in the world. */
-const standsAlone = (diplomacy: Diplomacy, nation: number): boolean =>
+export const standsAlone = (diplomacy: Diplomacy, nation: number): boolean =>
   standingOf(diplomacy, nation).kind !== "annexed";
 
 /** How many nations still hold a seat in the world. */

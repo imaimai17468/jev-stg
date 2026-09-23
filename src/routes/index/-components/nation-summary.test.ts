@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
+import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import {
   INDEPENDENT,
@@ -54,6 +55,7 @@ const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
 
 /** The two nations at war, so the panel has enemies to name. */
 const SIMULATION: Simulation = {
+  advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   negotiations: [],
   stances: ["balanced", "balanced"],

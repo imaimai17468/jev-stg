@@ -1,3 +1,4 @@
+import { START_ADVANCEMENT } from "./advancement";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";
@@ -31,6 +32,7 @@ export const ROW_PEACE: Diplomacy = openingDiplomacy(ROW_OWNERS, 4, []);
 
 /** The row on its first day, at peace, with nobody armed and nothing decided. */
 export const ROW_SIMULATION: Simulation = {
+  advancements: ROW_WORLD.nations.map(() => START_ADVANCEMENT),
   chronicle: [],
   clock: START_CLOCK,
   diplomacy: ROW_PEACE,
