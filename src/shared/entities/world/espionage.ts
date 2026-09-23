@@ -17,6 +17,7 @@ import { countedDown } from "./countdown";
 import type { Diplomacy } from "./diplomacy";
 import { factionOf, standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
+import { operativeSlotsOf } from "./focus";
 import { valueAt } from "./grid";
 import type { IntelKind } from "./intel";
 import { INTEL_KINDS } from "./intel";
@@ -106,6 +107,8 @@ const LARGE_MEMBER = { factories: 50, slots: 0.5 };
 interface Membership {
   readonly diplomacy: Diplomacy;
   readonly economies: readonly NationEconomy[];
+  /** Each nation's research and focus tree, by nation id, whose finished focuses may add slots. */
+  readonly advancements: readonly Advancement[];
 }
 
 /** The slots the other members of the faction `nation` founded give it as spymaster. */
@@ -140,6 +143,9 @@ export const slotsOf = (
   return Math.floor(
     BASE_SLOTS +
       Number(agency.upgrades.length >= UPGRADES_FOR_SLOT) +
+      operativeSlotsOf(
+        itemAt(standing.advancements, nation, START_ADVANCEMENT).focuses
+      ) +
       spymasterSlots(nation, standing) * Number(spymaster)
   );
 };
@@ -361,11 +367,18 @@ const holdingsOf = (
 /** No operation, where a mission runs in some other nation. */
 const NO_OPERATIONS: readonly Operation[] = [];
 
+/** A nation's service and the nation it has its operatives in. */
+interface Posting {
+  readonly spy: number;
+  readonly service: Service;
+  readonly target: number;
+  /** The resistance work its missions done today set running, which the day's state does not hold yet. */
+  readonly started: readonly Unrest[];
+}
+
 /** What `spy`'s operatives find in `target`. */
 const prospectOf = (
-  spy: number,
-  service: Service,
-  target: number,
+  { service, spy, started, target }: Posting,
   surroundings: Surroundings
 ): Prospect => {
   const { intrigue, scene } = surroundings;
@@ -395,7 +408,7 @@ const prospectOf = (
         )
       )
     ),
-    unrest: unrestAgainst(intrigue.unrest, spy, target),
+    unrest: unrestAgainst([...intrigue.unrest, ...started], spy, target),
   };
 };
 
@@ -587,23 +600,19 @@ const missionsDue = (missions: readonly Assignment[]): AssignmentsDue => ({
   ongoing: countedDown(missions),
 });
 
-/** A nation's service and the nation it has its operatives in. */
-interface Posting {
-  readonly spy: number;
-  readonly service: Service;
-  readonly target: number;
-}
-
 /**
  * What a nation's operatives in `target` do today: each one free is caught
- * with the day's chance, the rules start the first operation the target
- * leaves open and the free operatives and the network can carry, and the
- * operatives still free build the network from where they work.
+ * with the day's chance, the rules settle on the first operation the target
+ * leaves open, the network can carry and all the nation's operatives
+ * together could field, and start it once enough of them are free, starting
+ * nothing while they wait for the rest to come back; and the operatives
+ * still free build the network from where they work.
  */
 const workedIn = (
-  { service, spy, target }: Posting,
+  posting: Posting,
   surroundings: Surroundings
 ): Pick<Served, "service" | "events" | "build"> => {
+  const { service, spy, target } = posting;
   const { scene } = surroundings;
   const host = hostOf(surroundings, target);
   const caught = caughtOf(
@@ -621,8 +630,8 @@ const workedIn = (
   const center = centerIn(scene, network, spy, target);
   const working = Option.match(
     operationWanted(
-      prospectOf(spy, left, target, surroundings),
-      freeOperatives(left),
+      prospectOf({ ...posting, service: left }, surroundings),
+      { fielded: left.operatives, free: freeOperatives(left) },
       valueAt(network, center)
     ),
     {
@@ -698,7 +707,7 @@ const servedOneDay = (
   let { service } = worked;
   const build: Build[] = [];
   if (target !== HOME) {
-    const inTarget = workedIn({ service, spy, target }, surroundings);
+    const inTarget = workedIn({ service, spy, started, target }, surroundings);
     ({ service } = inTarget);
     events.push(...inTarget.events);
     build.push(...inTarget.build);
@@ -756,7 +765,7 @@ export const plottedOneDay = (
 ): Plotted => {
   const counterIntelligence = intrigue.services.map(counterIntelligenceOf);
   const slots = intrigue.services.map((service, nation) =>
-    slotsOf(nation, service.agency, scene)
+    slotsOf(nation, service.agency, { ...scene, advancements })
   );
   const holdings = holdingsOf(scene, intrigue.services.length);
   const strengths = intrigue.services.map((service) =>

@@ -9,10 +9,10 @@ const OperationSchema = Schema.Literals([
   "infiltrate-army",
   "infiltrate-navy",
   "infiltrate-air",
-  "capture-cipher",
   "resistance-contacts",
-  "strengthen-resistance",
   "sabotage-industry",
+  "strengthen-resistance",
+  "capture-cipher",
   "steal-military-blueprints",
   "steal-industrial-blueprints",
 ]);
@@ -108,18 +108,34 @@ const OPEN = {
     prospect.unrest.has("contacts") && !prospect.unrest.has("strengthened"),
 } satisfies Readonly<Record<Operation, (prospect: Prospect) => boolean>>;
 
+/** The operatives a nation has for its operations in a target. */
+export interface Crew {
+  /** The ones free of missions today. */
+  readonly free: number;
+  /** All of them, the ones on a mission included, which is the most an operation can ever take. */
+  readonly fielded: number;
+}
+
 /**
- * The operation the rules start against the target: the first, in the order
- * they weigh them, that is not already under way there, that the target
- * leaves open, that the free operatives are
- * enough for, and that the network where they work is strong enough for.
- * Rescuing an operative comes first and infiltrating before anything that
- * needs an infiltration in; the army's blueprints are stolen at war and
- * industry's at peace. The order is this game's own.
+ * The operation the rules start against the target today. They weigh the
+ * operations in order and settle on the first that is not already under way
+ * there, that the target leaves open, that the network where they work is
+ * strong enough for, and that all the nation's operatives together are
+ * enough for; they start it where the free ones already are, and otherwise
+ * start nothing and wait for the others to come back from their missions,
+ * so an operation that needs more hands is not kept waiting by smaller ones
+ * forever. Rescuing an operative comes first and infiltrating before anything
+ * that needs an infiltration in; sabotage, which takes three operatives,
+ * comes before the resistance and cipher work that take two, and ends once
+ * it is running, so it holds the third operative back only until it starts;
+ * the blueprints, which a nation can steal again and again, come last, so
+ * they take the operatives only when nothing else is open; the army's
+ * blueprints are stolen at war and industry's at peace. The order and the waiting are this game's
+ * own.
  */
 export const operationWanted = (
   prospect: Prospect,
-  free: number,
+  crew: Crew,
   strength: number
 ): Option.Option<Operation> =>
   Option.fromUndefinedOr(
@@ -127,7 +143,9 @@ export const operationWanted = (
       (operation) =>
         !prospect.underway.has(operation) &&
         OPEN[operation](prospect) &&
-        TERMS[operation].operatives <= free &&
+        TERMS[operation].operatives <= crew.fielded &&
         TERMS[operation].network <= strength
     )
+  ).pipe(
+    Option.filter((operation) => TERMS[operation].operatives <= crew.free)
   );
