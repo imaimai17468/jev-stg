@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { itemAt } from "./lookup";
-import { foughtAtSea, foughtToday } from "./naval-combat";
+import { afloatAfter, foughtAtSea, foughtToday } from "./naval-combat";
 import type { FleetRole, Navy, TaskForce } from "./navy";
 import { FLEET_ROLES, fleetOf, NO_NAVY } from "./navy";
 import { ZERO_FIGHTS_ONE } from "./sea-fixture";
@@ -13,7 +13,15 @@ import { declared } from "./wars";
 const ROLES = FLEET_ROLES.length;
 
 /** A ship that stands in for one a fleet has lost, so a read of it shows no hull. */
-const SUNK: Ship = { hp: 0, organisation: 0, shipClass: "destroyer" };
+const SUNK: Ship = {
+  hp: 0,
+  organisation: 0,
+  planes: 0,
+  shipClass: "destroyer",
+};
+
+/** Every nation's guns firing in full, their fuel tanks full. */
+const FULL_GUNS: readonly number[] = [1, 1, 1];
 
 /** A navy whose task force in `role` holds ships of `classes` in zone 5 on `mission`. */
 const afloat = (
@@ -57,7 +65,9 @@ describe(foughtAtSea, () => {
       afloat("main", ["destroyer"]),
     ];
 
-    expect(foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES)).toStrictEqual({
+    expect(
+      foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS)
+    ).toStrictEqual({
       fought: new Uint8Array(3 * ROLES),
       navies,
       zones: new Set(),
@@ -72,7 +82,7 @@ describe(foughtAtSea, () => {
     ];
 
     expect(
-      foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).zones
+      foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).zones
     ).toStrictEqual(new Set());
   });
 
@@ -84,7 +94,7 @@ describe(foughtAtSea, () => {
     ];
 
     expect(
-      foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).zones
+      foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).zones
     ).toStrictEqual(new Set([5]));
   });
 
@@ -98,7 +108,7 @@ describe(foughtAtSea, () => {
     expect(
       fleetOf(
         itemAt(
-          foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).navies,
+          foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).navies,
           1,
           NO_NAVY
         ),
@@ -116,7 +126,7 @@ describe(foughtAtSea, () => {
 
     expect(
       firstShip(
-        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).navies,
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).navies,
         0,
         "main"
       ).hp
@@ -132,7 +142,7 @@ describe(foughtAtSea, () => {
 
     expect(
       firstShip(
-        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).navies,
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).navies,
         0,
         "main"
       ).organisation
@@ -151,7 +161,7 @@ describe(foughtAtSea, () => {
 
     expect(
       firstShip(
-        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES).navies,
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).navies,
         0,
         "main"
       ).hp
@@ -167,8 +177,85 @@ describe(foughtAtSea, () => {
     ];
 
     expect(
-      firstShip(foughtAtSea(navies, wars, ROLES).navies, 2, "escort").hp
+      firstShip(foughtAtSea(navies, wars, ROLES, FULL_GUNS).navies, 2, "escort")
+        .hp
     ).toBeCloseTo(21.856);
+  });
+
+  it("should take the carrier's naval bombers off an enemy battleship's hull when the two meet", () => {
+    const navies = [
+      afloat("main", ["battleship"]),
+      afloat("main", ["carrier"]),
+      NO_NAVY,
+    ];
+
+    expect(
+      firstShip(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS).navies,
+        0,
+        "main"
+      ).hp
+    ).toBeCloseTo(235);
+  });
+
+  it("should put out half its fire when its nation's fuel leaves its guns half of it", () => {
+    const navies = [
+      afloat("main", ["battleship"]),
+      afloat("main", ["carrier"]),
+      NO_NAVY,
+    ];
+
+    expect(
+      firstShip(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, [1, 0.5, 1]).navies,
+        0,
+        "main"
+      ).hp
+    ).toBeCloseTo(302.5);
+  });
+
+  it("should fire in full when no share of its guns is given for the nation", () => {
+    const navies = [
+      afloat("main", ["battleship"]),
+      afloat("main", ["carrier"]),
+      NO_NAVY,
+    ];
+
+    expect(
+      firstShip(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, []).navies,
+        0,
+        "main"
+      ).hp
+    ).toBeCloseTo(235);
+  });
+
+  it("should cut the depth charges by the same share when its nation's fuel leaves its guns half of them", () => {
+    const navies = [
+      afloat("escort", ["destroyer"]),
+      afloat("raiders", ["submarine"]),
+      NO_NAVY,
+    ];
+
+    expect(
+      firstShip(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, [0.5, 1, 1]).navies,
+        1,
+        "raiders"
+      ).hp
+    ).toBeCloseTo(9.92);
+  });
+});
+
+describe(afloatAfter, () => {
+  it("should take three fifths of the damage off the hull and all of it off the cohesion when the ship survives the hit", () => {
+    expect(afloatAfter(launched("cruiser"), 10)).toStrictEqual([
+      { hp: 104, organisation: 30, planes: 0, shipClass: "cruiser" },
+    ]);
+  });
+
+  it("should leave nothing when the hit takes the whole hull", () => {
+    expect(afloatAfter(launched("destroyer"), 1000)).toStrictEqual([]);
   });
 });
 
@@ -181,7 +268,12 @@ describe(foughtToday, () => {
     ];
 
     expect(
-      foughtToday(foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES), ROLES, 1, 2)
+      foughtToday(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS),
+        ROLES,
+        1,
+        2
+      )
     ).toBeTruthy();
   });
 
@@ -193,7 +285,12 @@ describe(foughtToday, () => {
     ];
 
     expect(
-      foughtToday(foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES), ROLES, 1, 0)
+      foughtToday(
+        foughtAtSea(navies, ZERO_FIGHTS_ONE.wars, ROLES, FULL_GUNS),
+        ROLES,
+        1,
+        0
+      )
     ).toBeFalsy();
   });
 });

@@ -2,6 +2,7 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
+import { airForceOf, wing } from "./air-war-fixture";
 import { division } from "./army-fixture";
 import type { Negotiation } from "./chronicle";
 import type { Council, NationBrief, Verdict } from "./consultation";
@@ -25,6 +26,7 @@ import {
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_ECONOMY } from "./economy";
+import { FUEL_CAPACITY } from "./fuel";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
@@ -56,18 +58,22 @@ const BRIEF: NationBrief = {
   convoys: 0,
   dockyards: 0,
   enemyFleet: 0,
+  enemyPlanes: 0,
   enemyStrength: 0,
   equipment: 0,
   factions: [{ faction: 0, strength: 0 }],
   fleet: 0,
   focuses: [],
   freeSlots: 0,
+  fuel: 0,
   manpower: 0,
   militaryFactories: 0,
   nation: 1,
+  planes: 0,
   population: 0,
   rivals: [{ nation: 2, strength: 0 }],
   shortage: 0,
+  skyLost: 0,
   strength: 0,
   techs: [],
   undersupplied: 0,
@@ -263,6 +269,41 @@ describe(councilOf, () => {
       enemyFleet: fleetStrength(openingNavy(2, 4)),
       fleet: fleetStrength(openingNavy(4, 4)),
     });
+  });
+
+  it("should count its planes, its enemies' planes, its fuel and the skies it has lost when the nation is at war", () => {
+    const aloft: Simulation = {
+      ...withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1)),
+      airForces: replacedAt(
+        replacedAt(
+          ROW_SIMULATION.airForces,
+          0,
+          airForceOf([wing({ aircraft: "fighter", base: 0, planes: 30 })])
+        ),
+        1,
+        airForceOf([
+          wing({ aircraft: "fighter", base: 1, planes: 20 }),
+          wing({ aircraft: "close-support", base: 1, planes: 5 }),
+        ])
+      ),
+      airPower: replacedAt(
+        replacedAt(ROW_SIMULATION.airPower, 0, Float32Array.from([2, 0])),
+        1,
+        Float32Array.from([10, 0])
+      ),
+      economies: replacedAt(ROW_SIMULATION.economies, 0, {
+        ...NO_ECONOMY,
+        fuel: FUEL_CAPACITY / 2,
+      }),
+    };
+    const brief = briefOfFirst(councilOf(ROW_WORLD, aloft));
+
+    expect({
+      enemyPlanes: brief?.enemyPlanes,
+      fuel: brief?.fuel,
+      planes: brief?.planes,
+      skyLost: brief?.skyLost,
+    }).toStrictEqual({ enemyPlanes: 25, fuel: 0.5, planes: 30, skyLost: 1 });
   });
 
   it("should offer no technology when every research slot is busy", () => {
@@ -522,6 +563,85 @@ describe(ruledByRules, () => {
       ).navies[0]
     ).toBe(NO_NAVY);
   });
+
+  it.each<{
+    condition: string;
+    simulation: Simulation;
+    air: { readonly aviation: string; readonly order: string };
+  }>([
+    {
+      air: { aviation: "light", order: "fighter" },
+      condition: "a nation at peace has no planes",
+      simulation: ROW_SIMULATION,
+    },
+    {
+      air: { aviation: "light", order: "close-support" },
+      condition:
+        "a nation at peace has more than two thirds of its planes in fighters",
+      simulation: {
+        ...ROW_SIMULATION,
+        airForces: replacedAt(
+          ROW_SIMULATION.airForces,
+          0,
+          airForceOf([
+            wing({ aircraft: "fighter", base: 0, planes: 30 }),
+            wing({ aircraft: "close-support", base: 0, planes: 10 }),
+          ])
+        ),
+      },
+    },
+    {
+      air: { aviation: "heavy", order: "fighter" },
+      condition: "a nation at war has lost a sky it flies over to its enemy",
+      simulation: {
+        ...atWar([]),
+        airPower: replacedAt(
+          replacedAt(ROW_SIMULATION.airPower, 0, Float32Array.from([2, 0])),
+          1,
+          Float32Array.from([10, 0])
+        ),
+      },
+    },
+    {
+      air: { aviation: "light", order: "fighter" },
+      condition: "a nation at war has fewer fighters than its enemy",
+      simulation: {
+        ...atWar([]),
+        airForces: replacedAt(
+          replacedAt(
+            ROW_SIMULATION.airForces,
+            0,
+            airForceOf([wing({ aircraft: "fighter", base: 0, planes: 10 })])
+          ),
+          1,
+          airForceOf([wing({ aircraft: "fighter", base: 1, planes: 20 })])
+        ),
+      },
+    },
+    {
+      air: { aviation: "light", order: "naval-bomber" },
+      condition: "a nation at war is outgunned at sea",
+      simulation: {
+        ...atWar([]),
+        navies: replacedAt(ROW_SIMULATION.navies, 1, openingNavy(4, 4)),
+      },
+    },
+    {
+      air: { aviation: "light", order: "close-support" },
+      condition: "a nation at war holds the sky and the sea",
+      simulation: atWar([]),
+    },
+  ])(
+    "should put the air factories on $air.order at $air.aviation when $condition",
+    ({ air, simulation }) => {
+      const after = ruledByRules(ROW_WORLD, simulation, COUNCIL_DAY);
+
+      expect({
+        aviation: after.airForces[0]?.aviation,
+        order: after.airForces[0]?.order,
+      }).toStrictEqual(air);
+    }
+  );
 
   it("should pursue the first focus outside the army's branch when a nation is at peace", () => {
     expect(
@@ -795,6 +915,44 @@ describe(rulingsFrom, () => {
       },
     ]);
   });
+});
+
+describe("rulingsFrom for the air force", () => {
+  it.each<{
+    question: "aircraft" | "aviation";
+    choice: string;
+    decided: readonly unknown[];
+  }>([
+    {
+      choice: "naval-bomber",
+      decided: [
+        {
+          decision: { aircraft: "naval-bomber", kind: "aircraft", nation: 1 },
+          source: fromJev(0.7),
+        },
+      ],
+      question: "aircraft",
+    },
+    { choice: "zeppelin", decided: [], question: "aircraft" },
+    {
+      choice: "heavy",
+      decided: [
+        {
+          decision: { aviation: "heavy", kind: "aviation", nation: 1 },
+          source: fromJev(0.7),
+        },
+      ],
+      question: "aviation",
+    },
+    { choice: "total", decided: [], question: "aviation" },
+  ])(
+    "should decide $decided.length ruling when an $question verdict names $choice",
+    ({ choice, decided, question }) => {
+      expect(
+        rulingsFrom(COUNCIL, [verdict({ choice, question })], ANY_DRAW)
+      ).toStrictEqual(decided);
+    }
+  );
 });
 
 describe(termsFrom, () => {

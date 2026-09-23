@@ -113,6 +113,12 @@ describe(screeningOf, () => {
     ).toBeCloseTo(1 / 3);
   });
 
+  it("should want three screens for a carrier as for a capital ship when the fleet carries one", () => {
+    expect(
+      screeningOf(force({ ships: [ship("carrier"), ship("destroyer")] }))
+    ).toBeCloseTo(1 / 3);
+  });
+
   it("should stop at full when the fleet has more screens than its capital ships want", () => {
     expect(
       screeningOf(
@@ -176,6 +182,20 @@ describe(builtOneDay, () => {
     ).toStrictEqual([["battleship", "destroyer"], [], []]);
   });
 
+  it("should send a new destroyer to the battle fleet when its carrier lacks screens", () => {
+    expect(
+      classesOf(
+        builtOneDay(withOrder(withMain([ship("carrier")]), "destroyer"), 500, 4)
+      )
+    ).toStrictEqual([["carrier", "destroyer"], [], []]);
+  });
+
+  it("should send a new carrier to the battle fleet when the dockyards finish one", () => {
+    expect(
+      classesOf(builtOneDay(withOrder(NO_NAVY, "carrier"), 2094, 4))
+    ).toStrictEqual([["carrier"], [], []]);
+  });
+
   it("should leave the battle fleet where it is when a new battleship joins it at sea", () => {
     const atSea = navyOf([
       force({ ships: [ship("battleship")], zone: 6 }),
@@ -216,6 +236,20 @@ describe(openingNavy, () => {
       ],
       ["destroyer", "destroyer", "destroyer", "destroyer", "destroyer"],
       ["submarine", "submarine", "submarine", "submarine"],
+    ]);
+  });
+
+  it("should put a carrier in beside the battleships so the destroyers screen it too when the nation has ten dockyards", () => {
+    expect(classesOf(openingNavy(10, 4))).toStrictEqual([
+      [
+        "battleship",
+        "battleship",
+        "carrier",
+        ...Array.from({ length: 9 }, () => "destroyer"),
+        ...Array.from({ length: 5 }, () => "cruiser"),
+      ],
+      Array.from({ length: 11 }, () => "destroyer"),
+      Array.from({ length: 10 }, () => "submarine"),
     ]);
   });
 
@@ -437,15 +471,44 @@ describe(watersOf, () => {
     const weight = weightOf(main);
 
     expect(
-      watersOf(SEA_GRAPH, [
-        navyOf([
-          main,
-          force({ role: "escort", zone: UNASSIGNED }),
-          force({ role: "raiders", zone: UNASSIGNED }),
-        ]),
-      ])
+      watersOf(
+        SEA_GRAPH,
+        [
+          navyOf([
+            main,
+            force({ role: "escort", zone: UNASSIGNED }),
+            force({ role: "raiders", zone: UNASSIGNED }),
+          ]),
+        ],
+        []
+      )
     ).toStrictEqual([
       Float32Array.from([0, 0, 0, 0, weight, weight, weight, 0]),
+    ]);
+  });
+
+  it("should grow the fleet's weight by the lift its nation holds over the zone it is in when its air superiority lifts it", () => {
+    const main = force({
+      mission: "strike",
+      ships: [ship("battleship")],
+      zone: 5,
+    });
+    const lifted = Math.fround(weightOf(main) * 1.5);
+
+    expect(
+      watersOf(
+        SEA_GRAPH,
+        [
+          navyOf([
+            main,
+            force({ role: "escort", zone: UNASSIGNED }),
+            force({ role: "raiders", zone: UNASSIGNED }),
+          ]),
+        ],
+        [Float32Array.from([0, 0, 0, 0, 1, 0.5, 1, 0])]
+      )
+    ).toStrictEqual([
+      Float32Array.from([0, 0, 0, 0, lifted, lifted, lifted, 0]),
     ]);
   });
 });
@@ -529,6 +592,41 @@ describe(orderByRules, () => {
       orderByRules(
         withMain([ship("destroyer"), ship("destroyer"), ship("submarine")]),
         true,
+        0
+      )
+    ).toBe("battleship");
+  });
+
+  it("should build a cruiser when the carriers lack screens and the destroyers already pair every cruiser", () => {
+    expect(orderByRules(withMain([ship("carrier")]), false, 0)).toBe("cruiser");
+  });
+
+  it("should build a carrier when the nation holds fewer carriers than battleships and its capital ships are screened", () => {
+    expect(
+      orderByRules(
+        withMain([
+          ship("battleship"),
+          ship("destroyer"),
+          ship("destroyer"),
+          ship("cruiser"),
+        ]),
+        false,
+        0
+      )
+    ).toBe("carrier");
+  });
+
+  it("should build a battleship when the nation holds as many carriers as battleships and its capital ships are screened", () => {
+    expect(
+      orderByRules(
+        withMain([
+          ship("battleship"),
+          ship("carrier"),
+          ...Array.from({ length: 4 }, () => ship("destroyer")),
+          ship("cruiser"),
+          ship("cruiser"),
+        ]),
+        false,
         0
       )
     ).toBe("battleship");

@@ -1,3 +1,5 @@
+import type { Airspace } from "./airspace";
+import { airspaceOf } from "./airspace";
 import type { Grid } from "./grid";
 import { cellCount, valueAt } from "./grid";
 import { sinkSmallIslands } from "./landmass";
@@ -66,6 +68,8 @@ export interface World {
   readonly nations: readonly Nation[];
   /** What each province yields of each resource a day, by province id. */
   readonly deposits: readonly ResourceNeed[];
+  /** The strategic regions the air wings are sent over. */
+  readonly airspace: Airspace;
 }
 
 const landMask = (heights: Float32Array, seaLevel: number): Uint8Array =>
@@ -160,6 +164,7 @@ export const generateWorld = (seed: number): World => {
   );
   const capitals = pickCapitals(provinces, NATION_COUNT, random);
   return {
+    airspace: airspaceOf(provinces, seed),
     cellProvince: regions,
     deposits: depositsOf(provinces, seed),
     grid,

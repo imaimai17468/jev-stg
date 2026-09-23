@@ -1,6 +1,9 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { START_ADVANCEMENT } from "./advancement";
+import { openingAirBases } from "./air-bases";
+import { NO_AIR_FORCE } from "./air-force";
+import { airForceOf, flying, wing } from "./air-war-fixture";
 import { noQuiet } from "./armistice";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
@@ -8,15 +11,19 @@ import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
+import { FUEL_CAPACITY } from "./fuel";
 import { NO_NAVY, openingNavy } from "./navy";
 import { START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
-import { ranOneDay, startSimulation, withClock } from "./simulation";
+import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";
 import { UNASSIGNED } from "./spread";
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
+  airBases: openingAirBases(LINE_WORLD),
+  airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
+  airPower: [new Float32Array(2), new Float32Array(2)],
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(LINE_OWNERS),
@@ -27,12 +34,14 @@ const OPENING: Simulation = {
     {
       ...NO_ECONOMY,
       civilianFactories: 1,
+      fuel: FUEL_CAPACITY,
       manpower: 9000,
       population: 600_000,
     },
     {
       ...NO_ECONOMY,
       civilianFactories: 1,
+      fuel: FUEL_CAPACITY,
       manpower: 9000,
       population: 600_000,
     },
@@ -74,6 +83,23 @@ describe(startSimulation, () => {
 
   it("should open with nothing in the field when a world opens", () => {
     expect(startSimulation(LINE_WORLD).divisions).toStrictEqual([]);
+  });
+
+  it("should open a base at every capital and hub, an air force for each nation's military factories, and a clear sky over every region when a world opens", () => {
+    const opened = startSimulation(LINE_WORLD);
+
+    expect({
+      airBases: opened.airBases,
+      airForces: opened.airForces,
+      airPower: opened.airPower,
+    }).toStrictEqual({
+      airBases: Uint8Array.from([5, 0, 0, 5, 0]),
+      airForces: [
+        { ...NO_AIR_FORCE, wings: [] },
+        { ...NO_AIR_FORCE, wings: [] },
+      ],
+      airPower: [new Float32Array(2), new Float32Array(2)],
+    });
   });
 });
 
@@ -188,6 +214,48 @@ describe(ranOneDay, () => {
     };
 
     expect(ranOneDay(LINE_WORLD, annexed).navies[1]).toBe(NO_NAVY);
+  });
+
+  it("should ground an annexed nation's air force when a day passes", () => {
+    const annexed: Simulation = {
+      ...OPENING,
+      airForces: [
+        NO_AIR_FORCE,
+        airForceOf([wing({ aircraft: "fighter", base: 3, planes: 50 })]),
+      ],
+      diplomacy: {
+        ...OPENING.diplomacy,
+        standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
+      },
+    };
+
+    expect(ranOneDay(LINE_WORLD, annexed).airForces[1]).toBe(NO_AIR_FORCE);
+  });
+
+  it("should send the wings over the front when a nation at war has planes", () => {
+    const airborne: Simulation = {
+      ...FIGHTING,
+      airForces: [
+        airForceOf([wing({ aircraft: "close-support", base: 0, planes: 50 })]),
+        NO_AIR_FORCE,
+      ],
+    };
+
+    expect(ranOneDay(LINE_WORLD, airborne).airForces[0]?.wings).toStrictEqual([
+      flying(wing({ aircraft: "close-support", base: 0, planes: 50 }), {
+        mission: "close-support",
+        region: 0,
+      }),
+    ]);
+  });
+});
+
+describe(skiesOf, () => {
+  it("should read the air power flown today under the diplomacy of the day when the skies are asked for", () => {
+    expect(skiesOf(FIGHTING)).toStrictEqual({
+      diplomacy: FIGHTING.diplomacy,
+      power: FIGHTING.airPower,
+    });
   });
 });
 

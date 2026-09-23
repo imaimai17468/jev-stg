@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { AirCover } from "./air-cover";
+import { NO_AIR_COVER } from "./air-cover";
 import {
   AT_WAR,
   division,
@@ -10,7 +12,7 @@ import {
 import type { Battle, Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
-import { itemAt } from "./lookup";
+import { itemAt, replacedAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
@@ -30,6 +32,7 @@ const FALLBACK: LandProvince = {
 
 /** The line under `wars`, with neither nation's divisions improved by anything. */
 const theatreOf = (wars: Wars): Theatre => ({
+  air: NO_AIR_COVER,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
   supply: FULL_SUPPLY,
@@ -220,6 +223,54 @@ describe(foughtOneDay, () => {
         bystander,
       ]).standing.at(2)
     ).toStrictEqual(bystander);
+  });
+});
+
+/** Nothing over the line but `planes` close air support planes of `nation` over province 2. */
+const supportedBy = (nation: number, planes: number): AirCover => ({
+  enemy: [],
+  support: replacedAt(
+    [new Float32Array(4), new Float32Array(4)],
+    nation,
+    Float32Array.from([0, 0, planes, 0])
+  ),
+});
+
+/** The organisation each of one attacker and one defender holds after a day on province 2 under `air`. */
+const organisationUnder = (air: AirCover) => {
+  const battle = foughtOneDay({ ...theatreOf(AT_WAR), air }, CONTESTED, [
+    division({ nation: 0, province: 2 }),
+    division({ nation: 1, province: 2 }),
+  ]);
+  return battle.standing.map((fighter) => fighter.organisation);
+};
+
+describe("foughtOneDay under the planes", () => {
+  it("should take the attacker's close air support off the defender's organisation when ten planes fly over the battle", () => {
+    const [, defender] = organisationUnder(supportedBy(0, 10));
+
+    expect(defender).toBeCloseTo(48.6, 10);
+  });
+
+  it("should take no more than thirty planes a division of the enemy line into the battle when a hundred fly over it", () => {
+    const [, defender] = organisationUnder(supportedBy(0, 100));
+
+    expect(defender).toBeCloseTo(31.8, 10);
+  });
+
+  it("should take the holder's close air support off the attacker's organisation when its planes fly over the battle", () => {
+    const [attacker] = organisationUnder(supportedBy(1, 10));
+
+    expect(attacker).toBeCloseTo(46.6, 10);
+  });
+
+  it("should cut the defender's worth by 35% when its enemies hold the whole sky over it", () => {
+    const [attacker] = organisationUnder({
+      enemy: [new Float32Array(4), Float32Array.from([0, 0, 1, 0])],
+      support: [],
+    });
+
+    expect(attacker).toBeCloseTo(60 - 5 * 0.65, 10);
   });
 });
 

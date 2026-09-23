@@ -1,4 +1,5 @@
 import { START_ADVANCEMENT } from "./advancement";
+import { NO_AIR_FORCE } from "./air-force";
 import { noQuiet } from "./armistice";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
@@ -36,6 +37,11 @@ export const ROW_PEACE: Diplomacy = openingDiplomacy(ROW_OWNERS, 4, []);
 /** The row on its first day, at peace, with nobody armed and nothing decided. */
 export const ROW_SIMULATION: Simulation = {
   advancements: ROW_WORLD.nations.map(() => START_ADVANCEMENT),
+  airBases: new Uint8Array(ROW_WORLD.provinces.length),
+  airForces: ROW_WORLD.nations.map(() => NO_AIR_FORCE),
+  airPower: ROW_WORLD.nations.map(
+    () => new Float32Array(ROW_WORLD.airspace.regions.length)
+  ),
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(ROW_OWNERS),

@@ -4,6 +4,11 @@ import {
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./advancement";
+import { openingAirBases } from "./air-bases";
+import { supportOf } from "./air-cover";
+import type { AirForce } from "./air-force";
+import { NO_AIR_FORCE, openingAirForce } from "./air-force";
+import { airWarOneDay } from "./air-war";
 import {
   armisticesDue,
   noQuiet,
@@ -24,7 +29,7 @@ import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
 import { fieldedBy } from "./divisions";
 import type { NationEconomy } from "./economy";
-import { NO_ECONOMY, startEconomies, upkept } from "./economy";
+import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import type { Invasion } from "./invasion";
@@ -32,11 +37,13 @@ import { itemAt } from "./lookup";
 import { homeZonesOf, seafaredOneDay } from "./maritime";
 import type { Modifiers } from "./modifiers";
 import { musteringAt } from "./muster";
-import { initialOwners } from "./nations";
+import { initialOwners, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
 import { graphOf } from "./provinces";
 import { landmassesOf } from "./seas";
+import type { Skies } from "./skies";
+import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";
 import type { Stance } from "./stance";
 import { START_STANCE } from "./stance";
@@ -72,6 +79,12 @@ export interface Simulation {
   readonly deals: readonly Deal[];
   /** How long each pair of nations at war has gone without touching. */
   readonly quiet: Quiet;
+  /** One air force per nation, by nation id. */
+  readonly airForces: readonly AirForce[];
+  /** The level of the air base in each province, by province id. */
+  readonly airBases: Uint8Array;
+  /** The air power each nation flew over each region today, by nation id and then region id. */
+  readonly airPower: readonly Float32Array[];
   /** What the governments decided and the world carried out, the newest first. */
   readonly chronicle: readonly Entry[];
 }
@@ -83,6 +96,16 @@ export const startSimulation = (world: World): Simulation => {
   const homes = homeZonesOf(world, owners);
   return {
     advancements: world.nations.map(() => START_ADVANCEMENT),
+    airBases: openingAirBases(world),
+    airForces: economies.map((economy, nation) =>
+      openingAirForce(
+        economy.militaryFactories,
+        itemAt(world.nations, nation, NO_NATION).capital
+      )
+    ),
+    airPower: world.nations.map(
+      () => new Float32Array(world.airspace.regions.length)
+    ),
     chronicle: [],
     clock: START_CLOCK,
     compliance: startCompliance(owners),
@@ -104,6 +127,12 @@ export const startSimulation = (world: World): Simulation => {
     stances: world.nations.map(() => START_STANCE),
   };
 };
+
+/** The air power every nation flew today, and who is fighting whom under it. */
+export const skiesOf = (simulation: Simulation): Skies => ({
+  diplomacy: simulation.diplomacy,
+  power: simulation.airPower,
+});
 
 /** The parts of the simulation statecraft reads and writes. */
 export const realmOf = (simulation: Simulation): Realm => ({
@@ -182,9 +211,22 @@ const linesOf = (world: World, simulation: Simulation): Lines => ({
 export const supplyOf = (world: World, simulation: Simulation): SupplyNetwork =>
   supplyNetwork(linesOf(world, simulation));
 
+/** Each nation's entry of `items`, and `lost` for every nation annexed. */
+const keptWhileStanding = <T>(
+  items: readonly T[],
+  diplomacy: Diplomacy,
+  lost: T
+): readonly T[] =>
+  items.map((item, nation) => {
+    if (standsAlone(diplomacy, nation)) {
+      return item;
+    }
+    return lost;
+  });
+
 /**
- * The world once the nations annexed today have lost their navies with the
- * rest of what they held, and every pair at war that has not touched in long
+ * The world once the nations annexed today have lost their navies and their
+ * air forces with the rest of what they held, and every pair at war that has not touched in long
  * enough has signed a white peace.
  */
 const settledAtSea = (
@@ -212,14 +254,10 @@ const settledAtSea = (
   }
   return {
     ...simulation,
+    airForces: keptWhileStanding(simulation.airForces, diplomacy, NO_AIR_FORCE),
     chronicle,
     diplomacy: { ...diplomacy, wars },
-    navies: simulation.navies.map((navy, nation) => {
-      if (standsAlone(diplomacy, nation)) {
-        return navy;
-      }
-      return NO_NAVY;
-    }),
+    navies: keptWhileStanding(simulation.navies, diplomacy, NO_NAVY),
     quiet,
   };
 };
@@ -251,15 +289,17 @@ const landingsChronicled = (
 
 /**
  * The whole simulation one day on: the market and the economies, drawing on
- * occupied ground as far as its compliance lets them, and the dockyards; the
- * upkeep the depots pay the army; then the fleets, the battles at sea, the
+ * occupied ground as far as its compliance lets them, the dockyards and the
+ * factories on planes; the upkeep the depots pay the army; then the air
+ * wings, their battles and their strikes on the enemy's ships; then the fleets, the battles at sea, the
  * landings and the convoys; then the supply those convoys leave; then the
  * armies; then the research and the national focuses; then the diplomacy;
  * then the white peaces between nations that no longer touch; and last each
  * province's compliance with whoever holds it once all that is done. So a
  * nation surrenders the day its homeland falls, and a month's declarations
  * read the armies as that day left them. The economies and the armies work
- * with what the nation had researched when the day began.
+ * with what the nation had researched when the day began, and the ships and
+ * the divisions under the air superiority the day's air battles left.
  */
 export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
@@ -278,6 +318,8 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     world.nations.length
   );
   const exchange = commerceOneDay({
+    airBases: simulation.airBases,
+    airForces: simulation.airForces,
     compliance: simulation.compliance,
     diplomacy: simulation.diplomacy,
     economies: simulation.economies,
@@ -295,30 +337,61 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     ),
     world,
   });
-  const economies = exchange.economies.map((economy, nation) =>
-    upkept(economy, itemAt(fielded, nation, 0))
+  const aloft = airWarOneDay(
+    {
+      airBases: simulation.airBases,
+      airForces: exchange.airForces,
+      economies: exchange.economies.map((economy, nation) =>
+        upkept(economy, itemAt(fielded, nation, 0))
+      ),
+      navies: exchange.navies,
+    },
+    {
+      diplomacy: simulation.diplomacy,
+      flown: simulation.airPower,
+      graph,
+      homes,
+      invasions: simulation.invasions,
+      musters,
+      owners: simulation.owners,
+      world,
+    }
   );
+  const skies: Skies = {
+    diplomacy: simulation.diplomacy,
+    power: aloft.power,
+  };
+  const provinces = world.provinces.length;
+  const below = skiesBelow(skies, world.airspace, provinces);
   const seafaring = seafaredOneDay(
     {
       divisions: simulation.divisions,
       invasions: simulation.invasions,
-      navies: exchange.navies,
+      navies: aloft.navies,
     },
     {
       day: clock.days,
       deals: exchange.deals,
       diplomacy: simulation.diplomacy,
+      fuel: aloft.economies.map((economy) => economy.fuel),
       graph,
       homes,
       landmasses,
+      lift: below.lift,
       lines: linesOf(world, simulation),
       musters,
       owners: simulation.owners,
       world,
     }
   );
+  const economies = aloft.economies.map((economy, nation) =>
+    burnt(economy, itemAt(seafaring.burned, nation, 0))
+  );
   const afloat: Simulation = {
     ...simulation,
+    airBases: aloft.airBases,
+    airForces: aloft.airForces,
+    airPower: aloft.power,
     deals: exchange.deals,
     divisions: seafaring.divisions,
     economies,
@@ -328,6 +401,19 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const armies = armiesAfterOneDay(
     world,
     {
+      air: {
+        enemy: below.enemy,
+        support: supportOf(
+          {
+            airspace: world.airspace,
+            divisions: afloat.divisions,
+            owners: simulation.owners,
+            wars: simulation.diplomacy.wars,
+          },
+          aloft.support,
+          provinces
+        ),
+      },
       modifiers,
       stances: simulation.stances,
       supply: supplyOf(world, afloat),

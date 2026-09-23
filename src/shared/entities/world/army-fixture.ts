@@ -1,3 +1,5 @@
+import { NO_AIR_COVER } from "./air-cover";
+import { airspaceOf } from "./airspace";
 import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
@@ -53,6 +55,7 @@ export const worldOf = (
   nations: readonly Nation[],
   provinces: readonly Province[]
 ): World => ({
+  airspace: airspaceOf(provinces, 1),
   cellProvince: Int32Array.from(provinces, (province) => province.id),
   deposits: provinces.map(() => NO_RESOURCES),
   grid: { height: 1, width: provinces.length },
@@ -96,6 +99,7 @@ export const FULL_SUPPLY: SupplyNetwork = {
 
 /** The two nations at war, both attacking at the stance every nation opens with. */
 export const WAR_COMMAND: Command = {
+  air: NO_AIR_COVER,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   stances: [START_STANCE, START_STANCE],
   supply: FULL_SUPPLY,

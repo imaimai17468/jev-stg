@@ -1,6 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
+import type { AirForce } from "./air-force";
+import { NO_AIR_FORCE } from "./air-force";
+import { airspaceOf } from "./airspace";
 import type { Order, Ruling } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Diplomacy } from "./diplomacy";
@@ -80,8 +83,15 @@ const land = (id: number, neighbours: readonly number[]): Province => ({
   y: 0,
 });
 
+const ISLE_PROVINCES: readonly Province[] = [
+  land(0, [1]),
+  { cells: 4, id: 1, kind: "sea", neighbours: [0, 2], x: 1, y: 0 },
+  land(2, [1]),
+];
+
 /** Two islands with a sea zone between them, nation 0 on the first and nation 1 on the second. */
 const ISLES: World = {
+  airspace: airspaceOf(ISLE_PROVINCES, 1),
   cellProvince: Int32Array.from([0, 1, 2]),
   deposits: [0, 1, 2].map(() => NO_RESOURCES),
   grid: { height: 1, width: 3 },
@@ -91,11 +101,7 @@ const ISLES: World = {
     id,
     name: `国${id}`,
   })),
-  provinces: [
-    land(0, [1]),
-    { cells: 4, id: 1, kind: "sea", neighbours: [0, 2], x: 1, y: 0 },
-    land(2, [1]),
-  ],
+  provinces: ISLE_PROVINCES,
   seed: 1,
 };
 
@@ -516,6 +522,38 @@ describe(ruled, () => {
         byRules({ kind: "shipbuilding", nation: 3, order: "convoy" })
       )
     ).toBe(ROW_SIMULATION);
+  });
+
+  it.each<{ condition: string; order: Order; air: AirForce }>([
+    {
+      air: { ...NO_AIR_FORCE, order: "naval-bomber" },
+      condition: "a nation's air factories turn to another plane",
+      order: { aircraft: "naval-bomber", kind: "aircraft", nation: 3 },
+    },
+    {
+      air: { ...NO_AIR_FORCE, aviation: "heavy" },
+      condition: "a nation puts more of its factories on planes",
+      order: { aviation: "heavy", kind: "aviation", nation: 3 },
+    },
+  ])("should change the air force when $condition", ({ air, order }) => {
+    expect(
+      ruled(ROW_WORLD, ROW_SIMULATION, byRules(order)).airForces[3]
+    ).toStrictEqual(air);
+  });
+
+  it.each<{ condition: string; order: Order }>([
+    {
+      condition: "a nation's air factories keep the plane they build",
+      order: { aircraft: "fighter", kind: "aircraft", nation: 3 },
+    },
+    {
+      condition: "a nation keeps the share of its factories on planes",
+      order: { aviation: "none", kind: "aviation", nation: 3 },
+    },
+  ])("should change nothing when $condition", ({ order }) => {
+    expect(ruled(ROW_WORLD, ROW_SIMULATION, byRules(order))).toBe(
+      ROW_SIMULATION
+    );
   });
 
   it("should change nothing when a puppet's dockyards are ruled on", () => {

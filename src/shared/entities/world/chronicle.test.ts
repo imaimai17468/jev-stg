@@ -76,6 +76,23 @@ describe(chronicled, () => {
     expect(after.map((entry) => entry.seq)).toStrictEqual(KEPT_SEQS);
   });
 
+  it.each<{ decision: Decision }>([
+    { decision: { aircraft: "fighter", kind: "aircraft", nation: 0 } },
+    { decision: { aviation: "heavy", kind: "aviation", nation: 0 } },
+  ])(
+    "should drop the oldest stance change when a $decision.kind decision passes the policy strand's cap",
+    ({ decision }) => {
+      const full = entriesOf(STANCE, 60);
+
+      const after = chronicled(full, {
+        day: 1,
+        ruling: { decision, source: BY_RULES },
+      });
+
+      expect(after.map((entry) => entry.seq)).toStrictEqual(KEPT_SEQS);
+    }
+  );
+
   it("should drop the oldest declaration when its strand passes the cap", () => {
     const full = entriesOf(DECLARATION, 60);
 
