@@ -89,6 +89,21 @@ describe(entryLine, () => {
       what: "a nation sets its dockyards to a new order",
     },
     {
+      action: "造船 → 空母",
+      decision: { kind: "shipbuilding", nation: 0, order: "carrier" },
+      what: "a nation sets its dockyards to carriers",
+    },
+    {
+      action: "航空機 → 雷撃機",
+      decision: { aircraft: "naval-bomber", kind: "aircraft", nation: 0 },
+      what: "a nation turns its aircraft factories to a new plane",
+    },
+    {
+      action: "航空機の生産 → 軍需工場の40%",
+      decision: { aviation: "heavy", kind: "aviation", nation: 0 },
+      what: "a nation changes how much of its military factories builds planes",
+    },
+    {
       action: "国1の海岸に上陸",
       decision: { defender: 1, kind: "landing", nation: 0, target: 1 },
       what: "a nation's divisions go ashore on an enemy coast",

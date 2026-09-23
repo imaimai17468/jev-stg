@@ -65,6 +65,12 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
     [world, simulation]
   );
 
+  const { airPower, diplomacy } = simulation;
+  const skies = useMemo(
+    () => ({ diplomacy, power: airPower }),
+    [airPower, diplomacy]
+  );
+
   const selection = useMemo(
     () =>
       Option.match(selected, {
@@ -94,6 +100,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
       <WorldMap
+        airForces={simulation.airForces}
         compliance={simulation.compliance}
         divisions={simulation.divisions}
         highlighted={selected}
@@ -102,6 +109,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
         onSelectNation={setSelected}
         onTogglePause={flipPause}
         owners={simulation.owners}
+        skies={skies}
         supply={supply}
         world={world}
       />

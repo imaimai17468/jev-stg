@@ -7,12 +7,15 @@ import type {
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
+import type { AirForce } from "@/shared/entities/world/air-force";
 import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { Navy } from "@/shared/entities/world/navy";
 import { watersOf } from "@/shared/entities/world/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
+import type { Skies } from "@/shared/entities/world/skies";
+import { skiesBelow } from "@/shared/entities/world/skies";
 import type {
   SupplyNetwork,
   SupplyState,
@@ -22,12 +25,13 @@ import { drawMap } from "./draw-map";
 import { fleetMarks } from "./fleet-marks";
 import { paintWorld } from "./map-bitmap";
 import type { MapMode } from "./map-mode";
-import { resourceTintOf, tintFor } from "./map-mode";
+import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
 import { CRATES } from "./map-palette";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
 import type { Surface, Viewport } from "./viewport";
 import { clamped, fitViewport, pannedBy, zoomedAt } from "./viewport";
+import { wingMarks } from "./wing-marks";
 
 interface WorldMapProps {
   readonly world: World;
@@ -40,6 +44,10 @@ interface WorldMapProps {
   readonly compliance: Compliance;
   /** Every nation's navy, by nation id. */
   readonly navies: readonly Navy[];
+  /** Every nation's air force, by nation id. */
+  readonly airForces: readonly AirForce[];
+  /** The air power every nation flew today, and who is fighting whom under it. */
+  readonly skies: Skies;
   /** What the provinces are coloured by. */
   readonly mode: MapMode;
   /** The nation drawn brighter than the rest, where one is picked. */
@@ -132,6 +140,16 @@ const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
 const FLEET_WIDTH = 28;
 const FLEET_HEIGHT = 16;
 const FLEET_KEEL = 5;
+/**
+ * How big a wing counter is drawn, in screen pixels: a dark fuselage with a
+ * pair of dark wings across it, the nation's colour inset along the wings so
+ * it still shows over a sky painted in the same colour.
+ */
+const WING_SPAN = 30;
+const WING_CHORD = 8;
+const WING_INSET = 2;
+const FUSELAGE_WIDTH = 10;
+const FUSELAGE_LENGTH = 18;
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
 const LABEL_OUTLINE = "rgba(0, 0, 0, 0.65)";
 const LABEL_OUTLINE_WIDTH = 3;
@@ -210,6 +228,36 @@ const drawFleet = (pen: CanvasRenderingContext2D, counter: Counter): void => {
   pen.fillStyle = LABEL_INK;
 };
 
+/**
+ * Draws a wing counter, a dark fuselage and wings with the nation's colour
+ * inset along the wings and the planes written below, and leaves the pen set
+ * for the names again.
+ */
+const drawWing = (pen: CanvasRenderingContext2D, counter: Counter): void => {
+  const { colour, value, x, y } = counter;
+  pen.fillStyle = COUNTER_FILL;
+  pen.fillRect(
+    x - FUSELAGE_WIDTH / 2,
+    y - FUSELAGE_LENGTH / 2,
+    FUSELAGE_WIDTH,
+    FUSELAGE_LENGTH
+  );
+  pen.fillRect(x - WING_SPAN / 2, y - WING_CHORD / 2, WING_SPAN, WING_CHORD);
+  pen.fillStyle = inkOf(colour);
+  pen.fillRect(
+    x - WING_SPAN / 2 + WING_INSET,
+    y - WING_CHORD / 2 + WING_INSET,
+    WING_SPAN - 2 * WING_INSET,
+    WING_CHORD - 2 * WING_INSET
+  );
+  pen.fillStyle = COUNTER_INK;
+  pen.font = COUNTER_FONT;
+  pen.strokeText(value, x, y + FUSELAGE_LENGTH / 2 + COUNTER_STRIPE);
+  pen.fillText(value, x, y + FUSELAGE_LENGTH / 2 + COUNTER_STRIPE);
+  pen.font = LABEL_FONT;
+  pen.fillStyle = LABEL_INK;
+};
+
 const measure = (element: HTMLCanvasElement): Surface => ({
   height: element.clientHeight,
   width: element.clientWidth,
@@ -244,6 +292,7 @@ const zoomForKey = (key: string): number => {
 };
 
 const WorldMapSurface = ({
+  airForces,
   compliance,
   divisions,
   highlighted,
@@ -252,6 +301,7 @@ const WorldMapSurface = ({
   onSelectNation,
   onTogglePause,
   owners,
+  skies,
   supply,
   world,
 }: WorldMapProps) => {
@@ -289,16 +339,27 @@ const WorldMapSurface = ({
     };
   }, [attached]);
 
+  const lift = useMemo(
+    () => skiesBelow(skies, world.airspace, world.provinces.length).lift,
+    [world, skies]
+  );
+
   const waters = useMemo(
-    () => watersOf(graphOf(world.provinces), navies),
-    [world, navies]
+    () => watersOf(graphOf(world.provinces), navies, lift),
+    [world, navies, lift]
   );
 
   const resources = useMemo(() => resourceTintOf(world.deposits), [world]);
 
+  const air = useMemo(
+    () => airTintOf(skies.power, world.airspace.regionOf),
+    [world, skies]
+  );
+
   const tint = useMemo(
-    () => tintFor(mode, { compliance, network: supply, resources, waters }),
-    [mode, supply, compliance, waters, resources]
+    () =>
+      tintFor(mode, { air, compliance, network: supply, resources, waters }),
+    [mode, supply, compliance, waters, air, resources]
   );
 
   // One bitmap per world, painted at cell resolution and scaled by the canvas,
@@ -326,8 +387,9 @@ const WorldMapSurface = ({
       fleets: fleetMarks(world, navies),
       labels: nationLabels(world, owners),
       marks: divisionMarks(world, divisions, supply),
+      wings: wingMarks(world, airForces),
     }),
-    [world, owners, divisions, supply, navies]
+    [world, owners, divisions, supply, navies, airForces]
   );
 
   const viewOf = useCallback(
@@ -382,6 +444,9 @@ const WorldMapSurface = ({
         },
         fleet: (value, x, y, colour) => {
           drawFleet(pen, { colour, value, x, y });
+        },
+        wing: (value, x, y, colour) => {
+          drawWing(pen, { colour, value, x, y });
         },
         text: (value, x, y) => {
           pen.strokeText(value, x, y);

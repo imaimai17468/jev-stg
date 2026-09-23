@@ -1,8 +1,8 @@
 import type { World } from "@/shared/entities/world";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
+import type { CounterMark } from "./counter-mark";
 import type { DivisionMark } from "./division-marks";
-import type { FleetMark } from "./fleet-marks";
 import type { NationLabel } from "./nation-labels";
 import type { Surface, Viewport } from "./viewport";
 
@@ -34,13 +34,19 @@ export interface MapPen {
    * shaped apart from an army counter so the two never read as one.
    */
   readonly fleet: (value: string, x: number, y: number, colour: Colour) => void;
+  /**
+   * Draws one air wing counter, centred on the point, in its nation's colour,
+   * shaped as a plane so it reads apart from an army's and a fleet's.
+   */
+  readonly wing: (value: string, x: number, y: number, colour: Colour) => void;
 }
 
 /** What the map draws over the painted world. */
 export interface MapOverlay {
   readonly labels: readonly NationLabel[];
   readonly marks: readonly DivisionMark[];
-  readonly fleets: readonly FleetMark[];
+  readonly fleets: readonly CounterMark[];
+  readonly wings: readonly CounterMark[];
 }
 
 /**
@@ -54,8 +60,9 @@ const LABEL_MIN_CELLS = 900;
 
 /**
  * Draws one frame: the painted world at the current viewport, the names over
- * it, an army counter on every province that holds one, and a fleet counter on
- * every sea zone that holds warships.
+ * it, an army counter on every province that holds one, a fleet counter on
+ * every sea zone that holds warships, and a wing counter over every region
+ * planes fly a mission over.
  */
 export const drawMap = (
   pen: MapPen,
@@ -90,12 +97,19 @@ export const drawMap = (
       mark.supply
     );
   }
-  for (const mark of overlay.fleets) {
-    pen.fleet(
-      String(mark.count),
-      (mark.x - view.x) * view.scale,
-      (mark.y - view.y) * view.scale,
-      mark.colour
-    );
-  }
+  const placed = (
+    marks: readonly CounterMark[],
+    draw: MapPen["fleet"]
+  ): void => {
+    for (const mark of marks) {
+      draw(
+        String(mark.count),
+        (mark.x - view.x) * view.scale,
+        (mark.y - view.y) * view.scale,
+        mark.colour
+      );
+    }
+  };
+  placed(overlay.fleets, pen.fleet);
+  placed(overlay.wings, pen.wing);
 };

@@ -48,17 +48,29 @@ const SEA_HOLD_LABELS = {
   held: "1国が握る海（その国の色）",
 } satisfies Record<SeaHoldLevel, string>;
 
+const AIR_HOLD_LABELS = {
+  contested: "争われている空",
+  empty: "誰も飛んでいない空",
+  held: "1国が制空権を握る空（その国の色）",
+} satisfies Record<SeaHoldLevel, string>;
+
 const RESOURCE_LABELS = {
+  aluminium: "アルミ",
   chromium: "クロム",
   none: "資源なし",
+  oil: "石油",
+  rubber: "ゴム",
   steel: "鋼鉄",
   tungsten: "タングステン",
 } satisfies Record<ResourceLevel, string>;
 
 /** No province of the resource map is striped. */
 const NO_RESOURCE_HATCH = {
+  aluminium: 0,
   chromium: 0,
   none: 0,
+  oil: 0,
+  rubber: 0,
   steel: 0,
   tungsten: 0,
 } satisfies Record<ResourceLevel, number>;
@@ -79,6 +91,12 @@ const legendOf = <Level extends string>(
 
 /** What the map in each mode needs a legend for: nothing on the political map, whose colours are the nations. */
 const LEGENDS = {
+  air: legendOf(
+    SEA_HOLD_LEVELS,
+    SEA_HOLD_SWATCHES,
+    SEA_HOLD_HATCH,
+    AIR_HOLD_LABELS
+  ),
   compliance: legendOf(
     COMPLIANCE_LEVELS,
     COMPLIANCE_COLOURS,

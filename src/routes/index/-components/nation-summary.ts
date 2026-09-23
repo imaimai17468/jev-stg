@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { dateOf } from "@/shared/entities/world/clock";
 import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/commerce";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
@@ -18,12 +19,15 @@ import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import type { Simulation } from "@/shared/entities/world/simulation";
+import { skiesOf } from "@/shared/entities/world/simulation";
+import { superiorityOf } from "@/shared/entities/world/skies";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
+import { airSummaryOf } from "./air-summary";
 import { navySummaryOf } from "./navy-summary";
 import { occupationSummaryOf } from "./occupation-summary";
 import type { Stat } from "./stat";
@@ -73,11 +77,13 @@ export interface NationSummary {
   readonly supply: readonly Stat[];
   readonly occupation: readonly Stat[];
   readonly navy: readonly Stat[];
+  readonly air: readonly Stat[];
   readonly trade: readonly Stat[];
 }
 
 const EMPTY: NationSummary = {
   advancement: advancementSummaryOf(START_ADVANCEMENT, 0),
+  air: [],
   supply: [],
   cells: 0,
   divisions: 0,
@@ -187,6 +193,14 @@ export const summaryOf = (
     }
   }
   return {
+    air: airSummaryOf({
+      airBases: simulation.airBases,
+      airForce: itemAt(simulation.airForces, nation, NO_AIR_FORCE),
+      economy: itemAt(simulation.economies, nation, NO_ECONOMY),
+      nation,
+      owners,
+      superiority: superiorityOf(skiesOf(simulation), nation),
+    }),
     advancement: advancementSummaryOf(
       itemAt(simulation.advancements, nation, START_ADVANCEMENT),
       dateOf(simulation.clock).year

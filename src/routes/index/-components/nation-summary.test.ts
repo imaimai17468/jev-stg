@@ -2,6 +2,8 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
+import { airspaceOf } from "@/shared/entities/world/airspace";
 import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { startCompliance } from "@/shared/entities/world/compliance";
@@ -28,25 +30,28 @@ const land = (
   neighbours: readonly number[]
 ): Province => ({ cells, id, kind: "land", neighbours, terrain, x: id, y: 0 });
 
+const PROVINCES: readonly Province[] = [
+  land(0, "plains", 4, [1, 2, 3]),
+  land(1, "plains", 2, [0]),
+  land(2, "hills", 3, [0]),
+  { cells: 9, id: 3, kind: "sea", neighbours: [0], x: 3, y: 0 },
+  land(4, "hills", 1, []),
+];
+
 /**
  * Two nations and a sea zone. Nation 0 holds two plains and a hill, one of its
  * provinces touches nation 1, another touches only its own, and a third touches
  * the water, which is every case the pass branches on.
  */
 const WORLD: World = {
+  airspace: airspaceOf(PROVINCES, 1),
   cellProvince: Int32Array.from([0, 1, 2, 3, 4]),
   grid: { height: 1, width: 5 },
   nations: [
     { capital: 0, colour: { blue: 0, green: 0, red: 0 }, id: 0, name: "国0" },
     { capital: 2, colour: { blue: 0, green: 0, red: 0 }, id: 1, name: "国1" },
   ],
-  provinces: [
-    land(0, "plains", 4, [1, 2, 3]),
-    land(1, "plains", 2, [0]),
-    land(2, "hills", 3, [0]),
-    { cells: 9, id: 3, kind: "sea", neighbours: [0], x: 3, y: 0 },
-    land(4, "hills", 1, []),
-  ],
+  provinces: PROVINCES,
   deposits: [0, 1, 2, 3, 4].map(() => NO_RESOURCES),
   seed: 1,
 };
@@ -60,9 +65,15 @@ const ECONOMIES: readonly NationEconomy[] = [
 /** Nation 0 holds three provinces, nation 1 holds one, and a sea zone is free. */
 const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
 
-/** The two nations at war, so the panel has enemies to name. */
+/**
+ * The two nations at war, so the panel has enemies to name, with an air base
+ * at each capital and no plane in the air.
+ */
 const SIMULATION: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
+  airBases: Uint8Array.from([5, 0, 2, 0, 0]),
+  airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
+  airPower: [new Float32Array(0), new Float32Array(0)],
   chronicle: [],
   compliance: startCompliance(OWNERS),
   deals: [],
@@ -96,11 +107,24 @@ const NO_FLEET = [
   { label: "駆逐艦", value: "0" },
   { label: "巡洋艦", value: "0" },
   { label: "戦艦", value: "0" },
+  { label: "空母", value: "0" },
   { label: "潜水艦", value: "0" },
   { label: "輸送船（航路で使用中）", value: "0（0）" },
   { label: "飛び地に届いた補給", value: "100%" },
   { label: "海越しの輸入の到着", value: "100%" },
   { label: "準備中の海上輸送", value: "0（0師団）" },
+];
+
+/** What the panel says of a nation with no plane and one air base of five levels. */
+const NO_PLANES = [
+  { label: "航空機の生産", value: "作らない" },
+  { label: "戦闘機", value: "0（出撃中 0）" },
+  { label: "近接航空支援機", value: "0（出撃中 0）" },
+  { label: "雷撃機", value: "0（出撃中 0）" },
+  { label: "航空基地", value: "5段階（1,000機分）" },
+  { label: "燃料（昨日の消費）", value: "0%（0）" },
+  { label: "制空権を握る空域", value: "0" },
+  { label: "敵に制空権を握られた空域", value: "0" },
 ];
 
 /** What the panel says of a nation with no mine and no factory that needs one. */
@@ -109,6 +133,9 @@ const NO_TRADE = [
   { label: "鋼鉄", value: "採掘 0・必要 0・輸入 0・輸出 0" },
   { label: "タングステン", value: "採掘 0・必要 0・輸入 0・輸出 0" },
   { label: "クロム", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "アルミ", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "ゴム", value: "採掘 0・必要 0・輸入 0・輸出 0" },
+  { label: "石油", value: "採掘 0・必要 0・輸入 0・輸出 0" },
   { label: "資源不足による軍需生産の低下", value: "0%" },
   { label: "交易で増減した民需工場", value: "0" },
 ];
@@ -127,6 +154,7 @@ describe(summaryOf, () => {
       summaryOf(WORLD, SIMULATION, supplyOf(WORLD, SIMULATION), 0)
     ).toStrictEqual({
       advancement: UNADVANCED,
+      air: NO_PLANES,
       cells: 7,
       divisions: 1,
       economy: { ...NO_ECONOMY, equipment: 40 },
@@ -164,6 +192,7 @@ describe(summaryOf, () => {
       summaryOf(WORLD, SIMULATION, supplyOf(WORLD, SIMULATION), 9)
     ).toStrictEqual({
       advancement: UNADVANCED,
+      air: [],
       cells: 0,
       divisions: 0,
       economy: NO_ECONOMY,
