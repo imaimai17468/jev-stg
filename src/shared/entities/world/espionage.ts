@@ -602,9 +602,11 @@ const missionsDue = (missions: readonly Assignment[]): AssignmentsDue => ({
 
 /**
  * What a nation's operatives in `target` do today: each one free is caught
- * with the day's chance, the rules start the first operation the target
- * leaves open and the free operatives and the network can carry, and the
- * operatives still free build the network from where they work.
+ * with the day's chance, the rules settle on the first operation the target
+ * leaves open, the network can carry and all the nation's operatives
+ * together could field, and start it once enough of them are free, starting
+ * nothing while they wait for the rest to come back; and the operatives
+ * still free build the network from where they work.
  */
 const workedIn = (
   posting: Posting,
@@ -629,7 +631,7 @@ const workedIn = (
   const working = Option.match(
     operationWanted(
       prospectOf({ ...posting, service: left }, surroundings),
-      freeOperatives(left),
+      { fielded: left.operatives, free: freeOperatives(left) },
       valueAt(network, center)
     ),
     {

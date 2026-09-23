@@ -429,7 +429,7 @@ describe(plottedOneDay, () => {
     ]);
   });
 
-  it("should build on the contacts rather than make them again the same day when contacts just done in an infiltrated target leave three operatives free", () => {
+  it("should start sabotage the same day when contacts just done in an infiltrated target leave three operatives free", () => {
     const plotted = dayOf(
       {
         ...finishing("resistance-contacts", FOUNDED),
@@ -446,7 +446,7 @@ describe(plottedOneDay, () => {
 
     expect(
       spyAfter(plotted).missions.map((started) => started.operation)
-    ).toStrictEqual(["strengthen-resistance"]);
+    ).toStrictEqual(["sabotage-industry"]);
   });
 
   it("should raise the sabotage by the agency's explosives when sabotage is done", () => {

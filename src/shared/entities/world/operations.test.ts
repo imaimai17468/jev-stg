@@ -92,8 +92,8 @@ describe(operationWanted, () => {
     },
     {
       condition:
-        "everything is infiltrated and the codebreakers have an unbroken cipher to take",
-      free: 3,
+        "everything is infiltrated, the codebreakers have an unbroken cipher to take, and two operatives are too few for blueprints",
+      free: 2,
       prospect: infiltratedTarget({ codebreakers: true }),
       strength: 100,
       wanted: Option.some("capture-cipher"),
@@ -110,8 +110,9 @@ describe(operationWanted, () => {
       wanted: Option.some("resistance-contacts"),
     },
     {
-      condition: "resistance contacts are running against an occupier",
-      free: 3,
+      condition:
+        "resistance contacts are running against an occupier and two operatives are too few for sabotage",
+      free: 2,
       prospect: infiltratedTarget({
         occupies: true,
         unrest: new Set(["contacts"]),
@@ -163,7 +164,9 @@ describe(operationWanted, () => {
   ])(
     "should pick the first operation the rules weigh that is open when $condition",
     ({ free, prospect, strength, wanted }) => {
-      expect(operationWanted(prospect, free, strength)).toStrictEqual(wanted);
+      expect(
+        operationWanted(prospect, { fielded: free, free }, strength)
+      ).toStrictEqual(wanted);
     }
   );
 });
@@ -175,8 +178,28 @@ describe("operationWanted with operations under way", () => {
       underway: new Set<Operation>(["infiltrate-civilian"]),
     };
 
-    expect(operationWanted(busy, 4, 100)).toStrictEqual(
+    expect(operationWanted(busy, { fielded: 4, free: 4 }, 100)).toStrictEqual(
       Option.some("infiltrate-army")
     );
+  });
+});
+
+describe("operationWanted with blueprints open", () => {
+  it("should capture the cipher before stealing the army's blueprints again when the codebreakers can and the crew is three", () => {
+    expect(
+      operationWanted(
+        infiltratedTarget({ atWar: true, codebreakers: true }),
+        { fielded: 3, free: 3 },
+        100
+      )
+    ).toStrictEqual(Option.some("capture-cipher"));
+  });
+});
+
+describe("operationWanted with operatives away on missions", () => {
+  it("should wait for the rest to come back when all of them together are enough for the first operation open", () => {
+    expect(
+      operationWanted(infiltratedTarget({}), { fielded: 3, free: 2 }, 100)
+    ).toStrictEqual(Option.none());
   });
 });
