@@ -154,9 +154,11 @@ export const availableTechs = (research: Research): readonly TechId[] => {
 };
 
 /**
- * The technology each line of the tree offers a slot: the one meant for the
- * earliest year among those a slot may start on, the tree's order breaking a
- * tie. A line with none to offer offers nothing.
+ * The technologies each line of the tree offers a slot: the one meant for
+ * the earliest year among those a slot may start on, the tree's order
+ * breaking a tie, followed by any a slot may start on that it rules out, so
+ * an either-or choice between two paths is offered as one. A line with none
+ * to offer offers nothing.
  */
 export const leadingTechs = (research: Research): readonly TechId[] => {
   const available = availableTechs(research);
@@ -164,7 +166,10 @@ export const leadingTechs = (research: Research): readonly TechId[] => {
     const onLine = available
       .filter((tech) => techOf(tech).line === line)
       .toSorted((one, other) => techOf(one).year - techOf(other).year);
-    return onLine.slice(0, 1);
+    return onLine.slice(0, 1).flatMap((leader) => {
+      const rivals = new Set(itemAt(RIVALS, TECH_IDS.indexOf(leader), []));
+      return [leader, ...available.filter((tech) => rivals.has(tech))];
+    });
   });
 };
 

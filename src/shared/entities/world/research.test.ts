@@ -15,6 +15,7 @@ import {
   vouchersGranted,
 } from "./research";
 import type { TechId } from "./techs";
+import { techOf } from "./techs";
 
 const NAVAL_VOUCHER: Voucher = { ahead: 1, categories: ["naval"], share: 0.5 };
 
@@ -214,6 +215,17 @@ describe(leadingTechs, () => {
     };
 
     expect(leadingTechs(research)).toContain("excavation-1");
+  });
+
+  it("should offer dispersed industry beside concentrated industry when the machine tools that open both are researched", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      researched: [...START_RESEARCH.researched, "basic-machine-tools"],
+    };
+
+    expect(
+      leadingTechs(research).filter((tech) => techOf(tech).line === "industry")
+    ).toStrictEqual(["concentrated-industry-1", "dispersed-industry-1"]);
   });
 
   it("should offer nothing from a line when every technology on it is taken", () => {
