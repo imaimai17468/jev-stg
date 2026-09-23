@@ -28,6 +28,7 @@ import { paintWorld } from "./map-bitmap";
 import type { MapMode } from "./map-mode";
 import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
 import { CRATES } from "./map-palette";
+import { MapZoomControls } from "./map-zoom-controls";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
 import { useMapView } from "./use-map-view";
@@ -402,6 +403,7 @@ const WorldMapSurface = ({
   );
 
   const {
+    fit,
     panBy,
     steer: steerBy,
     view,
@@ -559,6 +561,13 @@ const WorldMapSurface = ({
         onWheel={zoom}
         ref={attach}
         tabIndex={0}
+      />
+      <MapZoomControls
+        onFit={fit}
+        onZoom={(factor) => {
+          steerBy(0, 0, factor);
+        }}
+        step={KEY_ZOOM}
       />
     </div>
   );
