@@ -53,11 +53,12 @@ describe(canRaise, () => {
 });
 
 describe(paidForDivision, () => {
-  it("should take the men and the weapons out when a division is raised", () => {
+  it("should call the men up and take the weapons out when a division is raised", () => {
     expect(paidForDivision(ARMED)).toStrictEqual({
       ...ARMED,
       equipment: 0,
       manpower: 0,
+      recruited: 20_000,
     });
   });
 });

@@ -66,8 +66,18 @@ const PLAN_SHARES = {
 export interface NationEconomy {
   readonly population: number;
   readonly conscription: ConscriptionLaw;
-  /** The people the nation can still call up. */
+  /**
+   * The people the nation can still call up: what its conscription law reaches
+   * of its population, less everyone it has already called up. Worked out
+   * again at the start of each day, before divisions are raised and ground
+   * changes hands, so a capture or a new law shows in it the next day.
+   */
   readonly manpower: number;
+  /**
+   * Everyone the nation has called up so far, the men in the field and the
+   * men it has lost alike, since neither is back at home to be called again.
+   */
+  readonly recruited: number;
   /** Factories on construction sites, which is what raises both counts. */
   readonly civilianFactories: number;
   /** Factories turning out equipment. */
@@ -85,10 +95,6 @@ export interface NationEconomy {
 const POPULATION_GROWTH_PER_YEAR = 0.012;
 const DAYS_PER_YEAR = 365.25;
 const POPULATION_GROWTH_PER_DAY = POPULATION_GROWTH_PER_YEAR / DAYS_PER_YEAR;
-
-/** How long a nation that spent its whole pool takes to fill it again. */
-const MANPOWER_RECOVERY_YEARS = 5;
-const MANPOWER_RECOVERY_PER_DAY = 1 / (MANPOWER_RECOVERY_YEARS * DAYS_PER_YEAR);
 
 /** Equipment one military factory turns out in a day. */
 const EQUIPMENT_PER_FACTORY = 5;
@@ -115,6 +121,7 @@ export const NO_ECONOMY: NationEconomy = {
   militaryFactories: 0,
   plan: "civilian",
   population: 0,
+  recruited: 0,
   upkeepMet: 1,
 };
 
@@ -126,9 +133,9 @@ const manpowerCap = (population: number, law: ConscriptionLaw): number =>
   population * MANPOWER_SHARE[law];
 
 /**
- * The economy under `law`. The pool already called up stays where it is: a
- * heavier law raises the cap it recovers toward, and a lighter one lowers the
- * cap, which the next day's recovery holds the pool to.
+ * The economy under `law`. Everyone already called up stays called up: a
+ * heavier law reaches further into the population, which the next day's pool
+ * adds, and a lighter one reaches less far, which can leave nobody to call.
  */
 export const withConscription = (
   economy: NationEconomy,
@@ -159,20 +166,21 @@ const constructionPerDay = (
   (1 + modifiers.construction);
 
 /**
- * The pool one day of population growth and recovery leaves.
- *
- * The pool is capped by what the conscription law reaches, so a nation that has
- * not spent any of it still gains what the year's births add to the cap.
+ * The people a nation of `population` can still call up: what its law reaches,
+ * as its modifiers widen it, less everyone it has called up already. The pool
+ * grows only as the population does or a heavier law reaches further, so a
+ * nation that loses its army has to reach deeper to raise another.
  */
-const recoveredManpower = (
+const freeManpower = (
   economy: NationEconomy,
   population: number,
   modifiers: Modifiers
-) => {
-  const cap =
-    manpowerCap(population, economy.conscription) * (1 + modifiers.manpower);
-  return Math.min(cap, economy.manpower + cap * MANPOWER_RECOVERY_PER_DAY);
-};
+): number =>
+  Math.max(
+    0,
+    manpowerCap(population, economy.conscription) * (1 + modifiers.manpower) -
+      economy.recruited
+  );
 
 /** How the factories finished today divide between the two kinds. */
 interface Built {
@@ -220,7 +228,7 @@ export const producedOneDay = (
       economy.militaryFactories *
         EQUIPMENT_PER_FACTORY *
         (1 + modifiers.production),
-    manpower: recoveredManpower(economy, population, modifiers),
+    manpower: freeManpower(economy, population, modifiers),
     militaryFactories: economy.militaryFactories + built.military,
     population,
   };
@@ -262,6 +270,7 @@ const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
   militaryFactories:
     economy.militaryFactories - Math.round(economy.militaryFactories * share),
   population: economy.population - economy.population * share,
+  recruited: economy.recruited - economy.recruited * share,
 });
 
 /** One nation's economy with what another lost added to it. */
@@ -278,6 +287,7 @@ const enlarged = (
     economy.militaryFactories +
     (lost.militaryFactories - keeping.militaryFactories),
   population: economy.population + (lost.population - keeping.population),
+  recruited: economy.recruited + (lost.recruited - keeping.recruited),
 });
 
 /**
@@ -286,8 +296,9 @@ const enlarged = (
  *
  * What the loser gives up is worked out first and the winner is handed exactly
  * that, so a province taken and retaken leaves the two of them holding between
- * them what they held before. The men already under arms and the equipment in
- * the depots do not move, because both marched away with the army.
+ * them what they held before. The same share of everyone the loser has called
+ * up moves with the people, so the winner cannot call them up a second time;
+ * the equipment in the depots stays, because it marched away with the army.
  */
 export const shareTransferred = (
   economies: readonly NationEconomy[],
@@ -332,6 +343,7 @@ export const startEconomies = (
         militaryFactories,
         plan: START_PLAN,
         population: industry.population,
+        recruited: 0,
         upkeepMet: 1,
       };
     }

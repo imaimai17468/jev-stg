@@ -89,11 +89,12 @@ export const canRaise = (economy: NationEconomy): boolean =>
   economy.manpower >= TEMPLATES.infantry.manpower &&
   economy.equipment >= TEMPLATES.infantry.equipment;
 
-/** The economy with one division's men and weapons taken out of it. */
+/** The economy with one division's men called up and its weapons taken out. */
 export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
   ...economy,
   equipment: economy.equipment - TEMPLATES.infantry.equipment,
   manpower: economy.manpower - TEMPLATES.infantry.manpower,
+  recruited: economy.recruited + TEMPLATES.infantry.manpower,
 });
 
 /** The men in a set of divisions, all of them together. */
