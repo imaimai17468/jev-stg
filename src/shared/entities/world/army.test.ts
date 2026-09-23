@@ -70,6 +70,13 @@ const forkedWith = (defenders: number): Armies => ({
   owners: FORK_OWNERS,
 });
 
+/** Where each division's trenches and planning stand, which is all the preparation tests read. */
+const preparation = (armies: Armies) =>
+  armies.divisions.map(({ entrenchment, planning }) => ({
+    entrenchment,
+    planning,
+  }));
+
 describe(armiesAfterOneDay, () => {
   it("should raise a division at the capital and take its cost out when a nation can afford one", () => {
     expect(
@@ -205,7 +212,9 @@ describe(armiesAfterOneDay, () => {
     expect(
       armiesAfterOneDay(LINE_WORLD, { ...WAR_COMMAND, wars: noWars(2) }, posted)
         .divisions
-    ).toStrictEqual([division({ movingTo: 1, nation: 0, province: 1 })]);
+    ).toStrictEqual([
+      division({ entrenchment: 1, movingTo: 1, nation: 0, province: 1 }),
+    ]);
   });
 
   it("should send all but the garrison into the enemy's province when it is left undefended", () => {
@@ -220,7 +229,13 @@ describe(armiesAfterOneDay, () => {
     expect(
       armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, massed).divisions
     ).toStrictEqual([
-      division({ movingTo: 1, nation: 0, province: 1 }),
+      division({
+        entrenchment: 1,
+        movingTo: 1,
+        nation: 0,
+        planning: 0.02,
+        province: 1,
+      }),
       division({ marched: 1, movingTo: 2, nation: 0, province: 1 }),
     ]);
   });
@@ -233,7 +248,15 @@ describe(armiesAfterOneDay, () => {
 
     expect(
       armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, alone).divisions
-    ).toStrictEqual([division({ movingTo: 1, nation: 0, province: 1 })]);
+    ).toStrictEqual([
+      division({
+        entrenchment: 1,
+        movingTo: 1,
+        nation: 0,
+        planning: 0.02,
+        province: 1,
+      }),
+    ]);
   });
 
   it("should hold the line when the enemy's garrison outweighs the attack", () => {
@@ -492,7 +515,115 @@ describe(armiesAfterOneDay, () => {
 
       expect(
         armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, recovered).divisions
-      ).toStrictEqual([division({ nation: 0, organisation: 53, province: 0 })]);
+      ).toStrictEqual([
+        division({ entrenchment: 1, nation: 0, organisation: 53, province: 0 }),
+      ]);
+    });
+  });
+
+  describe("preparing for battle", () => {
+    it("should abandon the trenches and spend the planning of the divisions it sends on when the enemy province beside them is undefended", () => {
+      const massed = startingWith({
+        divisions: [
+          division({
+            entrenchment: 5,
+            movingTo: 1,
+            nation: 0,
+            planning: 0.3,
+            province: 1,
+          }),
+          division({
+            entrenchment: 5,
+            movingTo: 1,
+            nation: 0,
+            planning: 0.3,
+            province: 1,
+          }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        preparation(armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, massed))
+      ).toStrictEqual([
+        { entrenchment: 6, planning: 0.3 },
+        { entrenchment: 0, planning: 0.29 },
+      ]);
+    });
+
+    it("should abandon the trenches of a division when it arrives in a new province", () => {
+      const arriving = startingWith({
+        divisions: [
+          division({
+            entrenchment: 5,
+            marched: 1,
+            movingTo: 1,
+            nation: 0,
+            planning: 0.3,
+            province: 0,
+          }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        preparation(armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, arriving))
+      ).toStrictEqual([{ entrenchment: 0, planning: 0.29 }]);
+    });
+
+    it("should abandon the trenches of a division when it sets out behind its own line", () => {
+      const reserve = startingWith({
+        divisions: [
+          division({ entrenchment: 5, nation: 0, planning: 0.3, province: 0 }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        preparation(armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, reserve))
+      ).toStrictEqual([{ entrenchment: 0, planning: 0.29 }]);
+    });
+
+    it("should spend the planning of an attacker when it takes the undefended province it stands in", () => {
+      const taking = startingWith({
+        divisions: [
+          division({ movingTo: 2, nation: 0, planning: 0.3, province: 2 }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        preparation(armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, taking))
+      ).toStrictEqual([{ entrenchment: 0, planning: 0.29 }]);
+    });
+
+    it("should spend the attacker's planning and keep the defender's trenches when a battle is on in the province", () => {
+      const battle = startingWith({
+        divisions: [
+          division({
+            entrenchment: 5,
+            movingTo: 2,
+            nation: 0,
+            planning: 0.3,
+            province: 2,
+          }),
+          division({
+            entrenchment: 5,
+            movingTo: 2,
+            nation: 1,
+            planning: 0.3,
+            province: 2,
+          }),
+        ],
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+
+      expect(
+        preparation(armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, battle))
+      ).toStrictEqual([
+        { entrenchment: 0, planning: 0.29 },
+        { entrenchment: 5, planning: 0.3 },
+      ]);
     });
   });
 });

@@ -89,11 +89,13 @@ const SIMULATION: Simulation = {
   divisions: [
     {
       arrival: "march",
+      entrenchment: 0,
       kind: "infantry",
       marched: 0,
       movingTo: 0,
       nation: 0,
       organisation: 60,
+      planning: 0,
       province: 0,
       strength: 20_000,
       task: "line",
@@ -187,6 +189,8 @@ describe(summaryOf, () => {
         { label: "攻勢目標", value: "国1の首都" },
         { label: "撤退線の州", value: "1" },
         { label: "再編中の師団", value: "0" },
+        { label: "前線の塹壕（平均）", value: "0.0 / 10" },
+        { label: "前線の計画ボーナス（平均）", value: "0%" },
       ],
       id: 0,
       intel: FRESH_SERVICE,

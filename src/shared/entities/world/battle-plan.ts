@@ -1,3 +1,4 @@
+import type { Division } from "./divisions";
 import {
   enemyContact,
   fieldFrom,
@@ -252,3 +253,7 @@ export const battlePlansOf = (
   nations.map((nation) =>
     battlePlanOf(provinces, nations, graph, owners, wars, nation.id)
   );
+
+/** Whether the division stands on its nation's front under the line's orders, which is where it plans an attack. */
+export const onItsFront = (plan: BattlePlan, division: Division): boolean =>
+  division.task === "line" && valueAt(plan.depth, division.province) === 0;

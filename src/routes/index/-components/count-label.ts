@@ -25,3 +25,16 @@ const PERCENT = 100;
 /** A share from 0 to 1 as a whole percentage. */
 export const percentLabel = (share: number): string =>
   `${Math.round(share * PERCENT)}%`;
+
+/** The average of `levels` written by `format`, or a dash where there are none. */
+export const averageLabel = (
+  levels: readonly number[],
+  format: (average: number) => string
+): string => {
+  if (levels.length === 0) {
+    return "—";
+  }
+  return format(
+    levels.reduce((total, level) => total + level, 0) / levels.length
+  );
+};

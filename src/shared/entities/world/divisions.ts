@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import type { NationEconomy } from "./economy";
 import { lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import { entrenchedShare } from "./preparation";
 import type { Terrain } from "./terrain";
 
 /** What a division is built from. Armour and artillery join this later. */
@@ -59,6 +60,10 @@ export interface Division {
   readonly marched: number;
   readonly arrival: Arrival;
   readonly task: Task;
+  /** The levels it has dug in where it stands, from 0 to `MOST_ENTRENCHMENT`. */
+  readonly entrenchment: number;
+  /** The planning bonus its preparation has built, from 0 to `MOST_PLANNING`. */
+  readonly planning: number;
 }
 
 /** The days it takes a division to walk into a province of each terrain. */
@@ -103,11 +108,13 @@ export const terrainDefenceOf = (terrain: Terrain): number =>
 /** A division fresh from the depots, standing where it was raised. */
 export const raisedAt = (nation: number, province: number): Division => ({
   arrival: "march",
+  entrenchment: 0,
   kind: "infantry",
   marched: 0,
   movingTo: province,
   nation,
   organisation: TEMPLATES.infantry.organisation,
+  planning: 0,
   province,
   strength: TEMPLATES.infantry.manpower,
   task: "line",
@@ -214,9 +221,17 @@ const UNSUPPLIED_WORTH = 0.3;
 const suppliedWorth = (fill: number): number =>
   UNSUPPLIED_WORTH + (1 - UNSUPPLIED_WORTH) * fill;
 
+/** How much of its planning bonus a division brings to each role: all of it to an attack. */
+const PLANNING_BY_ROLE = {
+  attack: 1,
+  defence: 0,
+} satisfies Readonly<Record<Role, number>>;
+
 /** What a division is worth in a day of battle in `role`. */
 const worthIn = (division: Division, backing: Backing, role: Role): number =>
   fitnessOf(division) *
+  (1 + entrenchedShare(division)) *
+  (1 + division.planning * PLANNING_BY_ROLE[role]) *
   TEMPLATES[division.kind][role] *
   equipmentShare(backing.equipment, role) *
   (1 + backing.modifiers[role]) *

@@ -31,11 +31,13 @@ describe(raisedAt, () => {
   it("should stand a full division in the province when one is raised", () => {
     expect(raisedAt(2, 7)).toStrictEqual({
       arrival: "march",
+      entrenchment: 0,
       kind: "infantry",
       marched: 0,
       movingTo: 7,
       nation: 2,
       organisation: 60,
+      planning: 0,
       province: 7,
       strength: 20_000,
       task: "line",
@@ -86,6 +88,26 @@ const backedBy = (bonus: Partial<Modifiers>): Backing => ({
 describe(attackOf, () => {
   it("should be worth half when the division has lost half its men", () => {
     expect(attackOf(division({ strength: 10_000 }), SUPPLIED)).toBe(3);
+  });
+});
+
+describe("attackOf after preparing", () => {
+  it("should hit a third harder when the division has built the whole planning bonus", () => {
+    expect(attackOf(division({ planning: 0.3 }), SUPPLIED)).toBeCloseTo(7.8);
+  });
+
+  it("should hit a tenth harder when the division is dug in five levels", () => {
+    expect(attackOf(division({ entrenchment: 5 }), SUPPLIED)).toBeCloseTo(6.6);
+  });
+});
+
+describe("defenceOf after preparing", () => {
+  it("should hold a tenth better when the division is dug in five levels", () => {
+    expect(defenceOf(division({ entrenchment: 5 }), SUPPLIED)).toBeCloseTo(11);
+  });
+
+  it("should hold no better when the division has only planned an attack", () => {
+    expect(defenceOf(division({ planning: 0.3 }), SUPPLIED)).toBeCloseTo(10);
   });
 });
 
