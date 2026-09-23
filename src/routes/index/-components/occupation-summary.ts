@@ -8,18 +8,8 @@ import {
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Stirred } from "@/shared/entities/world/unrest";
-import { percentLabel } from "./count-label";
+import { averageLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";
-
-/** The average of `levels`, or a dash where there are none. */
-const averageLabel = (levels: readonly number[]): string => {
-  if (levels.length === 0) {
-    return "—";
-  }
-  return percentLabel(
-    levels.reduce((total, level) => total + level, 0) / levels.length
-  );
-};
 
 /** What the occupation panel reads about who holds what and how the people there take it. */
 export interface Occupation {
@@ -68,7 +58,7 @@ export const occupationSummaryOf = (
   );
   return [
     { label: "占領している州", value: String(occupied.length) },
-    { label: "平均の服従度", value: averageLabel(occupied) },
+    { label: "平均の服従度", value: averageLabel(occupied, percentLabel) },
     {
       label: "抵抗運動が強まっている州",
       value: String(markedCount(owners, stirred.resistance, nation)),
