@@ -1,11 +1,11 @@
 import type { World } from "@/shared/entities/world";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Nation } from "@/shared/entities/world/nations";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import { noWars } from "@/shared/entities/world/wars";
 
 const nation = (id: number, red: number): Nation => ({
   capital: id,
@@ -58,9 +58,9 @@ export const fixtureSimulation = (
   patch: Partial<Simulation> = {}
 ): Simulation => ({
   clock: START_CLOCK,
+  diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],
   owners: HELD_BY_TWO,
-  wars: noWars(2),
   ...patch,
 });

@@ -1,14 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
+import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import type { Simulation } from "./simulation";
 import { ranOneDay, startSimulation, withClock } from "./simulation";
-import { atWar, noWars } from "./wars";
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
   clock: START_CLOCK,
+  diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
   divisions: [],
   economies: [
     {
@@ -25,7 +26,6 @@ const OPENING: Simulation = {
     },
   ],
   owners: LINE_OWNERS,
-  wars: noWars(2),
 };
 
 describe(startSimulation, () => {
@@ -39,8 +39,10 @@ describe(startSimulation, () => {
     );
   });
 
-  it("should set the two neighbours against each other when a world opens", () => {
-    expect(atWar(startSimulation(LINE_WORLD).wars, 0, 1)).toBeTruthy();
+  it("should open at peace with a faction led by each nation when there are fewer than three", () => {
+    expect(startSimulation(LINE_WORLD).diplomacy).toStrictEqual(
+      openingDiplomacy(LINE_OWNERS, 2, [0, 1])
+    );
   });
 
   it("should open with nothing in the field when a world opens", () => {

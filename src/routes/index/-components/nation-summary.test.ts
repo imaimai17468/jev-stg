@@ -1,12 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import {
+  openingDiplomacy,
+  warDeclared,
+} from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import { declared, noWars } from "@/shared/entities/world/wars";
 import { summaryOf } from "./nation-summary";
 
 const land = (
@@ -63,7 +66,7 @@ const SIMULATION: Simulation = {
   ],
   economies: ECONOMIES,
   owners: OWNERS,
-  wars: declared(noWars(2), { one: 0, other: 1 }),
+  diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, []), 0, 1),
 };
 
 describe(summaryOf, () => {

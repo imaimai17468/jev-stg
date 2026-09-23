@@ -97,7 +97,7 @@ export const summaryOf = (
       (division) => division.nation === nation
     ).length,
     economy: itemAt(simulation.economies, nation, NO_ECONOMY),
-    enemies: enemiesOf(simulation.wars, nation).map(
+    enemies: enemiesOf(simulation.diplomacy.wars, nation).map(
       (enemy) => itemAt(world.nations, enemy, named).name
     ),
     id: nation,
