@@ -1,8 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
+import { LINE_WORLD } from "./army-fixture";
 import {
   buildNations,
   growOwners,
+  initialOwners,
   nationColour,
+  neighbouringNations,
   pickCapitals,
 } from "./nations";
 import type { Province } from "./provinces";
@@ -151,5 +154,40 @@ describe(buildNations, () => {
         (nation) => nation.name.length > 0
       )
     ).toBeTruthy();
+  });
+});
+
+describe(neighbouringNations, () => {
+  it("should name each pair of nations once when their land touches in several places", () => {
+    const provinces = [
+      land(0, 0, [2, 3]),
+      land(1, 1, [2]),
+      land(2, 2, [0, 1]),
+      sea(3, 3, [0]),
+    ];
+
+    expect(
+      neighbouringNations(
+        { ...LINE_WORLD, provinces },
+        Int32Array.from([0, 0, 1, UNASSIGNED])
+      )
+    ).toStrictEqual([{ one: 0, other: 1 }]);
+  });
+
+  it("should pass over land nobody holds when it borders a nation", () => {
+    expect(
+      neighbouringNations(
+        LINE_WORLD,
+        Int32Array.from([UNASSIGNED, 0, 1, 1, UNASSIGNED])
+      )
+    ).toStrictEqual([{ one: 0, other: 1 }]);
+  });
+});
+
+describe(initialOwners, () => {
+  it("should grow each nation out from its capital when a world opens", () => {
+    expect(
+      initialOwners(LINE_WORLD.provinces, LINE_WORLD.nations)
+    ).toStrictEqual(Int32Array.from([0, 0, 1, 1, UNASSIGNED]));
   });
 });

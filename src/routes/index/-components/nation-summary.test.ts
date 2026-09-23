@@ -1,9 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
+import { START_CLOCK } from "@/shared/entities/world/clock";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
+import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import { declared, noWars } from "@/shared/entities/world/wars";
 import { summaryOf } from "./nation-summary";
 
 const land = (
@@ -25,7 +28,6 @@ const WORLD: World = {
     { capital: 0, colour: { blue: 0, green: 0, red: 0 }, id: 0, name: "国0" },
     { capital: 2, colour: { blue: 0, green: 0, red: 0 }, id: 1, name: "国1" },
   ],
-  owners: Int32Array.from([0, 0, 1, UNASSIGNED, 0]),
   provinces: [
     land(0, "plains", 4, [1, 2, 3]),
     land(1, "plains", 2, [0]),
@@ -42,11 +44,35 @@ const ECONOMIES: readonly NationEconomy[] = [
   { ...NO_ECONOMY, equipment: 90 },
 ];
 
+/** Nation 0 holds three provinces, nation 1 holds one, and a sea zone is free. */
+const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
+
+/** The two nations at war, so the panel has enemies to name. */
+const SIMULATION: Simulation = {
+  clock: START_CLOCK,
+  divisions: [
+    {
+      kind: "infantry",
+      marched: 0,
+      movingTo: 0,
+      nation: 0,
+      organisation: 60,
+      province: 0,
+      strength: 20_000,
+    },
+  ],
+  economies: ECONOMIES,
+  owners: OWNERS,
+  wars: declared(noWars(2), { one: 0, other: 1 }),
+};
+
 describe(summaryOf, () => {
   it("should gather a nation's ground, terrain and borders when it holds some", () => {
-    expect(summaryOf(WORLD, ECONOMIES, 0)).toStrictEqual({
+    expect(summaryOf(WORLD, SIMULATION, 0)).toStrictEqual({
       cells: 7,
+      divisions: 1,
       economy: { ...NO_ECONOMY, equipment: 40 },
+      enemies: ["国1"],
       id: 0,
       name: "国0",
       neighbours: ["国1"],
@@ -59,9 +85,11 @@ describe(summaryOf, () => {
   });
 
   it("should read nothing when the world holds no nation with that id", () => {
-    expect(summaryOf(WORLD, ECONOMIES, 9)).toStrictEqual({
+    expect(summaryOf(WORLD, SIMULATION, 9)).toStrictEqual({
       cells: 0,
+      divisions: 0,
       economy: NO_ECONOMY,
+      enemies: [],
       id: -1,
       name: "",
       neighbours: [],

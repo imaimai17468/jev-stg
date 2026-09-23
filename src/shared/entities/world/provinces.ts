@@ -27,6 +27,65 @@ export interface SeaProvince {
 
 export type Province = LandProvince | SeaProvince;
 
+/** Stands in for a list `itemAt` cannot reach. Nothing reads it but the caller. */
+const NO_LIST: readonly number[] = [];
+
+/** Each province's neighbours by province id, as a spread reads them. */
+export const adjacencyOf = (
+  provinces: readonly Province[]
+): readonly (readonly number[])[] =>
+  provinces.map((province) => province.neighbours);
+
+/** 1 where the province of that id is land, by province id. */
+export const landFlags = (provinces: readonly Province[]): Uint8Array =>
+  Uint8Array.from(provinces, (province) => Number(province.kind === "land"));
+
+/**
+ * The province map in the two forms a walk over it reads, built once and handed
+ * to everything that crosses the graph that day.
+ */
+export interface ProvinceGraph {
+  readonly adjacency: readonly (readonly number[])[];
+  /** 1 where the province of that id is land. */
+  readonly land: Uint8Array;
+}
+
+export const graphOf = (provinces: readonly Province[]): ProvinceGraph => ({
+  adjacency: adjacencyOf(provinces),
+  land: landFlags(provinces),
+});
+
+/** The provinces touching the one with this id, empty where none do. */
+export const neighboursOf = (
+  graph: ProvinceGraph,
+  province: number
+): readonly number[] => itemAt(graph.adjacency, province, NO_LIST);
+
+/** Whether the province of that id is land. */
+export const isLand = (graph: ProvinceGraph, province: number): boolean =>
+  valueAt(graph.land, province) === 1;
+
+/** The province graph as `spreadFrom` and `distanceFrom` walk it. */
+export const overTheProvinces =
+  (adjacency: readonly (readonly number[])[]) =>
+  (from: number, visit: (neighbour: number) => void): void => {
+    for (const neighbour of itemAt(adjacency, from, NO_LIST)) {
+      visit(neighbour);
+    }
+  };
+
+/** The terrain of the land province with this id, plains where there is none. */
+export const provinceTerrain = (
+  provinces: readonly Province[],
+  id: number
+): Terrain => {
+  const province = provinces[id];
+  if (province?.kind !== "land") {
+    return "plains";
+  }
+  return province.terrain;
+};
+
 /** The land provinces of a list, in the order they were given. */
 export const landProvinces = (
   provinces: readonly Province[]
@@ -34,9 +93,6 @@ export const landProvinces = (
   provinces.filter(
     (province): province is LandProvince => province.kind === "land"
   );
-
-/** Stands in for a list `itemAt` cannot reach. Nothing reads it but the caller. */
-const NO_LIST: readonly number[] = [];
 
 interface Aggregate {
   readonly sumX: Float64Array;
@@ -130,4 +186,18 @@ export const buildProvinces = (
       terrain: terrainOfCell(valueAt(seedCells, id)),
     };
   });
+};
+
+/** The ids of the land provinces `keep` accepts, in the order given. */
+export const landIdsWhere = (
+  provinces: readonly Province[],
+  keep: (province: LandProvince) => boolean
+): readonly number[] => {
+  const ids: number[] = [];
+  for (const province of landProvinces(provinces)) {
+    if (keep(province)) {
+      ids.push(province.id);
+    }
+  }
+  return ids;
 };

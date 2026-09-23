@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { randomFromSeed } from "./random";
+import { randomFromSeed, shuffled } from "./random";
 
 const firstThree = (seed: number): readonly number[] => {
   const random = randomFromSeed(seed);
@@ -32,5 +32,25 @@ describe(randomFromSeed, () => {
     expect(
       drawn.every((value) => Number.isInteger(value) && value >= 0 && value < 5)
     ).toBeTruthy();
+  });
+});
+
+describe(shuffled, () => {
+  it("should keep every item when a list is dealt again", () => {
+    expect(
+      [...shuffled([1, 2, 3, 4, 5], randomFromSeed(9))].toSorted(
+        (left, right) => left - right
+      )
+    ).toStrictEqual([1, 2, 3, 4, 5]);
+  });
+
+  it("should deal an empty list back when there is nothing to deal", () => {
+    expect(shuffled([], randomFromSeed(9))).toStrictEqual([]);
+  });
+
+  it("should deal the same order when the seed is the same", () => {
+    expect(shuffled([1, 2, 3, 4, 5], randomFromSeed(9))).toStrictEqual(
+      shuffled([1, 2, 3, 4, 5], randomFromSeed(9))
+    );
   });
 });

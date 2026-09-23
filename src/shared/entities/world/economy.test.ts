@@ -2,7 +2,9 @@ import { describe, expect, it } from "vite-plus/test";
 import type { NationEconomy } from "./economy";
 import {
   constructionProgress,
+  NO_ECONOMY,
   producedOneDay,
+  shareTransferred,
   startEconomies,
 } from "./economy";
 import type { World } from "./index";
@@ -15,7 +17,6 @@ const WORLD: World = {
   nations: [
     { capital: 0, colour: { blue: 0, green: 0, red: 0 }, id: 0, name: "国0" },
   ],
-  owners: Int32Array.from([0, UNASSIGNED]),
   provinces: [
     {
       cells: 1000,
@@ -55,9 +56,11 @@ const PEOPLE: NationEconomy = {
   population: 1_000_000,
 };
 
+const OWNERS = Int32Array.from([0, UNASSIGNED]);
+
 describe(startEconomies, () => {
   it("should split a nation's factories by its plan when the world opens", () => {
-    expect(startEconomies(WORLD)).toStrictEqual([
+    expect(startEconomies(WORLD, OWNERS)).toStrictEqual([
       {
         civilianFactories: 25,
         conscription: "volunteer",
@@ -128,6 +131,47 @@ describe(producedOneDay, () => {
       ...full,
       manpower: 15_000.492813141684,
       population: 1_000_032.8542094456,
+    });
+  });
+});
+
+describe(shareTransferred, () => {
+  /** A loser worth taking a share of, a winner with nothing, and a bystander. */
+  const HOLDERS: readonly NationEconomy[] = [
+    {
+      ...NO_ECONOMY,
+      civilianFactories: 20,
+      militaryFactories: 10,
+      population: 1_000_000,
+    },
+    NO_ECONOMY,
+    { ...NO_ECONOMY, population: 5 },
+  ];
+
+  it("should move the share's people and factories to the winner when ground changes hands", () => {
+    expect(shareTransferred(HOLDERS, 0, 1, 0.25)).toStrictEqual([
+      {
+        ...NO_ECONOMY,
+        civilianFactories: 15,
+        militaryFactories: 7,
+        population: 750_000,
+      },
+      {
+        ...NO_ECONOMY,
+        civilianFactories: 5,
+        militaryFactories: 3,
+        population: 250_000,
+      },
+      { ...NO_ECONOMY, population: 5 },
+    ]);
+  });
+
+  it("should move no more than the loser holds when the share runs over one", () => {
+    expect(shareTransferred(HOLDERS, 0, 1, 3).at(0)).toStrictEqual({
+      ...NO_ECONOMY,
+      civilianFactories: 0,
+      militaryFactories: 0,
+      population: 0,
     });
   });
 });

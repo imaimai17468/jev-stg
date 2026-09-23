@@ -37,6 +37,7 @@ export const headlineOf = (
     onSome: (summary) => ({
       stats: [
         { label: "人的資源", value: countLabel(summary.economy.manpower) },
+        { label: "師団", value: String(summary.divisions) },
         {
           label: "工場",
           value: `民 ${summary.economy.civilianFactories} / 軍 ${summary.economy.militaryFactories}`,

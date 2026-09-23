@@ -4,7 +4,7 @@ import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { headlineOf } from "./headline";
 import { summaryOf } from "./nation-summary";
-import { TWO_NATIONS } from "./world-fixture";
+import { FIXTURE_WORLD, fixtureSimulation } from "./world-fixture";
 
 const ECONOMIES: readonly NationEconomy[] = [
   NO_ECONOMY,
@@ -20,7 +20,7 @@ const ECONOMIES: readonly NationEconomy[] = [
 
 describe(headlineOf, () => {
   it("should count the world when no nation is picked", () => {
-    expect(headlineOf(TWO_NATIONS, Option.none())).toStrictEqual({
+    expect(headlineOf(FIXTURE_WORLD, Option.none())).toStrictEqual({
       stats: [
         { label: "国", value: "2" },
         { label: "州", value: "3" },
@@ -31,11 +31,14 @@ describe(headlineOf, () => {
   });
 
   it("should read the picked nation's economy when one is picked", () => {
-    const selection = Option.some(summaryOf(TWO_NATIONS, ECONOMIES, 1));
+    const selection = Option.some(
+      summaryOf(FIXTURE_WORLD, fixtureSimulation({ economies: ECONOMIES }), 1)
+    );
 
-    expect(headlineOf(TWO_NATIONS, selection)).toStrictEqual({
+    expect(headlineOf(FIXTURE_WORLD, selection)).toStrictEqual({
       stats: [
         { label: "人的資源", value: "1,352,004" },
+        { label: "師団", value: "0" },
         { label: "工場", value: "民 25 / 軍 5" },
         { label: "装備", value: "12,500" },
         { label: "建設", value: "25%" },

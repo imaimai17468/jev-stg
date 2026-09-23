@@ -3,9 +3,11 @@ import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Nation } from "@/shared/entities/world/nations";
+import { NO_NATION } from "@/shared/entities/world/nations";
+import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { Terrain } from "@/shared/entities/world/terrain";
+import { enemiesOf } from "@/shared/entities/world/wars";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {
@@ -26,19 +28,17 @@ export interface NationSummary {
   readonly neighbours: readonly string[];
   /** Its people, its industry, and what they have turned out so far. */
   readonly economy: NationEconomy;
+  /** The divisions it has in the field. */
+  readonly divisions: number;
+  /** The nations it is fighting, by name. */
+  readonly enemies: readonly string[];
 }
-
-/** Stands in for a nation the world does not hold, which its id gives away. */
-const UNKNOWN: Nation = {
-  capital: 0,
-  colour: { blue: 0, green: 0, red: 0 },
-  id: -1,
-  name: "",
-};
 
 const EMPTY: NationSummary = {
   cells: 0,
+  divisions: 0,
   economy: NO_ECONOMY,
+  enemies: [],
   id: -1,
   name: "",
   neighbours: [],
@@ -61,10 +61,11 @@ const terrainShares = (
  */
 export const summaryOf = (
   world: World,
-  economies: readonly NationEconomy[],
+  simulation: Simulation,
   nation: number
 ): NationSummary => {
-  const named = itemAt(world.nations, nation, UNKNOWN);
+  const { owners } = simulation;
+  const named = itemAt(world.nations, nation, NO_NATION);
   if (named.id < 0) {
     return EMPTY;
   }
@@ -76,14 +77,14 @@ export const summaryOf = (
     if (province.kind !== "land") {
       continue;
     }
-    if (valueAt(world.owners, province.id) !== nation) {
+    if (valueAt(owners, province.id) !== nation) {
       continue;
     }
     provinces += 1;
     cells += province.cells;
     counts.set(province.terrain, (counts.get(province.terrain) ?? 0) + 1);
     for (const beside of province.neighbours) {
-      const owner = valueAt(world.owners, beside);
+      const owner = valueAt(owners, beside);
       if (owner === nation || owner === UNASSIGNED) {
         continue;
       }
@@ -92,7 +93,13 @@ export const summaryOf = (
   }
   return {
     cells,
-    economy: itemAt(economies, nation, NO_ECONOMY),
+    divisions: simulation.divisions.filter(
+      (division) => division.nation === nation
+    ).length,
+    economy: itemAt(simulation.economies, nation, NO_ECONOMY),
+    enemies: enemiesOf(simulation.wars, nation).map(
+      (enemy) => itemAt(world.nations, enemy, named).name
+    ),
     id: nation,
     name: named.name,
     neighbours: [...neighbours].map(

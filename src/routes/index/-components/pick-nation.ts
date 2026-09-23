@@ -13,6 +13,7 @@ import type { Viewport } from "./viewport";
  */
 export const nationAt = (
   world: World,
+  owners: Int32Array,
   view: Viewport,
   atX: number,
   atY: number
@@ -26,7 +27,7 @@ export const nationAt = (
     return Option.none();
   }
   const province = valueAt(world.cellProvince, y * world.grid.width + x);
-  const owner = valueAt(world.owners, province);
+  const owner = valueAt(owners, province);
   if (owner === UNASSIGNED) {
     return Option.none();
   }

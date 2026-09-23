@@ -1,5 +1,7 @@
+import { NationList } from "./nation-list";
 import { terrainOf, territoryOf } from "./nation-stats";
 import type { NationSummary } from "./nation-summary";
+import { PanelSection } from "./panel-section";
 import { StatRows } from "./stat-rows";
 
 interface NationDetailProps {
@@ -8,23 +10,17 @@ interface NationDetailProps {
 
 export const NationDetail = ({ summary }: NationDetailProps) => (
   <div className="flex flex-col gap-6">
-    <section className="flex flex-col gap-2">
-      <h2 className="text-xs text-muted-foreground">領土</h2>
+    <PanelSection title="領土">
       <StatRows layout="column" stats={territoryOf(summary)} />
-    </section>
-    <section className="flex flex-col gap-2">
-      <h2 className="text-xs text-muted-foreground">地形</h2>
+    </PanelSection>
+    <PanelSection title="戦争">
+      <NationList empty="どことも戦っていません" names={summary.enemies} />
+    </PanelSection>
+    <PanelSection title="地形">
       <StatRows layout="column" stats={terrainOf(summary)} />
-    </section>
-    <section className="flex flex-col gap-2">
-      <h2 className="text-xs text-muted-foreground">隣接する国</h2>
-      <ul className="flex flex-col gap-1">
-        {summary.neighbours.map((name) => (
-          <li className="text-sm" key={name}>
-            {name}
-          </li>
-        ))}
-      </ul>
-    </section>
+    </PanelSection>
+    <PanelSection title="隣接する国">
+      <NationList empty="陸で接する国はありません" names={summary.neighbours} />
+    </PanelSection>
   </div>
 );

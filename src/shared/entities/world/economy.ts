@@ -1,5 +1,6 @@
 import type { World } from "./index";
 import { industryByNation } from "./industry";
+import { itemAt } from "./lookup";
 
 /** How much of its people a nation may call up, set by its conscription law. */
 type ConscriptionLaw =
@@ -165,14 +166,71 @@ export const producedOneDay = (economy: NationEconomy): NationEconomy => {
   };
 };
 
+/** One nation's economy with a share of it taken out. */
+const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
+  ...economy,
+  civilianFactories:
+    economy.civilianFactories - Math.round(economy.civilianFactories * share),
+  militaryFactories:
+    economy.militaryFactories - Math.round(economy.militaryFactories * share),
+  population: economy.population - economy.population * share,
+});
+
+/** One nation's economy with what another lost added to it. */
+const enlarged = (
+  economy: NationEconomy,
+  lost: NationEconomy,
+  keeping: NationEconomy
+): NationEconomy => ({
+  ...economy,
+  civilianFactories:
+    economy.civilianFactories +
+    (lost.civilianFactories - keeping.civilianFactories),
+  militaryFactories:
+    economy.militaryFactories +
+    (lost.militaryFactories - keeping.militaryFactories),
+  population: economy.population + (lost.population - keeping.population),
+});
+
+/**
+ * The economies after `share` of one nation's people and industry changed
+ * hands.
+ *
+ * What the loser gives up is worked out first and the winner is handed exactly
+ * that, so a province taken and retaken leaves the two of them holding between
+ * them what they held before. The men already under arms and the equipment in
+ * the depots do not move, because both marched away with the army.
+ */
+export const shareTransferred = (
+  economies: readonly NationEconomy[],
+  from: number,
+  to: number,
+  share: number
+): readonly NationEconomy[] => {
+  const loser = itemAt(economies, from, NO_ECONOMY);
+  const kept = lightened(loser, Math.min(1, Math.max(0, share)));
+  return economies.map((economy, nation) => {
+    if (nation === from) {
+      return kept;
+    }
+    if (nation === to) {
+      return enlarged(economy, loser, kept);
+    }
+    return economy;
+  });
+};
+
 /**
  * Each nation's economy on the world's first day, by nation id.
  *
  * Every nation starts under the same law and the same plan, so what separates
  * two of them here is the ground they were grown over and nothing else.
  */
-export const startEconomies = (world: World): readonly NationEconomy[] =>
-  industryByNation(world.provinces, world.owners, world.nations.length).map(
+export const startEconomies = (
+  world: World,
+  owners: Int32Array
+): readonly NationEconomy[] =>
+  industryByNation(world.provinces, owners, world.nations.length).map(
     (industry): NationEconomy => {
       const militaryFactories = Math.round(
         industry.factories * PLAN_SHARES[START_PLAN].military

@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
+import { LINE_GRAPH, LINE_WORLD } from "./army-fixture";
 import type { Grid } from "./grid";
-import { buildProvinces } from "./provinces";
+import {
+  buildProvinces,
+  graphOf,
+  isLand,
+  neighboursOf,
+  provinceTerrain,
+} from "./provinces";
 import type { Terrain } from "./terrain";
 
 const GRID: Grid = { height: 4, width: 4 };
@@ -72,5 +79,40 @@ describe(buildProvinces, () => {
       x: 0,
       y: 0,
     });
+  });
+});
+
+describe(provinceTerrain, () => {
+  it("should read a land province's terrain when the id names one", () => {
+    expect(provinceTerrain(LINE_WORLD.provinces, 1)).toBe("plains");
+  });
+
+  it("should stand plains in for a sea zone when the id names one", () => {
+    expect(provinceTerrain(LINE_WORLD.provinces, 4)).toBe("plains");
+  });
+
+  it("should stand plains in when the id is beyond the list", () => {
+    expect(provinceTerrain(LINE_WORLD.provinces, 99)).toBe("plains");
+  });
+});
+
+describe(graphOf, () => {
+  it("should flag the land and list each province's neighbours when the graph is built", () => {
+    expect(graphOf(LINE_WORLD.provinces)).toStrictEqual({
+      adjacency: [[1], [0, 2], [1, 3], [2, 4], [3]],
+      land: Uint8Array.from([1, 1, 1, 1, 0]),
+    });
+  });
+});
+
+describe(neighboursOf, () => {
+  it("should read nothing when the id is beyond the graph", () => {
+    expect(neighboursOf(LINE_GRAPH, 99)).toStrictEqual([]);
+  });
+});
+
+describe(isLand, () => {
+  it("should read a sea zone as water when the graph is asked", () => {
+    expect(isLand(LINE_GRAPH, 4)).toBeFalsy();
   });
 });
