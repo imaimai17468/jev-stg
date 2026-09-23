@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
@@ -185,20 +186,40 @@ describe(freeOperatives, () => {
   });
 });
 
+/** Nobody in the line having finished any focus. */
+const UNFOCUSED = [START_ADVANCEMENT, START_ADVANCEMENT];
+
 describe(slotsOf, () => {
+  const LINE = { ...SCENE, advancements: UNFOCUSED };
+
   it("should give no slots when the agency is not founded", () => {
-    expect(slotsOf(0, NO_AGENCY, SCENE)).toBe(0);
+    expect(slotsOf(0, NO_AGENCY, LINE)).toBe(0);
   });
 
   it("should give one slot when the agency is founded and belongs to no faction", () => {
-    expect(slotsOf(0, FOUNDED, SCENE)).toBe(1);
+    expect(slotsOf(0, FOUNDED, LINE)).toBe(1);
   });
 
   it("should give a second slot when the agency has bought five upgrades", () => {
-    expect(slotsOf(0, FIVE_UPGRADES, SCENE)).toBe(2);
+    expect(slotsOf(0, FIVE_UPGRADES, LINE)).toBe(2);
+  });
+
+  it("should give another slot when the nation has finished the intelligence bureau", () => {
+    const bureau: Advancement = {
+      ...START_ADVANCEMENT,
+      focuses: { current: Option.none(), done: ["intelligence-bureau"] },
+    };
+
+    expect(
+      slotsOf(0, FOUNDED, {
+        ...LINE,
+        advancements: [bureau, START_ADVANCEMENT],
+      })
+    ).toBe(2);
   });
 
   const FACTION = {
+    advancements: [0, 1, 2, 3].map(() => START_ADVANCEMENT),
     diplomacy: {
       ...openingDiplomacy(Int32Array.from([0, 1, 2, 3]), 4, [0]),
       factions: Int32Array.from([0, 0, 0, -1]),

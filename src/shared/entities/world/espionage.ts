@@ -17,6 +17,7 @@ import { countedDown } from "./countdown";
 import type { Diplomacy } from "./diplomacy";
 import { factionOf, standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
+import { operativeSlotsOf } from "./focus";
 import { valueAt } from "./grid";
 import type { IntelKind } from "./intel";
 import { INTEL_KINDS } from "./intel";
@@ -106,6 +107,8 @@ const LARGE_MEMBER = { factories: 50, slots: 0.5 };
 interface Membership {
   readonly diplomacy: Diplomacy;
   readonly economies: readonly NationEconomy[];
+  /** Each nation's research and focus tree, by nation id, whose finished focuses may add slots. */
+  readonly advancements: readonly Advancement[];
 }
 
 /** The slots the other members of the faction `nation` founded give it as spymaster. */
@@ -140,6 +143,9 @@ export const slotsOf = (
   return Math.floor(
     BASE_SLOTS +
       Number(agency.upgrades.length >= UPGRADES_FOR_SLOT) +
+      operativeSlotsOf(
+        itemAt(standing.advancements, nation, START_ADVANCEMENT).focuses
+      ) +
       spymasterSlots(nation, standing) * Number(spymaster)
   );
 };
@@ -756,7 +762,7 @@ export const plottedOneDay = (
 ): Plotted => {
   const counterIntelligence = intrigue.services.map(counterIntelligenceOf);
   const slots = intrigue.services.map((service, nation) =>
-    slotsOf(nation, service.agency, scene)
+    slotsOf(nation, service.agency, { ...scene, advancements })
   );
   const holdings = holdingsOf(scene, intrigue.services.length);
   const strengths = intrigue.services.map((service) =>

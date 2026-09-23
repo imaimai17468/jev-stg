@@ -22,6 +22,7 @@ export const FocusIdSchema = Schema.Literals([
   "neutrality",
   "militarism",
   "war-propaganda",
+  "intelligence-bureau",
 ]);
 
 /** One national focus a government can pursue. */
@@ -34,11 +35,14 @@ export interface Grants {
   readonly civilianFactories: number;
   readonly militaryFactories: number;
   readonly researchSlots: number;
+  /** Operative slots for its intelligence agency. */
+  readonly operatives: number;
 }
 
 const NO_GRANTS: Grants = {
   civilianFactories: 0,
   militaryFactories: 0,
+  operatives: 0,
   researchSlots: 0,
 };
 
@@ -95,6 +99,14 @@ const FOCUSES = {
     grants: { ...NO_GRANTS, civilianFactories: 3 },
     name: "工業化",
     requires: [],
+  },
+  "intelligence-bureau": {
+    bonus: {},
+    branch: "politics",
+    excludes: [],
+    grants: { ...NO_GRANTS, operatives: 1 },
+    name: "諜報局",
+    requires: ["political-effort"],
   },
   militarism: {
     bonus: { attack: 0.1 },
@@ -271,14 +283,29 @@ export const grantedBy = (
   };
 };
 
-/** The research slots a nation with `focuses` finished has. */
-export const researchSlotsOf = (focuses: Focuses): number => {
-  let slots = BASE_RESEARCH_SLOTS;
+/** What every focus in `focuses` finished grants of `grant` together. */
+const grantedAll = (
+  focuses: Focuses,
+  grant: "researchSlots" | "operatives"
+): number => {
+  let granted = 0;
   for (const focus of focuses.done) {
-    slots += focusOf(focus).grants.researchSlots;
+    granted += focusOf(focus).grants[grant];
   }
-  return slots;
+  return granted;
 };
+
+/** The research slots a nation with `focuses` finished has. */
+export const researchSlotsOf = (focuses: Focuses): number =>
+  BASE_RESEARCH_SLOTS + grantedAll(focuses, "researchSlots");
+
+/**
+ * The operative slots the focuses a nation has finished add to its agency.
+ * Hearts of Iron IV's national focus trees add operative slots, and which
+ * focus does here, and that it adds one, is this game's own.
+ */
+export const operativeSlotsOf = (focuses: Focuses): number =>
+  grantedAll(focuses, "operatives");
 
 /** What every focus finished adds. */
 export const focusBonuses = (focuses: Focuses): readonly Bonus[] =>

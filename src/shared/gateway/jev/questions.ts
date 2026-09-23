@@ -223,6 +223,7 @@ const MODIFIER_LABELS = {
 const GRANT_LABELS = {
   civilianFactories: "民需工場",
   militaryFactories: "軍需工場",
+  operatives: "工作員の枠",
   researchSlots: "研究枠",
 } satisfies Readonly<Record<keyof Grants, string>>;
 
@@ -230,6 +231,7 @@ const GRANTS: readonly (keyof Grants)[] = [
   "civilianFactories",
   "militaryFactories",
   "researchSlots",
+  "operatives",
 ];
 
 /** What a technology or a focus makes the nation better at, in words. */
