@@ -367,11 +367,18 @@ const holdingsOf = (
 /** No operation, where a mission runs in some other nation. */
 const NO_OPERATIONS: readonly Operation[] = [];
 
+/** A nation's service and the nation it has its operatives in. */
+interface Posting {
+  readonly spy: number;
+  readonly service: Service;
+  readonly target: number;
+  /** The resistance work its missions done today set running, which the day's state does not hold yet. */
+  readonly started: readonly Unrest[];
+}
+
 /** What `spy`'s operatives find in `target`. */
 const prospectOf = (
-  spy: number,
-  service: Service,
-  target: number,
+  { service, spy, started, target }: Posting,
   surroundings: Surroundings
 ): Prospect => {
   const { intrigue, scene } = surroundings;
@@ -401,7 +408,7 @@ const prospectOf = (
         )
       )
     ),
-    unrest: unrestAgainst(intrigue.unrest, spy, target),
+    unrest: unrestAgainst([...intrigue.unrest, ...started], spy, target),
   };
 };
 
@@ -593,13 +600,6 @@ const missionsDue = (missions: readonly Assignment[]): AssignmentsDue => ({
   ongoing: countedDown(missions),
 });
 
-/** A nation's service and the nation it has its operatives in. */
-interface Posting {
-  readonly spy: number;
-  readonly service: Service;
-  readonly target: number;
-}
-
 /**
  * What a nation's operatives in `target` do today: each one free is caught
  * with the day's chance, the rules start the first operation the target
@@ -607,9 +607,10 @@ interface Posting {
  * operatives still free build the network from where they work.
  */
 const workedIn = (
-  { service, spy, target }: Posting,
+  posting: Posting,
   surroundings: Surroundings
 ): Pick<Served, "service" | "events" | "build"> => {
+  const { service, spy, target } = posting;
   const { scene } = surroundings;
   const host = hostOf(surroundings, target);
   const caught = caughtOf(
@@ -627,7 +628,7 @@ const workedIn = (
   const center = centerIn(scene, network, spy, target);
   const working = Option.match(
     operationWanted(
-      prospectOf(spy, left, target, surroundings),
+      prospectOf({ ...posting, service: left }, surroundings),
       freeOperatives(left),
       valueAt(network, center)
     ),
@@ -704,7 +705,7 @@ const servedOneDay = (
   let { service } = worked;
   const build: Build[] = [];
   if (target !== HOME) {
-    const inTarget = workedIn({ service, spy, target }, surroundings);
+    const inTarget = workedIn({ service, spy, started, target }, surroundings);
     ({ service } = inTarget);
     events.push(...inTarget.events);
     build.push(...inTarget.build);

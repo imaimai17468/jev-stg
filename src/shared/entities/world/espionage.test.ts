@@ -429,6 +429,26 @@ describe(plottedOneDay, () => {
     ]);
   });
 
+  it("should build on the contacts rather than make them again the same day when contacts just done in an infiltrated target leave three operatives free", () => {
+    const plotted = dayOf(
+      {
+        ...finishing("resistance-contacts", FOUNDED),
+        infiltrated: Uint8Array.from([0, 0, 0, 0, 1, 1, 1, 1]),
+        operatives: 3,
+        target: 1,
+      },
+      {
+        diplomacy: WAR,
+        network: networkOf([0, 100, 0, 0, 0]),
+        owners: OCCUPYING_OWNERS,
+      }
+    );
+
+    expect(
+      spyAfter(plotted).missions.map((started) => started.operation)
+    ).toStrictEqual(["strengthen-resistance"]);
+  });
+
   it("should raise the sabotage by the agency's explosives when sabotage is done", () => {
     const plotted = dayOf(
       finishing("sabotage-industry", agencyWith(["plastic-explosives"]))
