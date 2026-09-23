@@ -8,6 +8,7 @@ import { ranOneDay, startSimulation, withClock } from "./simulation";
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
+  chronicle: [],
   clock: START_CLOCK,
   diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
   divisions: [],
@@ -25,7 +26,9 @@ const OPENING: Simulation = {
       population: 600_000,
     },
   ],
+  negotiations: [],
   owners: LINE_OWNERS,
+  stances: ["balanced", "balanced"],
 };
 
 describe(startSimulation, () => {

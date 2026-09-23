@@ -1,9 +1,13 @@
 import { LINE_WORLD } from "./army-fixture";
+import { START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy } from "./diplomacy";
+import { NO_ECONOMY } from "./economy";
 import type { World } from "./index";
 import { NO_NATION } from "./nations";
+import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
+import { START_STANCE } from "./stance";
 
 /**
  * The same four provinces in a row as the army's line, with one nation to a
@@ -24,3 +28,18 @@ export const ROW_OWNERS = Int32Array.from([0, 1, 2, 3, UNASSIGNED]);
 
 /** The row at peace, with nobody in a faction. */
 export const ROW_PEACE: Diplomacy = openingDiplomacy(ROW_OWNERS, 4, []);
+
+/** The row on its first day, at peace, with nobody armed and nothing decided. */
+export const ROW_SIMULATION: Simulation = {
+  chronicle: [],
+  clock: START_CLOCK,
+  diplomacy: ROW_PEACE,
+  divisions: [],
+  economies: ROW_WORLD.nations.map(() => ({
+    ...NO_ECONOMY,
+    population: 300_000,
+  })),
+  negotiations: [],
+  owners: ROW_OWNERS,
+  stances: ROW_WORLD.nations.map(() => START_STANCE),
+};

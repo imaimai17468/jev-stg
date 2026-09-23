@@ -1,3 +1,4 @@
+import path from "node:path";
 import react from "@vitejs/plugin-react";
 import { defaultExclude, defineConfig } from "vite-plus";
 
@@ -31,6 +32,15 @@ export const coverageExclude = [
 export default defineConfig({
   resolve: {
     tsconfigPaths: true,
+    // `cloudflare:workers` exists inside the Workers runtime and the Cloudflare
+    // Vite plugin only, so a suite that reaches `src/lib/cloudflare/env.ts`
+    // resolves it to an empty binding set instead.
+    alias: {
+      "cloudflare:workers": path.resolve(
+        import.meta.dirname,
+        "src/test/cloudflare-workers-stub.ts"
+      ),
+    },
   },
   plugins: [react()],
   test: {

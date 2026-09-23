@@ -36,9 +36,12 @@ export interface Clock {
 
 export const START_CLOCK: Clock = { days: 0, paused: false, speed: 2 };
 
+/** The date `days` after the start date. */
+export const dateOnDay = (days: number): GameDate =>
+  civilFromDays(daysFromCivil(START_DATE) + days);
+
 /** The date the clock reads. */
-export const dateOf = (clock: Clock): GameDate =>
-  civilFromDays(daysFromCivil(START_DATE) + clock.days);
+export const dateOf = (clock: Clock): GameDate => dateOnDay(clock.days);
 
 /** The clock one day on, which is the step the world is simulated in. */
 export const advancedOneDay = (clock: Clock): Clock => ({

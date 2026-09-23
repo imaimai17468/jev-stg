@@ -3,7 +3,7 @@ import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
 
 /** How much of its people a nation may call up, set by its conscription law. */
-type ConscriptionLaw =
+export type ConscriptionLaw =
   | "volunteer"
   | "limited"
   | "extensive"
@@ -19,8 +19,25 @@ const MANPOWER_SHARE = {
   volunteer: 0.015,
 } satisfies Readonly<Record<ConscriptionLaw, number>>;
 
+/** Every conscription law, from the lightest to the heaviest. */
+export const CONSCRIPTION_LAWS: readonly ConscriptionLaw[] = [
+  "volunteer",
+  "limited",
+  "extensive",
+  "service-by-requirement",
+  "all-adults",
+];
+
 /** What a nation does with the industry it holds. */
-type IndustryPlan = "civilian" | "balanced" | "military" | "total-war";
+export type IndustryPlan = "civilian" | "balanced" | "military" | "total-war";
+
+/** Every industry plan, from peace to total war. */
+export const INDUSTRY_PLANS: readonly IndustryPlan[] = [
+  "civilian",
+  "balanced",
+  "military",
+  "total-war",
+];
 
 /** The two shares a plan sets. */
 interface Shares {
@@ -103,6 +120,25 @@ const START_PLAN: IndustryPlan = "civilian";
 
 const manpowerCap = (population: number, law: ConscriptionLaw): number =>
   population * MANPOWER_SHARE[law];
+
+/**
+ * The economy under `law`. The pool already called up stays where it is: a
+ * heavier law raises the cap it recovers toward, and a lighter one lowers the
+ * cap, which the next day's recovery holds the pool to.
+ */
+export const withConscription = (
+  economy: NationEconomy,
+  law: ConscriptionLaw
+): NationEconomy => ({ ...economy, conscription: law });
+
+/**
+ * The economy under `plan`. The factories already built keep their kind, and
+ * the plan decides what the ones finished from now on come out as.
+ */
+export const withPlan = (
+  economy: NationEconomy,
+  plan: IndustryPlan
+): NationEconomy => ({ ...economy, plan });
 
 /** How far along the factory now being built is, from 0 to 1. */
 export const constructionProgress = (economy: NationEconomy): number =>

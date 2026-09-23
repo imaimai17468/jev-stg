@@ -13,12 +13,16 @@ import {
   startSimulation,
   withClock,
 } from "@/shared/entities/world/simulation";
+import { askJev } from "./ask-jev";
+import { entryLine } from "./entry-line";
 import { headlineOf } from "./headline";
 import { HudClockBar } from "./hud-clock-bar";
+import { HudDecisionFeed } from "./hud-decision-feed";
 import { HudNationPanel } from "./hud-nation-panel";
 import { HudTopBar } from "./hud-top-bar";
 import type { NationSummary } from "./nation-summary";
 import { summaryOf } from "./nation-summary";
+import { useJevCouncil } from "./use-jev-council";
 import { WorldMap } from "./world-map";
 
 interface WorldStageProps {
@@ -68,6 +72,12 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
     );
   }, []);
 
+  const voice = useJevCouncil(world, simulation, setSimulation, askJev);
+  const lines = useMemo(
+    () => simulation.chronicle.map((entry) => entryLine(world, entry)),
+    [world, simulation.chronicle]
+  );
+
   const flipPause = useCallback(() => {
     setSimulation((current) => withClock(current, togglePaused(current.clock)));
   }, []);
@@ -86,6 +96,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
         headline={headlineOf(world, simulation.diplomacy, selection)}
       />
       <HudNationPanel selection={selection} />
+      <HudDecisionFeed lines={lines} voice={voice} />
       <HudClockBar
         clock={clock}
         onChooseSpeed={chooseSpeed}

@@ -1,7 +1,7 @@
+import { dateLabel } from "@/shared/entities/world/calendar";
 import type { Clock, Speed } from "@/shared/entities/world/clock";
 import { dateOf, SPEEDS } from "@/shared/entities/world/clock";
 import { Button } from "@/shared/ui/button";
-import { dateLabel } from "./date-label";
 import { SpeedButton } from "./speed-button";
 
 interface HudClockBarProps {
