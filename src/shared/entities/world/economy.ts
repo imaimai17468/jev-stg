@@ -77,6 +77,8 @@ export interface NationEconomy {
   /** Equipment turned out and not yet drawn on. */
   readonly equipment: number;
   readonly plan: IndustryPlan;
+  /** The share of its divisions' daily upkeep the depots met, from 0 to 1. */
+  readonly upkeepMet: number;
 }
 
 /** How much a nation's population grows in a year. */
@@ -113,6 +115,7 @@ export const NO_ECONOMY: NationEconomy = {
   militaryFactories: 0,
   plan: "civilian",
   population: 0,
+  upkeepMet: 1,
 };
 
 /** The law and the plan every nation opens 1936 under. */
@@ -223,6 +226,34 @@ export const producedOneDay = (
   };
 };
 
+/** The equipment one division in the field wears out in a day. */
+const UPKEEP_PER_DIVISION = 2;
+
+/** The equipment `divisions` divisions in the field wear out in a day. */
+export const upkeepOf = (divisions: number): number =>
+  divisions * UPKEEP_PER_DIVISION;
+
+/**
+ * The economy once `divisions` divisions have drawn a day's upkeep from the
+ * depots: all of it where the depots hold enough, and what is left where they
+ * do not, which is the share of the need `upkeepMet` records.
+ */
+export const upkept = (
+  economy: NationEconomy,
+  divisions: number
+): NationEconomy => {
+  const need = upkeepOf(divisions);
+  const paid = Math.min(economy.equipment, need);
+  if (need === 0) {
+    return { ...economy, upkeepMet: 1 };
+  }
+  return {
+    ...economy,
+    equipment: economy.equipment - paid,
+    upkeepMet: paid / need,
+  };
+};
+
 /** One nation's economy with a share of it taken out. */
 const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
   ...economy,
@@ -301,6 +332,7 @@ export const startEconomies = (
         militaryFactories,
         plan: START_PLAN,
         population: industry.population,
+        upkeepMet: 1,
       };
     }
   );

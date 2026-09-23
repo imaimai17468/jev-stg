@@ -69,6 +69,8 @@ const NationBriefSchema = Schema.Struct({
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
   techs: Schema.Array(TechIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  /** The share of its divisions that get less supply than they need. */
+  undersupplied: Share,
 });
 
 export type NationBrief = typeof NationBriefSchema.Type;

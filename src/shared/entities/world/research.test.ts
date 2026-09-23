@@ -34,6 +34,7 @@ describe(availableTechs, () => {
       "tools-1",
       "construction-1",
       "electronics-1",
+      "logistics-1",
     ]);
   });
 
@@ -49,6 +50,7 @@ describe(availableTechs, () => {
       "dispersed-industry-1",
       "construction-1",
       "electronics-1",
+      "logistics-1",
     ]);
   });
 

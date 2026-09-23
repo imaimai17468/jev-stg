@@ -112,6 +112,7 @@ const MODIFIER_LABELS = {
   production: "装備の生産",
   recovery: "組織力の回復",
   research: "研究速度",
+  supply: "補給",
 } satisfies Readonly<Record<Modifier, string>>;
 
 const GRANT_LABELS = {
@@ -190,6 +191,7 @@ const stateOf = (brief: NationBrief) => ({
   敵の兵力: Math.round(brief.enemyStrength),
   自陣営の兵力: Math.round(brief.strength),
   装備: Math.round(brief.equipment),
+  補給が足りない師団の割合: Math.round(brief.undersupplied * 100) / 100,
   隣国: brief.rivals.map((rival) => ({
     こちらとの兵力比: ratioTo(brief.strength, rival.strength),
     国: `国${rival.nation}`,

@@ -6,6 +6,7 @@ import {
   producedOneDay,
   shareTransferred,
   startEconomies,
+  upkept,
 } from "./economy";
 import type { World } from "./index";
 import { NO_MODIFIERS } from "./modifiers";
@@ -43,6 +44,7 @@ const INDUSTRY: NationEconomy = {
   militaryFactories: 10,
   plan: "civilian",
   population: 0,
+  upkeepMet: 1,
 };
 
 /** A million people and no industry at all. */
@@ -55,6 +57,7 @@ const PEOPLE: NationEconomy = {
   militaryFactories: 0,
   plan: "civilian",
   population: 1_000_000,
+  upkeepMet: 1,
 };
 
 const OWNERS = Int32Array.from([0, UNASSIGNED]);
@@ -71,8 +74,31 @@ describe(startEconomies, () => {
         militaryFactories: 5,
         plan: "civilian",
         population: 30_000_000,
+        upkeepMet: 1,
       },
     ]);
+  });
+});
+
+describe(upkept, () => {
+  it("should take every division's upkeep and meet all of it when the depots hold enough", () => {
+    expect(upkept({ ...NO_ECONOMY, equipment: 100 }, 10)).toStrictEqual({
+      ...NO_ECONOMY,
+      equipment: 80,
+      upkeepMet: 1,
+    });
+  });
+
+  it("should empty the depots and meet only what they held when they hold too little", () => {
+    expect(upkept({ ...NO_ECONOMY, equipment: 5 }, 10)).toStrictEqual({
+      ...NO_ECONOMY,
+      equipment: 0,
+      upkeepMet: 0.25,
+    });
+  });
+
+  it("should count the upkeep as met when the nation has no division in the field", () => {
+    expect(upkept({ ...NO_ECONOMY, upkeepMet: 0.5 }, 0).upkeepMet).toBe(1);
   });
 });
 

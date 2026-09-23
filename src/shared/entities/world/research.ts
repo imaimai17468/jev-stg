@@ -8,7 +8,8 @@ export type TechBranch =
   | "doctrine"
   | "industry"
   | "construction"
-  | "electronics";
+  | "electronics"
+  | "logistics";
 
 /** Every technology, in the order the tree lists them. */
 export const TechIdSchema = Schema.Literals([
@@ -42,6 +43,9 @@ export const TechIdSchema = Schema.Literals([
   "electronics-1",
   "computing-1",
   "computing-2",
+  "logistics-1",
+  "logistics-2",
+  "logistics-3",
 ]);
 
 /** One technology a nation can research. */
@@ -235,6 +239,33 @@ const TECHS = {
     name: "歩兵装備III",
     requires: ["infantry-weapons-2"],
     year: 1942,
+  },
+  "logistics-1": {
+    bonus: { supply: 0.1 },
+    branch: "logistics",
+    days: 100,
+    excludes: [],
+    name: "兵站I",
+    requires: [],
+    year: 1936,
+  },
+  "logistics-2": {
+    bonus: { supply: 0.15 },
+    branch: "logistics",
+    days: 120,
+    excludes: [],
+    name: "兵站II",
+    requires: ["logistics-1"],
+    year: 1938,
+  },
+  "logistics-3": {
+    bonus: { supply: 0.15 },
+    branch: "logistics",
+    days: 140,
+    excludes: [],
+    name: "兵站III",
+    requires: ["logistics-2"],
+    year: 1941,
   },
   "mass-assault-1": {
     bonus: { organisation: 0.15, recovery: 0.2 },

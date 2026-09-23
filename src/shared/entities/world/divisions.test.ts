@@ -1,17 +1,21 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division } from "./army-fixture";
+import type { Backing } from "./divisions";
 import {
   attackOf,
   canRaise,
   defenceOf,
+  fieldedBy,
   marchDaysFor,
   paidForDivision,
   raisedAt,
   rested,
   terrainDefenceOf,
+  worn,
 } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 
 const ARMED: NationEconomy = {
@@ -58,51 +62,105 @@ describe(paidForDivision, () => {
   });
 });
 
+/** A division of a nation with nothing researched, fully supplied. */
+const SUPPLIED: Backing = { fill: 1, modifiers: NO_MODIFIERS };
+
+/** A fully supplied division of a nation whose modifiers `bonus` raises. */
+const backedBy = (bonus: Partial<Modifiers>): Backing => ({
+  fill: 1,
+  modifiers: { ...NO_MODIFIERS, ...bonus },
+});
+
 describe(attackOf, () => {
   it("should be worth half when the division has lost half its men", () => {
-    expect(attackOf(division({ strength: 10_000 }), NO_MODIFIERS)).toBe(3);
+    expect(attackOf(division({ strength: 10_000 }), SUPPLIED)).toBe(3);
   });
 });
 
 describe("attackOf under modifiers", () => {
   it("should hit harder when the nation's modifiers raise its attack", () => {
-    expect(attackOf(division({}), { ...NO_MODIFIERS, attack: 0.5 })).toBe(9);
+    expect(attackOf(division({}), backedBy({ attack: 0.5 }))).toBe(9);
+  });
+});
+
+describe("attackOf out of supply", () => {
+  it("should keep only the unsupplied share of its worth when the division gets no supply", () => {
+    expect(
+      attackOf(division({}), { fill: 0, modifiers: NO_MODIFIERS })
+    ).toBeCloseTo(1.8);
   });
 });
 
 describe("defenceOf under modifiers", () => {
   it("should hold harder when the nation's modifiers raise its defence", () => {
-    expect(defenceOf(division({}), { ...NO_MODIFIERS, defence: 0.5 })).toBe(15);
+    expect(defenceOf(division({}), backedBy({ defence: 0.5 }))).toBe(15);
   });
 });
 
 describe(defenceOf, () => {
   it("should be worth half when the division has lost half its men", () => {
-    expect(defenceOf(division({ strength: 10_000 }), NO_MODIFIERS)).toBe(5);
+    expect(defenceOf(division({ strength: 10_000 }), SUPPLIED)).toBe(5);
   });
 });
 
 describe(rested, () => {
   it("should recover a day of cohesion when the division is out of contact", () => {
-    expect(rested(division({ organisation: 20 }), NO_MODIFIERS)).toStrictEqual(
+    expect(rested(division({ organisation: 20 }), SUPPLIED)).toStrictEqual(
       division({ organisation: 23 })
     );
   });
 
   it("should recover faster and rest past the template's cohesion when the nation's doctrine raises both", () => {
     expect(
-      rested(division({ organisation: 59 }), {
-        ...NO_MODIFIERS,
-        organisation: 0.5,
-        recovery: 1,
-      }).organisation
+      rested(
+        division({ organisation: 59 }),
+        backedBy({ organisation: 0.5, recovery: 1 })
+      ).organisation
     ).toBe(65);
   });
 
-  it("should stop at the template's cohesion when the division is already whole", () => {
+  it("should recover nothing when the division gets no supply", () => {
     expect(
-      rested(division({ organisation: 59 }), NO_MODIFIERS).organisation
-    ).toBe(60);
+      rested(division({ organisation: 20 }), {
+        fill: 0,
+        modifiers: NO_MODIFIERS,
+      }).organisation
+    ).toBe(20);
+  });
+
+  it("should stop at the template's cohesion when the division is already whole", () => {
+    expect(rested(division({ organisation: 59 }), SUPPLIED).organisation).toBe(
+      60
+    );
+  });
+});
+
+describe(worn, () => {
+  it("should lose men in proportion to what its supply falls short by when the division is half supplied", () => {
+    expect(worn(division({}), 0.5).strength).toBe(19_950);
+  });
+
+  it("should lose nothing when the division is fully supplied", () => {
+    expect(worn(division({}), 1).strength).toBe(20_000);
+  });
+
+  it("should stop at no men when the division has almost none left", () => {
+    expect(worn(division({ strength: 10 }), 0).strength).toBe(0);
+  });
+});
+
+describe(fieldedBy, () => {
+  it("should count each nation's divisions when several nations have some in the field", () => {
+    expect(
+      fieldedBy(
+        [
+          division({ nation: 1 }),
+          division({ nation: 0 }),
+          division({ nation: 1 }),
+        ],
+        3
+      )
+    ).toStrictEqual([1, 2, 0]);
   });
 });
 

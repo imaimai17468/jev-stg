@@ -7,10 +7,13 @@ import {
   raisedAt,
   strengthOf,
   terrainDefenceOf,
+  worn,
 } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY, shareTransferred } from "./economy";
-import { enemyNeighbours, frontField, stepToward } from "./front";
+import { deploymentOf, enemyNeighbours, frontField, stepToward } from "./front";
+import type { Deployment } from "./front";
+import { combatWidth } from "./frontage";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
@@ -22,6 +25,8 @@ import { graphOf, landProvinces, provinceTerrain } from "./provinces";
 import { UNASSIGNED } from "./spread";
 import type { Stance } from "./stance";
 import { attackOddsFor, START_STANCE } from "./stance";
+import type { SupplyNetwork } from "./supply";
+import { postOf, stackKey } from "./supply";
 import type { Wars } from "./wars";
 
 /** The armies of a world, the ground they hold, and what it all costs. */
@@ -34,6 +39,11 @@ export interface Armies {
 
 /** Stands in for a field no nation asked for. Every step off it stands still. */
 const NO_FIELD = new Int32Array(0);
+
+const NO_FIELDS: Fields = {
+  line: NO_FIELD,
+  open: { field: NO_FIELD, room: "full" },
+};
 
 /** What one day of the depots produced and what it cost. */
 interface Raised {
@@ -129,6 +139,8 @@ export interface Command {
   readonly stances: readonly Stance[];
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
+  /** What each nation's supply can do today. */
+  readonly supply: SupplyNetwork;
 }
 
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
@@ -158,6 +170,7 @@ const foughtEverywhere = (
       {
         modifiers: command.modifiers,
         owners: before.owners,
+        supply: command.supply,
         wars: command.wars,
       },
       province,
@@ -240,7 +253,36 @@ interface Line {
   /** Each nation's stance, by nation id. */
   readonly stances: readonly Stance[];
   readonly garrisons: ReadonlyMap<number, number>;
+  readonly supply: SupplyNetwork;
 }
+
+/**
+ * How many divisions `nation` posts to `province` on its front line: as many
+ * as a battle on that ground holds, no more than its supply there keeps, and
+ * always one to hold it.
+ */
+const postingAt = (line: Line, nation: number, province: number): number =>
+  Math.max(
+    1,
+    Math.min(
+      combatWidth(provinceTerrain(line.world.provinces, province), 1),
+      Math.floor(postOf(line.supply, nation, province).capacity)
+    )
+  );
+
+/**
+ * The divisions of a stack past its first, the garrison, that go into an
+ * attack on `target`: no more than a battle on that ground holds.
+ */
+const attackGroupOf = (
+  line: Line,
+  stack: readonly Division[],
+  target: number
+): readonly Division[] =>
+  stack.slice(
+    1,
+    1 + combatWidth(provinceTerrain(line.world.provinces, target), 1)
+  );
 
 /**
  * The enemy province a stack on the line attacks today, or its own where it
@@ -254,10 +296,13 @@ interface Line {
 const attackTarget = (
   line: Line,
   province: number,
-  stack: readonly Division[]
+  stack: readonly Division[],
+  onTheLine: boolean
 ): number => {
   const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
-  const attacking = strengthOf(stack.slice(1));
+  if (!onTheLine) {
+    return province;
+  }
   let target = province;
   let weakest = Number.POSITIVE_INFINITY;
   for (const beside of enemyNeighbours(
@@ -276,6 +321,7 @@ const attackTarget = (
     weakest = defended;
     target = beside;
   }
+  const attacking = strengthOf(attackGroupOf(line, stack, target));
   const odds = attackOddsFor(itemAt(line.stances, nation, START_STANCE));
   if (attacking === 0 || attacking < odds * weakest) {
     return province;
@@ -294,7 +340,7 @@ const stacksOf = (
     if (engaged.has(division.province)) {
       continue;
     }
-    const key = division.province * nations + division.nation;
+    const key = stackKey(nations, division.nation, division.province);
     const stack = stacks.get(key) ?? [];
     stack.push(division);
     stacks.set(key, stack);
@@ -302,23 +348,65 @@ const stacksOf = (
   return stacks;
 };
 
-/** Where every division in one stack is heading today. */
+/** The two fields a nation's divisions march by. */
+interface Fields {
+  /** How far each province is from the front line, zero on it. */
+  readonly line: Int32Array;
+  /** Where the nation has room for another division. */
+  readonly open: Deployment;
+}
+
+/**
+ * The divisions of a stack that stay: the ones its province is posted, or the
+ * whole stack where the way on leads nowhere but here.
+ */
+const heldBack = (
+  stack: readonly Division[],
+  posted: number,
+  nowhereToSend: boolean
+): readonly Division[] => {
+  if (nowhereToSend) {
+    return stack;
+  }
+  return stack.slice(0, posted);
+};
+
+/**
+ * Where every division in one stack is heading today. Behind the line, while
+ * the line has room, it walks toward the nearest front province that does.
+ * Otherwise, and on the line, it keeps the divisions the province is posted,
+ * sends the rest on to where there is room, and on the line attacks with no
+ * more than the battle it starts holds.
+ */
 const orderedStack = (
   line: Line,
-  field: Int32Array,
+  fields: Fields,
   province: number,
   stack: readonly Division[]
 ): readonly Division[] => {
-  if (valueAt(field, province) !== 0) {
-    const toward = stepToward(line.graph, field, province);
-    return stack.map((division) => walkedToward(line.world, division, toward));
+  const { open } = fields;
+  const onward = stepToward(line.graph, open.field, province);
+  const onTheLine = valueAt(fields.line, province) === 0;
+  if (!onTheLine && open.room === "line" && onward !== province) {
+    return stack.map((division) => walkedToward(line.world, division, onward));
   }
-  const target = attackTarget(line, province, stack);
-  return stack.map((division, place) => {
-    if (place === 0) {
-      return walkedToward(line.world, division, province);
+  const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
+  const staying = heldBack(
+    stack,
+    postingAt(line, nation, province),
+    onward === province
+  );
+  const target = attackTarget(line, province, staying, onTheLine);
+  const attacking = new Set(attackGroupOf(line, staying, target));
+  const kept = new Set(staying);
+  return stack.map((division) => {
+    if (!kept.has(division)) {
+      return walkedToward(line.world, division, onward);
     }
-    return walkedToward(line.world, division, target);
+    if (attacking.has(division)) {
+      return walkedToward(line.world, division, target);
+    }
+    return walkedToward(line.world, division, province);
   });
 };
 
@@ -339,12 +427,23 @@ const marchedEverywhere = (
     graph,
     owners: armies.owners,
     stances: command.stances,
+    supply: command.supply,
     wars,
     world,
   };
-  const fields = world.nations.map((nation) =>
-    frontField(world.provinces, graph, armies.owners, wars, nation.id)
-  );
+  const fields = world.nations.map((nation): Fields => ({
+    line: frontField(world.provinces, graph, armies.owners, wars, nation.id),
+    open: deploymentOf(
+      world.provinces,
+      graph,
+      armies.owners,
+      wars,
+      nation.id,
+      (province) =>
+        postOf(command.supply, nation.id, province).demand <
+        postingAt(line, nation.id, province)
+    ),
+  }));
   const moved = armies.divisions.filter((division) =>
     engaged.has(division.province)
   );
@@ -357,7 +456,7 @@ const marchedEverywhere = (
     moved.push(
       ...orderedStack(
         line,
-        itemAt(fields, first.nation, NO_FIELD),
+        itemAt(fields, first.nation, NO_FIELDS),
         first.province,
         stack
       )
@@ -367,9 +466,29 @@ const marchedEverywhere = (
 };
 
 /**
+ * The divisions with a day of whatever their supply falls short by worn off
+ * them, and every one worn down to no men at all gone.
+ */
+const attrited = (
+  divisions: readonly Division[],
+  supply: SupplyNetwork
+): readonly Division[] =>
+  divisions.flatMap((division) => {
+    const left = worn(
+      division,
+      postOf(supply, division.nation, division.province).fill
+    );
+    if (left.strength <= 0) {
+      return [];
+    }
+    return [left];
+  });
+
+/**
  * One day of every army in the world.
  *
- * The depots come first, then the fighting, then the marching, so a division
+ * The supply wears on every division first, then the depots, then the
+ * fighting, then the marching, so a division
  * raised today takes its first day of marching the same day, and a province
  * taken today already belongs to the attacker when the marchers read their
  * fronts.
@@ -385,7 +504,10 @@ export const armiesAfterOneDay = (
     world,
     graph,
     {
-      divisions: [...armies.divisions, ...raised.divisions],
+      divisions: [
+        ...attrited(armies.divisions, command.supply),
+        ...raised.divisions,
+      ],
       economies: raised.economies,
       owners: armies.owners,
     },

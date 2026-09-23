@@ -21,6 +21,7 @@ const BRIEF: NationBrief = {
   rivals: [{ nation: 2, strength: 20_000 }],
   strength: 20_000,
   techs: [],
+  undersupplied: 0.254,
 };
 
 const COUNCIL: Council = {
@@ -148,6 +149,7 @@ describe(evaluationFor, () => {
           敵の兵力: 40_000,
           自陣営の兵力: 20_000,
           装備: 1500,
+          補給が足りない師団の割合: 0.25,
           隣国: [{ こちらとの兵力比: 1, 国: "国2", 相手陣営の兵力: 20_000 }],
         },
       ],
@@ -199,6 +201,7 @@ describe("evaluationFor at peace", () => {
           敵の兵力: 0,
           自陣営の兵力: 20_000,
           装備: 1500,
+          補給が足りない師団の割合: 0.25,
           隣国: [],
         },
       ],

@@ -11,16 +11,20 @@ import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
+import { fieldedBy } from "./divisions";
 import type { NationEconomy } from "./economy";
-import { producedOneDay, startEconomies } from "./economy";
+import { producedOneDay, startEconomies, upkept } from "./economy";
 import type { World } from "./index";
 import { itemAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
 import { initialOwners } from "./nations";
+import { graphOf } from "./provinces";
 import type { Stance } from "./stance";
 import { START_STANCE } from "./stance";
 import type { Realm } from "./statecraft";
 import { conductedOneDay, factionFounders } from "./statecraft";
+import type { SupplyNetwork } from "./supply";
+import { supplyNetwork } from "./supply";
 
 /** Everything about a world that the calendar moves. */
 export interface Simulation {
@@ -114,7 +118,24 @@ const advancedEverywhere = (
 };
 
 /**
- * The whole simulation one day on: the economies, then the armies, then the
+ * What every nation's supply can do in the world `simulation` describes: its
+ * ground, its alliances, where its divisions stand, what it has researched,
+ * and how much of its upkeep its depots met.
+ */
+export const supplyOf = (world: World, simulation: Simulation): SupplyNetwork =>
+  supplyNetwork({
+    diplomacy: simulation.diplomacy,
+    divisions: simulation.divisions,
+    graph: graphOf(world.provinces),
+    modifiers: simulation.advancements.map(modifiersOf),
+    owners: simulation.owners,
+    upkeepMet: simulation.economies.map((economy) => economy.upkeepMet),
+    world,
+  });
+
+/**
+ * The whole simulation one day on: the economies and the upkeep the depots
+ * pay the army, then the supply that upkeep leaves, then the armies, then the
  * research and the national focuses, then the diplomacy, so a nation
  * surrenders the day its homeland falls and a month's declarations read the
  * armies as that day left them. The economies and the armies work with what
@@ -123,20 +144,22 @@ const advancedEverywhere = (
 export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
   const modifiers = simulation.advancements.map(modifiersOf);
+  const fielded = fieldedBy(simulation.divisions, world.nations.length);
+  const economies = simulation.economies.map((economy, nation) =>
+    upkept(
+      producedOneDay(economy, itemAt(modifiers, nation, NO_MODIFIERS)),
+      itemAt(fielded, nation, 0)
+    )
+  );
   const armies = armiesAfterOneDay(
     world,
     {
       modifiers,
       stances: simulation.stances,
+      supply: supplyOf(world, { ...simulation, economies }),
       wars: simulation.diplomacy.wars,
     },
-    {
-      divisions: simulation.divisions,
-      economies: simulation.economies.map((economy, nation) =>
-        producedOneDay(economy, itemAt(modifiers, nation, NO_MODIFIERS))
-      ),
-      owners: simulation.owners,
-    }
+    { divisions: simulation.divisions, economies, owners: simulation.owners }
   );
   const advanced = advancedEverywhere(
     simulation.diplomacy,
