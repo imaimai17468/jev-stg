@@ -1,5 +1,12 @@
 import "@tanstack/react-start/server-only";
 import { Option } from "effect";
+import type { Aircraft, Aviation } from "@/shared/entities/world/aircraft";
+import {
+  AIRCRAFT,
+  airframeOf,
+  AVIATIONS,
+  aviationShareOf,
+} from "@/shared/entities/world/aircraft";
 import type {
   Consultation,
   Council,
@@ -28,7 +35,11 @@ import {
   techOf,
 } from "@/shared/entities/world/research";
 import type { ShipyardOrder } from "@/shared/entities/world/ships";
-import { orderOf, SHIPYARD_ORDERS } from "@/shared/entities/world/ships";
+import {
+  hullOf,
+  orderOf,
+  SHIPYARD_ORDERS,
+} from "@/shared/entities/world/ships";
 import type { Stance } from "@/shared/entities/world/stance";
 import type { TradeLaw } from "@/shared/entities/world/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
@@ -131,6 +142,8 @@ const TRADE_LAW_LABELS = Object.fromEntries(
 const ORDER_WORDS = {
   battleship: (cost: number) =>
     `戦艦（費用${cost}、制海権への重みが最も大きい）`,
+  carrier: (cost: number) =>
+    `空母（費用${cost}、艦載機${hullOf("carrier").deck}機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）`,
   convoy: (cost: number) =>
     `輸送船（費用${cost}、海越しの補給・交易・上陸に使う）`,
   cruiser: (cost: number) => `巡洋艦（費用${cost}、主力艦を守る護衛艦）`,
@@ -144,6 +157,36 @@ const ORDER_LABELS = Object.fromEntries(
     order,
     ORDER_WORDS[order](orderOf(order).cost),
   ])
+);
+
+/** What each plane does, in words, around what one costs a military factory. */
+const AIRCRAFT_WORDS = {
+  "close-support": (cost: number) =>
+    `近接航空支援機（1機の費用${cost}、前線の敵師団の組織力を削る）`,
+  fighter: (cost: number) =>
+    `戦闘機（1機の費用${cost}、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）`,
+  "naval-bomber": (cost: number) =>
+    `雷撃機（1機の費用${cost}、送られた海の敵艦を攻撃して沈める）`,
+} satisfies Readonly<Record<Aircraft, (cost: number) => string>>;
+
+const AIRCRAFT_LABELS = Object.fromEntries(
+  AIRCRAFT.map((aircraft) => [
+    aircraft,
+    AIRCRAFT_WORDS[aircraft](airframeOf(aircraft).cost),
+  ])
+);
+
+/** What each weight of aviation puts on planes, in words, read off its share. */
+const aviationLabel = (aviation: Aviation): string => {
+  const share = aviationShareOf(aviation);
+  if (share === 0) {
+    return "航空機を作らない（軍需工場はすべて装備を作る）";
+  }
+  return `軍需工場の${percentOf(share)}で航空機を作り、残りで装備を作る`;
+};
+
+const AVIATION_LABELS = Object.fromEntries(
+  AVIATIONS.map((aviation) => [aviation, aviationLabel(aviation)])
 );
 
 const TERMS_LABELS = {
@@ -239,10 +282,14 @@ const stateOf = (brief: NationBrief) => ({
   })),
   工場: { 民需: brief.civilianFactories, 軍需: brief.militaryFactories },
   戦争中: brief.atWar,
+  敵に制空権を握られている空の割合: Math.round(brief.skyLost * 100) / 100,
   敵に対する兵力比: ratioTo(brief.strength, brief.enemyStrength),
   敵の兵力: Math.round(brief.enemyStrength),
+  敵の航空機: Math.round(brief.enemyPlanes),
   敵の艦隊の強さ: Math.round(brief.enemyFleet),
+  燃料の備蓄の割合: Math.round(brief.fuel * 100) / 100,
   自陣営の兵力: Math.round(brief.strength),
+  航空機: Math.round(brief.planes),
   艦隊の強さ: Math.round(brief.fleet),
   装備: Math.round(brief.equipment),
   補給が足りない師団の割合: Math.round(brief.undersupplied * 100) / 100,
@@ -309,6 +356,22 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       question: "shipbuilding",
     });
   }
+  asked.push(
+    {
+      criteria: AVIATION_LABELS,
+      instructions: `${name}は軍需工場のどれだけを航空機の生産に回しますか。航空機が多いほど制空権を取りやすくなりますが、そのぶん師団の装備が減り、航空機はアルミとゴムを使います。`,
+      key: keyOf(nation, "aviation"),
+      nation,
+      question: "aviation",
+    },
+    {
+      criteria: AIRCRAFT_LABELS,
+      instructions: `${name}の航空機工場は次にどの機種を作りますか。戦闘機がいないと制空権を奪われ、近接航空支援機と雷撃機も撃ち落とされます。`,
+      key: keyOf(nation, "aircraft"),
+      nation,
+      question: "aircraft",
+    }
+  );
   if (brief.techs.length > 0) {
     asked.push({
       criteria: Object.fromEntries(
