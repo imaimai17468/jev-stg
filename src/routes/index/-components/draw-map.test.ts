@@ -1,7 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import { drawMap } from "./draw-map";
-import type { MapPen } from "./draw-map";
+import type { LineKind, MapPen, Segment } from "./draw-map";
+import type { FrontMark, Point } from "./front-marks";
 import type { NationLabel } from "./nation-labels";
 import { FIXTURE_WORLD } from "./world-fixture";
 
@@ -17,6 +18,12 @@ interface Drawn {
   readonly fleets: readonly (readonly number[])[];
   /** Each wing counter as its number and the point it was centred on. */
   readonly wings: readonly (readonly number[])[];
+  /** Each run of lines as what it was drawn as and its segments, in the order drawn. */
+  readonly lines: readonly {
+    readonly kind: LineKind;
+    readonly segments: readonly Segment[];
+  }[];
+  readonly arrows: readonly (readonly Point[])[];
 }
 
 interface Recorder {
@@ -32,9 +39,24 @@ const recorder = (): Recorder => {
   const crates: SupplyState[] = [];
   const fleets: number[][] = [];
   const wings: number[][] = [];
+  const lines: { kind: LineKind; segments: readonly Segment[] }[] = [];
+  const arrows: (readonly Point[])[] = [];
   return {
-    drawn: { cleared, counters, crates, fleets, texts, wings, worlds },
+    drawn: {
+      arrows,
+      cleared,
+      counters,
+      crates,
+      fleets,
+      lines,
+      texts,
+      wings,
+      worlds,
+    },
     pen: {
+      arrow: (points) => {
+        arrows.push(points);
+      },
       clear: (width, height) => {
         cleared.push([width, height]);
       },
@@ -44,6 +66,9 @@ const recorder = (): Recorder => {
       },
       fleet: (value, x, y) => {
         fleets.push([Number(value), x, y]);
+      },
+      lines: (segments, _colour, kind) => {
+        lines.push({ kind, segments });
       },
       text: (value) => {
         texts.push(value);
@@ -61,7 +86,27 @@ const recorder = (): Recorder => {
 const VIEW = { scale: 2, x: 1, y: 1 };
 const SURFACE = { height: 100, width: 200 };
 
-const NOTHING_OVER = { fleets: [], labels: [], marks: [], wings: [] };
+const NOTHING_OVER = {
+  fleets: [],
+  fronts: [],
+  labels: [],
+  marks: [],
+  wings: [],
+};
+
+/** One nation's front along the edge at column 3, its fallback line at column 2, and one offensive. */
+const FRONT: FrontMark = {
+  colour: { blue: 0, green: 0, red: 0 },
+  fallback: [{ towardX: -1, towardY: 0, x1: 2, x2: 2, y1: 1, y2: 3 }],
+  front: [{ towardX: 0, towardY: 1, x1: 3, x2: 5, y1: 4, y2: 4 }],
+  nation: 0,
+  offensives: [
+    [
+      { x: 3, y: 2 },
+      { x: 6, y: 2 },
+    ],
+  ],
+};
 
 const label = (weight: number): NationLabel => ({
   id: 0,
@@ -72,6 +117,36 @@ const label = (weight: number): NationLabel => ({
 });
 
 describe(drawMap, () => {
+  it("should draw the fallback line and then the front, each set off the border into its own side, when a nation has a front", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
+      fronts: [FRONT],
+    });
+
+    expect(drawn.lines).toStrictEqual([
+      { kind: "fallback", segments: [{ x1: 0, x2: 0, y1: 0, y2: 4 }] },
+      { kind: "front", segments: [{ x1: 4, x2: 8, y1: 8, y2: 8 }] },
+    ]);
+  });
+
+  it("should draw each offensive's arrow on screen when a nation has a front", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
+      fronts: [FRONT],
+    });
+
+    expect(drawn.arrows).toStrictEqual([
+      [
+        { x: 4, y: 2 },
+        { x: 10, y: 2 },
+      ],
+    ]);
+  });
+
   it("should clear the whole surface when a frame is drawn", () => {
     const { drawn, pen } = recorder();
 

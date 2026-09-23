@@ -3,6 +3,7 @@ import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
+import { battlePlanOf } from "@/shared/entities/world/battle-plan";
 import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/commerce";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
@@ -41,6 +42,7 @@ import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
 import { airSummaryOf } from "./air-summary";
+import { frontSummaryOf } from "./front-summary";
 import { intelSummaryOf } from "./intel-summary";
 import { navySummaryOf } from "./navy-summary";
 import { occupationSummaryOf } from "./occupation-summary";
@@ -88,6 +90,8 @@ export interface NationSummary {
   /** The nations that answer to it, by name. */
   readonly puppets: readonly string[];
   readonly advancement: AdvancementSummary;
+  /** Its battle plan: its fronts, their objectives, and its fallback line. */
+  readonly front: readonly Stat[];
   readonly supply: readonly Stat[];
   readonly occupation: readonly Stat[];
   readonly navy: readonly Stat[];
@@ -105,6 +109,7 @@ const EMPTY: NationSummary = {
   economy: NO_ECONOMY,
   enemies: [],
   faction: Option.none(),
+  front: [],
   id: -1,
   intel: [],
   name: "",
@@ -181,6 +186,7 @@ export const summaryOf = (
   nation: number
 ): NationSummary => {
   const { diplomacy, owners } = simulation;
+  const graph = graphOf(world.provinces);
   const named = itemAt(world.nations, nation, NO_NATION);
   if (named.id < 0) {
     return EMPTY;
@@ -230,6 +236,19 @@ export const summaryOf = (
     ).length,
     economy: itemAt(simulation.economies, nation, NO_ECONOMY),
     enemies: enemiesOf(diplomacy.wars, nation).map(nameOf),
+    front: frontSummaryOf(
+      world.nations,
+      battlePlanOf(
+        world.provinces,
+        world.nations,
+        graph,
+        owners,
+        diplomacy.wars,
+        nation
+      ),
+      simulation.divisions,
+      nation
+    ),
     ...allegianceOf(diplomacy, nation, nameOf),
     id: nation,
     name: named.name,
@@ -245,7 +264,7 @@ export const summaryOf = (
       counterIntelligence: counterIntelligenceOf(
         itemAt(simulation.services, nation, NO_SERVICE)
       ),
-      intel: intelOf(espialOf(simulation, graphOf(world.provinces))),
+      intel: intelOf(espialOf(simulation, graph)),
       nameOf,
       nation,
       service: itemAt(simulation.services, nation, NO_SERVICE),

@@ -350,6 +350,7 @@ export default defineConfig({
           "src/routes/index/-components/map-bitmap.ts",
           "src/routes/index/-components/nation-labels.ts",
           "src/routes/index/-components/draw-map.ts",
+          "src/routes/index/-components/front-marks.ts",
           "src/routes/index/-components/nation-summary.ts",
           "src/routes/index/-components/division-marks.ts",
           "src/routes/index/-components/use-jev-council.ts",

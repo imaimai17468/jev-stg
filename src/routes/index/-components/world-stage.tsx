@@ -117,6 +117,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
           owners={simulation.owners}
           skies={skies}
           supply={supply}
+          wars={diplomacy.wars}
           world={world}
         />
         <HudDecisionFeed lines={lines} voice={voice} />
