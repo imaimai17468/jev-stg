@@ -5,6 +5,7 @@ import {
   compliedOneDay,
   FULL_REACH,
   occupancyOf,
+  reachUnder,
   reachByNation,
   startCompliance,
 } from "./compliance";
@@ -78,6 +79,19 @@ describe(occupancyOf, () => {
     expect(occupancyOf(OPENED, 0, 2)).toStrictEqual({
       kind: "occupied",
       level: 0,
+    });
+  });
+});
+
+describe(reachUnder, () => {
+  it("should draw on everything when the province is the holder's own ground", () => {
+    expect(reachUnder(occupancyOf(OCCUPIED, 0, 0))).toStrictEqual(FULL_REACH);
+  });
+
+  it("should draw on occupied ground as far as its compliance goes when the holder occupies the province", () => {
+    expect(reachUnder(occupancyOf(OCCUPIED, 0, 2))).toStrictEqual({
+      factories: 0.25 + 0.65 * 0.5,
+      manpower: 0.02 + 0.18 * 0.5,
     });
   });
 });

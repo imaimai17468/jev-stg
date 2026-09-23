@@ -28,6 +28,7 @@ import {
   settlementFor,
   surrenders,
   warTarget,
+  withinReach,
 } from "./statecraft";
 
 const ECONOMIES: readonly NationEconomy[] = [
@@ -103,6 +104,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy: BLOC,
+          overseas: [],
           world: ROW_WORLD,
         },
         2
@@ -136,6 +138,7 @@ describe(factionToJoin, () => {
           armies,
           borders: neighbouringNations(star, ROW_OWNERS),
           diplomacy: openingDiplomacy(ROW_OWNERS, 4, [1, 2]),
+          overseas: [],
           world: star,
         },
         0
@@ -150,6 +153,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy: BLOC,
+          overseas: [],
           world: ROW_WORLD,
         },
         3
@@ -166,6 +170,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy,
+          overseas: [],
           world: ROW_WORLD,
         },
         2
@@ -182,6 +187,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy,
+          overseas: [],
           world: ROW_WORLD,
         },
         2
@@ -198,6 +204,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy,
+          overseas: [],
           world: ROW_WORLD,
         },
         2
@@ -212,6 +219,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy: BLOC,
+          overseas: [],
           world: ROW_WORLD,
         },
         1
@@ -236,6 +244,7 @@ describe(factionToJoin, () => {
           armies: ARMED_THREE,
           borders: ROW_BORDERS,
           diplomacy,
+          overseas: [],
           world: ROW_WORLD,
         },
         2
@@ -249,6 +258,7 @@ describe(warTarget, () => {
     armies: ARMED_THREE,
     borders: ROW_BORDERS,
     diplomacy: ROW_PEACE,
+    overseas: [],
     world: ROW_WORLD,
   };
 
@@ -294,6 +304,27 @@ describe(warTarget, () => {
     expect(warTarget({ ...situation, diplomacy }, 3, LUCKY)).toStrictEqual(
       Option.none()
     );
+  });
+});
+
+describe(withinReach, () => {
+  const standoff = {
+    armies: ARMED_THREE,
+    borders: ROW_BORDERS,
+    diplomacy: ROW_PEACE,
+    world: ROW_WORLD,
+  };
+
+  it("should add the nation across the sea when its own fleet can carry a war there", () => {
+    expect(
+      withinReach({ ...standoff, overseas: [{ one: 3, other: 0 }] }, 3)
+    ).toStrictEqual([2, 0]);
+  });
+
+  it("should leave out the nation across the sea when only that nation's fleet can carry a war", () => {
+    expect(
+      withinReach({ ...standoff, overseas: [{ one: 0, other: 3 }] }, 3)
+    ).toStrictEqual([2]);
   });
 });
 

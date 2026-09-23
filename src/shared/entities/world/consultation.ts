@@ -46,6 +46,12 @@ const FactionOptionSchema = Schema.Struct({
 const NationBriefSchema = Schema.Struct({
   atWar: Schema.Boolean,
   civilianFactories: Amount,
+  /** Convoys it has afloat. */
+  convoys: Amount,
+  /** Dockyards it builds ships and convoys in, none for a nation without a port. */
+  dockyards: Amount,
+  /** What every nation it is fighting has at sea. */
+  enemyFleet: Amount,
   /** The men everyone the nation is fighting has in the field. */
   enemyStrength: Amount,
   equipment: Amount,
@@ -53,6 +59,8 @@ const NationBriefSchema = Schema.Struct({
   factions: Schema.Array(FactionOptionSchema).check(
     Schema.isMaxLength(MOST_OPTIONS)
   ),
+  /** What its warships count for at sea. */
+  fleet: Amount,
   /** National focuses it may pick, empty while it pursues one. */
   focuses: Schema.Array(FocusIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
   /** Research slots with nothing on them. */
@@ -65,6 +73,8 @@ const NationBriefSchema = Schema.Struct({
   population: Amount,
   /** Nations it may declare on, empty unless it is independent and at peace. */
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  /** The share of its arms output lost to the resources it goes without. */
+  shortage: Share,
   /** The men its own side has in the field. */
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
@@ -115,6 +125,8 @@ export type Question =
   | "faction"
   | "research"
   | "focus"
+  | "trade"
+  | "shipbuilding"
   | "terms";
 
 const QUESTIONS: readonly Question[] = [
@@ -125,6 +137,8 @@ const QUESTIONS: readonly Question[] = [
   "faction",
   "research",
   "focus",
+  "trade",
+  "shipbuilding",
   "terms",
 ];
 

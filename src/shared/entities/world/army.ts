@@ -223,7 +223,7 @@ const walkedToward = (
   ) {
     return { ...division, marched: division.marched + 1 };
   }
-  return { ...division, marched: 0, province: target };
+  return { ...division, arrival: "march", marched: 0, province: target };
 };
 
 /** The strength each province's holder has standing in it, by province id. */

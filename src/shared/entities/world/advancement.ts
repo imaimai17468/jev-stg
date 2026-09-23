@@ -12,6 +12,7 @@ import type { Modifiers } from "./modifiers";
 import { summed } from "./modifiers";
 import type { Research } from "./research";
 import { researchBonuses, researchedOneDay, START_RESEARCH } from "./research";
+import { lawBonusOf } from "./trade";
 
 /** What one nation has researched and how far along its focus tree it is. */
 export interface Advancement {
@@ -24,11 +25,18 @@ export const START_ADVANCEMENT: Advancement = {
   research: START_RESEARCH,
 };
 
-/** Everything the nation's technologies and finished focuses add together. */
-export const modifiersOf = (advancement: Advancement): Modifiers =>
+/**
+ * Everything the nation's technologies, its finished focuses and the trade
+ * law its economy runs under add together.
+ */
+export const modifiersOf = (
+  advancement: Advancement,
+  economy: NationEconomy
+): Modifiers =>
   summed([
     ...researchBonuses(advancement.research),
     ...focusBonuses(advancement.focuses),
+    lawBonusOf(economy.tradeLaw),
   ]);
 
 /** The research slots that have nothing on them. */
@@ -53,7 +61,7 @@ export const progressedOneDay = (
 ): Advanced => {
   const research = researchedOneDay(
     advancement.research,
-    modifiersOf(advancement).research,
+    modifiersOf(advancement, economy).research,
     year
   );
   const pursued = focusedOneDay(advancement.focuses);

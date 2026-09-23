@@ -30,6 +30,14 @@ describe(sentHome, () => {
     ]);
   });
 
+  it("should send a division home on foot when peace leaves it on the beach it landed on", () => {
+    const beached = division({ arrival: "landing", province: 2 });
+
+    expect(sentHome(LINE_WORLD, LINE_OWNERS, PEACE, [beached])).toStrictEqual([
+      division({ movingTo: 0, province: 0 }),
+    ]);
+  });
+
   it("should disband a division when its nation holds no ground to return to", () => {
     const lost = Int32Array.from([1, 1, 1, 1, UNASSIGNED]);
 

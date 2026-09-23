@@ -6,20 +6,23 @@ import { NO_MODIFIERS } from "./modifiers";
 import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
+import { NO_RESOURCES } from "./resources";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
 import type { SupplyNetwork } from "./supply";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 
-const nation = (id: number, capital: number): Nation => ({
+/** A nation with no colour of its own, named after its id. */
+export const nation = (id: number, capital: number): Nation => ({
   capital,
   colour: { blue: 0, green: 0, red: 0 },
   id,
   name: `国${id}`,
 });
 
-const land = (id: number, neighbours: readonly number[]): Province => ({
+/** A plains province of ten cells on the first row, at the column its id names. */
+export const land = (id: number, neighbours: readonly number[]): Province => ({
   cells: 10,
   id,
   kind: "land",
@@ -29,6 +32,35 @@ const land = (id: number, neighbours: readonly number[]): Province => ({
   y: 0,
 });
 
+/** A sea zone of ten cells on the second row, at the column its id names. */
+export const sea = (id: number, neighbours: readonly number[]): Province => ({
+  cells: 10,
+  id,
+  kind: "sea",
+  neighbours,
+  x: id,
+  y: 1,
+});
+
+/** Nation 0 with its capital in province 0, and nation 1 with its capital in province 3. */
+export const TWO_NATIONS: readonly Nation[] = [nation(0, 0), nation(1, 3)];
+
+/**
+ * A world of `provinces` on one row of cells, a cell each, with no deposits
+ * anywhere, so a test names only the ground and the nations it needs.
+ */
+export const worldOf = (
+  nations: readonly Nation[],
+  provinces: readonly Province[]
+): World => ({
+  cellProvince: Int32Array.from(provinces, (province) => province.id),
+  deposits: provinces.map(() => NO_RESOURCES),
+  grid: { height: 1, width: provinces.length },
+  nations,
+  provinces,
+  seed: 1,
+});
+
 /**
  * Four land provinces in a row with a sea zone off the end, held two each by
  * two nations whose capitals sit at the far ends.
@@ -36,19 +68,13 @@ const land = (id: number, neighbours: readonly number[]): Province => ({
  * Everything an army does happens along a line: it walks toward the middle, it
  * fights where the two halves meet, and it falls back the way it came.
  */
-export const LINE_WORLD: World = {
-  cellProvince: Int32Array.from([0, 1, 2, 3, 4]),
-  grid: { height: 1, width: 5 },
-  nations: [nation(0, 0), nation(1, 3)],
-  provinces: [
-    land(0, [1]),
-    land(1, [0, 2]),
-    land(2, [1, 3]),
-    land(3, [2, 4]),
-    { cells: 4, id: 4, kind: "sea", neighbours: [3], x: 4, y: 0 },
-  ],
-  seed: 1,
-};
+export const LINE_WORLD: World = worldOf(TWO_NATIONS, [
+  land(0, [1]),
+  land(1, [0, 2]),
+  land(2, [1, 3]),
+  land(3, [2, 4]),
+  { cells: 4, id: 4, kind: "sea", neighbours: [3], x: 4, y: 0 },
+]);
 
 /** Nation 0 holds the first two provinces and nation 1 the last two. */
 export const LINE_OWNERS = Int32Array.from([0, 0, 1, 1, UNASSIGNED]);

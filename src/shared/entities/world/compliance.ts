@@ -1,5 +1,5 @@
 import { valueAt } from "./grid";
-import { provincePeople, summedByHolder } from "./industry";
+import { holderSums, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
 import type { Province } from "./provinces";
 
@@ -126,7 +126,7 @@ export const occupancyOf = (
 };
 
 /** What a holder can draw on in a province it holds as `occupancy`. */
-const reachUnder = (occupancy: Occupancy): Reach => {
+export const reachUnder = (occupancy: Occupancy): Reach => {
   if (occupancy.kind === "home") {
     return FULL_REACH;
   }
@@ -145,17 +145,15 @@ export const reachByNation = (
   compliance: Compliance,
   nations: number
 ): readonly Reach[] => {
-  const people = summedByHolder(provinces, owners, nations, provincePeople);
+  const summed = holderSums(provinces, owners, nations);
+  const people = summed(provincePeople);
   const reaches = provinces.map((province) =>
     reachUnder(
       occupancyOf(compliance, valueAt(owners, province.id), province.id)
     )
   );
   const drawnOn = (share: (reach: Reach) => number) =>
-    summedByHolder(
-      provinces,
-      owners,
-      nations,
+    summed(
       (province) =>
         provincePeople(province) *
         share(itemAt(reaches, province.id, FULL_REACH))

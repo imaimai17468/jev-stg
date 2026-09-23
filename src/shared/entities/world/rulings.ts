@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
-import type { Decision, Ruling } from "./chronicle";
+import type { Decision, Order, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
 import {
   allied,
@@ -12,11 +12,19 @@ import {
   warDeclared,
 } from "./diplomacy";
 import type { NationEconomy } from "./economy";
-import { NO_ECONOMY, withConscription, withPlan } from "./economy";
+import {
+  NO_ECONOMY,
+  withConscription,
+  withPlan,
+  withTradeLaw,
+} from "./economy";
 import { availableFocuses, focusStarted } from "./focus";
 import type { World } from "./index";
 import { itemAt, replacedAt } from "./lookup";
+import { overseasRivals } from "./maritime";
 import { neighbouringNations } from "./nations";
+import type { Navy } from "./navy";
+import { NO_NAVY, withOrder } from "./navy";
 import { availableTechs, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
@@ -27,7 +35,7 @@ import { enemiesOf } from "./wars";
 /**
  * Whether `nation`, which answers to itself, may still declare on `target`
  * today: it is at peace, the target is outside its side, and their land still
- * touches.
+ * touches or its fleet can still carry a war across the sea to it.
  */
 const mayDeclare = (
   world: World,
@@ -41,10 +49,14 @@ const mayDeclare = (
       (pair.one === nation && pair.other === target) ||
       (pair.other === nation && pair.one === target)
   );
+  const overseas = overseasRivals(world, simulation).some(
+    (pair) => pair.one === nation && pair.other === target
+  );
+  const reachable = touching || overseas;
   return (
     enemiesOf(diplomacy.wars, nation).length === 0 &&
     !allied(diplomacy, nation, target) &&
-    touching
+    reachable
   );
 };
 
@@ -102,7 +114,7 @@ const advancementRuled = (
 /** The economy under the law or the plan decided, or none where it already has it. */
 const economyRuled = (
   economy: NationEconomy,
-  decision: Extract<Decision, { kind: "conscription" | "plan" }>
+  decision: Extract<Decision, { kind: "conscription" | "plan" | "trade" }>
 ): Option.Option<NationEconomy> => {
   if (decision.kind === "conscription") {
     if (economy.conscription === decision.law) {
@@ -110,10 +122,27 @@ const economyRuled = (
     }
     return Option.some(withConscription(economy, decision.law));
   }
+  if (decision.kind === "trade") {
+    if (economy.tradeLaw === decision.law) {
+      return Option.none();
+    }
+    return Option.some(withTradeLaw(economy, decision.law));
+  }
   if (economy.plan === decision.plan) {
     return Option.none();
   }
   return Option.some(withPlan(economy, decision.plan));
+};
+
+/** The navy with its dockyards on the order decided, or none where they already are. */
+const navyRuled = (
+  navy: Navy,
+  decision: Extract<Decision, { kind: "shipbuilding" }>
+): Option.Option<Navy> => {
+  if (navy.order === decision.order) {
+    return Option.none();
+  }
+  return Option.some(withOrder(navy, decision.order));
 };
 
 /**
@@ -141,14 +170,27 @@ const replacedFor = <T>(
 const carriedOut = (
   world: World,
   simulation: Simulation,
-  decision: Exclude<Decision, { kind: "peace" }>
+  decision: Exclude<Order, { kind: "peace" }>
 ): Simulation => {
   const { diplomacy } = simulation;
   const economy = itemAt(simulation.economies, decision.nation, NO_ECONOMY);
   if (!answersToItself(diplomacy, decision.nation)) {
     return simulation;
   }
-  if (decision.kind === "conscription" || decision.kind === "plan") {
+  if (decision.kind === "shipbuilding") {
+    return replacedFor(
+      simulation,
+      simulation.navies,
+      decision.nation,
+      navyRuled(itemAt(simulation.navies, decision.nation, NO_NAVY), decision),
+      (navies) => ({ ...simulation, navies })
+    );
+  }
+  if (
+    decision.kind === "conscription" ||
+    decision.kind === "plan" ||
+    decision.kind === "trade"
+  ) {
     return replacedFor(
       simulation,
       simulation.economies,
@@ -211,7 +253,7 @@ const carriedOut = (
 export const ruled = (
   world: World,
   simulation: Simulation,
-  ruling: Ruling
+  ruling: Ruling<Order>
 ): Simulation => {
   const day = simulation.clock.days;
   const { decision } = ruling;

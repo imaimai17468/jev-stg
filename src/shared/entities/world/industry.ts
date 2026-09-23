@@ -38,13 +38,29 @@ export const provincePeople = (province: LandProvince): number =>
 interface Industry {
   readonly population: number;
   readonly factories: number;
+  /** The share of those people living on a coast, from 0 to 1. */
+  readonly coastal: number;
 }
+
+/** The industry of a nation the world does not hold. */
+export const NO_INDUSTRY: Industry = {
+  coastal: 0,
+  factories: 0,
+  population: 0,
+};
+
+/** Whether the land province touches the sea. */
+const onTheCoast = (
+  provinces: readonly Province[],
+  province: LandProvince
+): boolean =>
+  province.neighbours.some((beside) => provinces[beside]?.kind === "sea");
 
 /**
  * What `weigh` makes of each land province, added up for the nation holding it,
  * by nation id. Land nobody holds counts for nobody.
  */
-export const summedByHolder = (
+const summedByHolder = (
   provinces: readonly Province[],
   owners: Int32Array,
   nations: number,
@@ -62,6 +78,15 @@ export const summedByHolder = (
 };
 
 /**
+ * `summedByHolder` over one world's provinces and owners, which is how a pass
+ * that sums several things per nation writes each of them once.
+ */
+export const holderSums =
+  (provinces: readonly Province[], owners: Int32Array, nations: number) =>
+  (weigh: (province: LandProvince, holder: number) => number): Float64Array =>
+    summedByHolder(provinces, owners, nations, weigh);
+
+/**
  * What each nation's land adds up to, by nation id.
  *
  * The factories are summed as fractions and rounded once at the end, so a
@@ -72,16 +97,20 @@ export const industryByNation = (
   owners: Int32Array,
   nations: number
 ): readonly Industry[] => {
-  const population = summedByHolder(provinces, owners, nations, provincePeople);
-  const factories = summedByHolder(
-    provinces,
-    owners,
-    nations,
+  const summed = holderSums(provinces, owners, nations);
+  const population = summed(provincePeople);
+  const coastal = summed(
+    (province) =>
+      provincePeople(province) * Number(onTheCoast(provinces, province))
+  );
+  const factories = summed(
     (province) =>
       (provincePeople(province) / PER_MILLION) *
       TERRAIN_YIELD[province.terrain].factoriesPerMillion
   );
   return Array.from({ length: nations }, (_, nation): Industry => ({
+    coastal:
+      valueAt(coastal, nation) / Math.max(1, valueAt(population, nation)),
     factories: Math.round(valueAt(factories, nation)),
     population: valueAt(population, nation),
   }));

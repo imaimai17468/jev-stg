@@ -29,6 +29,34 @@ export const musteringAt = (
 };
 
 /**
+ * The division standing where its nation musters, or nothing where its nation
+ * holds no ground to muster on.
+ */
+export const sentToMuster = (
+  world: World,
+  owners: Int32Array,
+  division: Division
+): readonly Division[] => {
+  const home = musteringAt(
+    world,
+    owners,
+    itemAt(world.nations, division.nation, NO_NATION)
+  );
+  if (home === UNASSIGNED) {
+    return [];
+  }
+  return [
+    {
+      ...division,
+      arrival: "march",
+      marched: 0,
+      movingTo: home,
+      province: home,
+    },
+  ];
+};
+
+/**
  * The divisions with every one standing on ground held by a nation it is
  * neither allied with nor fighting sent back to where its own nation musters, or disbanded where its
  * nation holds nothing.
@@ -51,13 +79,5 @@ export const sentHome = (
     ) {
       return [division];
     }
-    const home = musteringAt(
-      world,
-      owners,
-      itemAt(world.nations, division.nation, NO_NATION)
-    );
-    if (home === UNASSIGNED) {
-      return [];
-    }
-    return [{ ...division, marched: 0, movingTo: home, province: home }];
+    return sentToMuster(world, owners, division);
   });

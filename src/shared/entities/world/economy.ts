@@ -3,6 +3,8 @@ import type { World } from "./index";
 import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import type { TradeLaw } from "./trade";
+import { START_TRADE_LAW } from "./trade";
 
 /** How much of its people a nation may call up, set by its conscription law. */
 export type ConscriptionLaw =
@@ -79,10 +81,23 @@ const PLAN_SHARES = {
   "total-war": { consumerGoods: 0.05, military: 0.8 },
 } satisfies Readonly<Record<IndustryPlan, Shares>>;
 
-/** What a nation works with beyond its economy: what it has researched and pursued, and how much of what it holds it can draw on. */
+/**
+ * What a nation works with beyond its economy: what it has researched and
+ * pursued, how much of what it holds it can draw on, and what its trade and
+ * its coast leave it.
+ */
 export interface Footing {
   readonly modifiers: Modifiers;
   readonly reach: Reach;
+  /**
+   * The share of their output its military factories and dockyards keep, from
+   * 0 to 1, which the resources they go without take away.
+   */
+  readonly supplied: number;
+  /** Civilian factories its trade brought in, less the ones it paid out. */
+  readonly traded: number;
+  /** The share of its people who live on the coast, from 0 to 1. */
+  readonly coastal: number;
 }
 
 /** What a nation's economy holds on one day. */
@@ -105,6 +120,9 @@ export interface NationEconomy {
   readonly civilianFactories: number;
   /** Factories turning out equipment. */
   readonly militaryFactories: number;
+  /** Dockyards building ships and convoys. */
+  readonly dockyards: number;
+  readonly tradeLaw: TradeLaw;
   /** Construction put into the factory now being built. */
   readonly construction: number;
   /** Equipment turned out and not yet drawn on. */
@@ -139,12 +157,14 @@ export const NO_ECONOMY: NationEconomy = {
   civilianFactories: 0,
   conscription: "volunteer",
   construction: 0,
+  dockyards: 0,
   equipment: 0,
   manpower: 0,
   militaryFactories: 0,
   plan: "civilian",
   population: 0,
   recruited: 0,
+  tradeLaw: START_TRADE_LAW,
   upkeepMet: 1,
 };
 
@@ -174,17 +194,30 @@ export const withPlan = (
   plan: IndustryPlan
 ): NationEconomy => ({ ...economy, plan });
 
+/** The economy under `law`, which changes what it sells abroad from tomorrow. */
+export const withTradeLaw = (
+  economy: NationEconomy,
+  law: TradeLaw
+): NationEconomy => ({ ...economy, tradeLaw: law });
+
 /** How far along the factory now being built is, from 0 to 1. */
 export const constructionProgress = (economy: NationEconomy): number =>
   economy.construction / FACTORY_COST;
 
-/** What the nation's civilian factories put into construction in a day. */
+/**
+ * What the nation's civilian factories put into construction in a day: the
+ * ones its consumer goods leave, with the ones its trade handed over taken off
+ * and the ones it was handed added.
+ */
 const constructionPerDay = (
   economy: NationEconomy,
-  { modifiers, reach }: Footing
+  { modifiers, reach, traded }: Footing
 ): number =>
-  economy.civilianFactories *
-  (1 - PLAN_SHARES[economy.plan].consumerGoods) *
+  Math.max(
+    0,
+    economy.civilianFactories * (1 - PLAN_SHARES[economy.plan].consumerGoods) +
+      traded
+  ) *
   CONSTRUCTION_PER_FACTORY *
   (1 + modifiers.construction) *
   outputUnder(economy.conscription) *
@@ -208,29 +241,71 @@ const freeManpower = (
       economy.recruited
   );
 
-/** How the factories finished today divide between the two kinds. */
+/** How the factories finished today divide between the kinds. */
 interface Built {
   readonly civilian: number;
   readonly military: number;
+  readonly dockyards: number;
 }
+
+/**
+ * The share of the factories a war plan arms that a nation puts into
+ * dockyards for each share of its people on the coast. Hearts of Iron IV
+ * leaves the split to the player, so this is this game's own.
+ */
+const DOCKYARDS_PER_COASTAL_SHARE = 0.3;
 
 /**
  * Which kind the factories finished today come out as.
  *
  * A nation builds toward the split its plan asks for, so a nation that has just
  * taken a war plan puts everything it finishes into weapons until the split is
- * met and then goes back to building.
+ * met and then goes back to building. What it arms goes to the dockyards while
+ * they are behind the share its coast asks for, and to military factories
+ * after that.
  */
-const splitBuilt = (economy: NationEconomy, built: number): Built => {
-  const factories = economy.civilianFactories + economy.militaryFactories;
+const splitBuilt = (
+  economy: NationEconomy,
+  built: number,
+  coastal: number
+): Built => {
+  const armed = economy.militaryFactories + economy.dockyards;
+  const factories = economy.civilianFactories + armed;
   // A nation holding no factories at all would divide by zero, and it builds
   // nothing in any case, so the share it reads is the one that arms it first.
-  const armed = economy.militaryFactories / Math.max(1, factories);
-  if (armed < PLAN_SHARES[economy.plan].military) {
-    return { civilian: 0, military: built };
+  if (armed / Math.max(1, factories) >= PLAN_SHARES[economy.plan].military) {
+    return { civilian: built, dockyards: 0, military: 0 };
   }
-  return { civilian: built, military: 0 };
+  if (
+    economy.dockyards / Math.max(1, armed) <
+    coastal * DOCKYARDS_PER_COASTAL_SHARE
+  ) {
+    return { civilian: 0, dockyards: built, military: 0 };
+  }
+  return { civilian: 0, dockyards: 0, military: built };
 };
+
+/**
+ * The share of their full output the nation's military factories and
+ * dockyards reach today: their technologies and focuses, the workers the
+ * conscription law leaves them, the factories occupied ground lets it work,
+ * and the resources they go without.
+ */
+const armsOutput = (economy: NationEconomy, footing: Footing): number =>
+  (1 + footing.modifiers.production) *
+  outputUnder(economy.conscription) *
+  footing.reach.factories *
+  footing.supplied;
+
+/** What one dockyard puts into a ship in a day, in Hearts of Iron IV's units. */
+const SHIPBUILDING_PER_DOCKYARD = 2;
+
+/** What the nation's dockyards put into ships and convoys today. */
+export const shipbuildingOf = (
+  economy: NationEconomy,
+  footing: Footing
+): number =>
+  economy.dockyards * SHIPBUILDING_PER_DOCKYARD * armsOutput(economy, footing);
 
 /**
  * The economy after one day of work, which is the step the calendar takes,
@@ -243,22 +318,24 @@ export const producedOneDay = (
   economy: NationEconomy,
   footing: Footing
 ): NationEconomy => {
-  const { modifiers, reach } = footing;
   const population = economy.population * (1 + POPULATION_GROWTH_PER_DAY);
   const progressed =
     economy.construction + constructionPerDay(economy, footing);
-  const built = splitBuilt(economy, Math.floor(progressed / FACTORY_COST));
+  const built = splitBuilt(
+    economy,
+    Math.floor(progressed / FACTORY_COST),
+    footing.coastal
+  );
   return {
     ...economy,
     civilianFactories: economy.civilianFactories + built.civilian,
     construction: progressed % FACTORY_COST,
+    dockyards: economy.dockyards + built.dockyards,
     equipment:
       economy.equipment +
       economy.militaryFactories *
         EQUIPMENT_PER_FACTORY *
-        (1 + modifiers.production) *
-        outputUnder(economy.conscription) *
-        reach.factories,
+        armsOutput(economy, footing),
     manpower: freeManpower(economy, population, footing),
     militaryFactories: economy.militaryFactories + built.military,
     population,
@@ -298,6 +375,7 @@ const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
   ...economy,
   civilianFactories:
     economy.civilianFactories - Math.round(economy.civilianFactories * share),
+  dockyards: economy.dockyards - Math.round(economy.dockyards * share),
   militaryFactories:
     economy.militaryFactories - Math.round(economy.militaryFactories * share),
   population: economy.population - economy.population * share,
@@ -313,6 +391,7 @@ const enlarged = (
   civilianFactories:
     economy.civilianFactories +
     (lost.civilianFactories - keeping.civilianFactories),
+  dockyards: economy.dockyards + (lost.dockyards - keeping.dockyards),
   militaryFactories:
     economy.militaryFactories +
     (lost.militaryFactories - keeping.militaryFactories),
@@ -350,6 +429,13 @@ export const shareTransferred = (
 };
 
 /**
+ * The dockyards a nation opens with for each factory it holds and each share
+ * of its people on the coast, on top of its factories. Hearts of Iron IV's
+ * nations open with their historical yards, so this is this game's own.
+ */
+const START_DOCKYARD_SHARE = 0.1;
+
+/**
  * Each nation's economy on the world's first day, by nation id.
  *
  * Every nation starts under the same law and the same plan, so what separates
@@ -368,12 +454,16 @@ export const startEconomies = (
         civilianFactories: industry.factories - militaryFactories,
         conscription: START_CONSCRIPTION,
         construction: 0,
+        dockyards: Math.round(
+          industry.factories * industry.coastal * START_DOCKYARD_SHARE
+        ),
         equipment: 0,
         manpower: manpowerCap(industry.population, START_CONSCRIPTION),
         militaryFactories,
         plan: START_PLAN,
         population: industry.population,
         recruited: 0,
+        tradeLaw: START_TRADE_LAW,
         upkeepMet: 1,
       };
     }

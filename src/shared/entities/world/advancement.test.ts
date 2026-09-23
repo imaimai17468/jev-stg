@@ -7,7 +7,7 @@ import {
   modifiersOf,
   START_ADVANCEMENT,
 } from "./advancement";
-import { NO_ECONOMY } from "./economy";
+import { NO_ECONOMY, withTradeLaw } from "./economy";
 import { FOCUS_DAYS } from "./focus";
 import { NO_MODIFIERS } from "./modifiers";
 
@@ -27,8 +27,20 @@ const ADVANCED: Advancement = {
 };
 
 describe(modifiersOf, () => {
-  it("should add the technologies' and the focuses' bonuses together when both are finished", () => {
-    expect(modifiersOf(ADVANCED)).toStrictEqual({
+  it("should add the technologies', the focuses' and the trade law's bonuses together when all three grant some", () => {
+    expect(modifiersOf(ADVANCED, NO_ECONOMY)).toStrictEqual({
+      ...NO_MODIFIERS,
+      construction: 0.1,
+      organisation: 0.05,
+      production: 0.2,
+      research: 0.08,
+    });
+  });
+
+  it("should add only the technologies' and the focuses' bonuses when the economy is closed", () => {
+    expect(
+      modifiersOf(ADVANCED, withTradeLaw(NO_ECONOMY, "closed-economy"))
+    ).toStrictEqual({
       ...NO_MODIFIERS,
       organisation: 0.05,
       production: 0.1,
@@ -53,7 +65,7 @@ describe(progressedOneDay, () => {
         },
         research: {
           researched: ["electronics-1", "tools-1"],
-          studies: [{ progress: 1.03, tech: "artillery-1" }],
+          studies: [{ progress: 1.08, tech: "artillery-1" }],
         },
       },
       economy: { ...NO_ECONOMY, civilianFactories: 3 },

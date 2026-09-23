@@ -4,11 +4,16 @@ import type { Province } from "./provinces";
 import { UNASSIGNED } from "./spread";
 import type { Terrain } from "./terrain";
 
-const land = (id: number, terrain: Terrain, cells: number): Province => ({
+const land = (
+  id: number,
+  terrain: Terrain,
+  cells: number,
+  neighbours: readonly number[] = []
+): Province => ({
   cells,
   id,
   kind: "land",
-  neighbours: [],
+  neighbours,
   terrain,
   x: id,
   y: 0,
@@ -39,8 +44,8 @@ const OWNERS = Int32Array.from([0, 0, UNASSIGNED, UNASSIGNED]);
 describe(industryByNation, () => {
   it("should add up the people and the factories when a nation holds the land", () => {
     expect(industryByNation(PROVINCES, OWNERS, 2)).toStrictEqual([
-      { factories: 3, population: 3_200_000 },
-      { factories: 0, population: 0 },
+      { coastal: 0, factories: 3, population: 3_200_000 },
+      { coastal: 0, factories: 0, population: 0 },
     ]);
   });
 
@@ -48,7 +53,30 @@ describe(industryByNation, () => {
     const small = [land(0, "plains", 20), land(1, "plains", 20)];
 
     expect(industryByNation(small, Int32Array.from([0, 0]), 1)).toStrictEqual([
-      { factories: 1, population: 1_200_000 },
+      { coastal: 0, factories: 1, population: 1_200_000 },
     ]);
+  });
+
+  it("should count the share of the people on the coast when some of the nation's land touches the sea", () => {
+    const shore = [
+      land(0, "plains", 30, [1, 2]),
+      sea(1),
+      land(2, "plains", 10, [0]),
+    ];
+
+    expect(
+      industryByNation(shore, Int32Array.from([0, UNASSIGNED, 0]), 1).at(0)
+        ?.coastal
+    ).toBe(0.75);
+  });
+
+  it("should not count a province as coastal when a neighbour it names is not in the world", () => {
+    expect(
+      industryByNation(
+        [land(0, "plains", 10, [7])],
+        Int32Array.from([0]),
+        1
+      ).at(0)?.coastal
+    ).toBe(0);
   });
 });

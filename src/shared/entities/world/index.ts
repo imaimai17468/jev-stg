@@ -13,6 +13,8 @@ import {
   latticeSeeds,
   sinkUnreached,
 } from "./regions";
+import type { ResourceNeed } from "./resources";
+import { depositsOf } from "./resources";
 import { unassignedBuffer } from "./spread";
 import type { Terrain } from "./terrain";
 import {
@@ -62,6 +64,8 @@ export interface World {
   readonly cellProvince: Int32Array;
   readonly provinces: readonly Province[];
   readonly nations: readonly Nation[];
+  /** What each province yields of each resource a day, by province id. */
+  readonly deposits: readonly ResourceNeed[];
 }
 
 const landMask = (heights: Float32Array, seaLevel: number): Uint8Array =>
@@ -157,6 +161,7 @@ export const generateWorld = (seed: number): World => {
   const capitals = pickCapitals(provinces, NATION_COUNT, random);
   return {
     cellProvince: regions,
+    deposits: depositsOf(provinces, seed),
     grid,
     nations: buildNations(capitals, random),
     provinces,

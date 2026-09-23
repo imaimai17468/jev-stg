@@ -1,4 +1,5 @@
 import { START_ADVANCEMENT } from "./advancement";
+import { noQuiet } from "./armistice";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
@@ -7,6 +8,7 @@ import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import type { World } from "./index";
 import { NO_NATION } from "./nations";
+import { NO_NAVY } from "./navy";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
@@ -37,13 +39,17 @@ export const ROW_SIMULATION: Simulation = {
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(ROW_OWNERS),
+  deals: [],
   diplomacy: ROW_PEACE,
   divisions: [],
   economies: ROW_WORLD.nations.map(() => ({
     ...NO_ECONOMY,
     population: 300_000,
   })),
+  invasions: [],
+  navies: ROW_WORLD.nations.map(() => NO_NAVY),
   negotiations: [],
   owners: ROW_OWNERS,
+  quiet: noQuiet(ROW_WORLD.nations.length),
   stances: ROW_WORLD.nations.map(() => START_STANCE),
 };

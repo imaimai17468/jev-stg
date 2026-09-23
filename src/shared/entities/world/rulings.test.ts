@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
-import type { Decision, Ruling } from "./chronicle";
+import type { Order, Ruling } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Diplomacy } from "./diplomacy";
 import {
@@ -14,11 +14,17 @@ import {
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { focusStarted, START_FOCUSES } from "./focus";
+import type { World } from "./index";
+import { NO_NATION } from "./nations";
+import { NO_NAVY, openingNavy } from "./navy";
+import type { Province } from "./provinces";
+import { NO_RESOURCES } from "./resources";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
+import { UNASSIGNED } from "./spread";
 import { enemiesOf } from "./wars";
 
-const byRules = (decision: Decision): Ruling => ({
+const byRules = (decision: Order): Ruling<Order> => ({
   decision,
   source: BY_RULES,
 });
@@ -62,6 +68,46 @@ const BUSY: Simulation = advancedTo({
     ],
   },
 });
+
+/** A plains province bordering `neighbours`. */
+const land = (id: number, neighbours: readonly number[]): Province => ({
+  cells: 10,
+  id,
+  kind: "land",
+  neighbours,
+  terrain: "plains",
+  x: id,
+  y: 0,
+});
+
+/** Two islands with a sea zone between them, nation 0 on the first and nation 1 on the second. */
+const ISLES: World = {
+  cellProvince: Int32Array.from([0, 1, 2]),
+  deposits: [0, 1, 2].map(() => NO_RESOURCES),
+  grid: { height: 1, width: 3 },
+  nations: [0, 2].map((capital, id) => ({
+    ...NO_NATION,
+    capital,
+    id,
+    name: `国${id}`,
+  })),
+  provinces: [
+    land(0, [1]),
+    { cells: 4, id: 1, kind: "sea", neighbours: [0, 2], x: 1, y: 0 },
+    land(2, [1]),
+  ],
+  seed: 1,
+};
+
+const ISLE_OWNERS = Int32Array.from([0, UNASSIGNED, 1]);
+
+/** The islands at peace, nation 0 with a battle fleet off its port and nation 1 with no navy. */
+const ISLE_SIMULATION: Simulation = {
+  ...ROW_SIMULATION,
+  diplomacy: openingDiplomacy(ISLE_OWNERS, 2, []),
+  navies: [openingNavy(4, 1), NO_NAVY],
+  owners: ISLE_OWNERS,
+};
 
 describe(ruled, () => {
   it("should change the law and record the ruling when a nation takes a new conscription law", () => {
@@ -394,5 +440,91 @@ describe(ruled, () => {
         byRules({ focus: "industrialisation", kind: "focus", nation: 0 })
       )
     ).toBe(pursuing);
+  });
+
+  it("should start the war when a nation declares on one its fleet can reach across the sea", () => {
+    const after = ruled(
+      ISLES,
+      ISLE_SIMULATION,
+      byRules({ kind: "declare", nation: 0, target: 1 })
+    );
+
+    expect(enemiesOf(after.diplomacy.wars, 0)).toStrictEqual([1]);
+  });
+
+  it("should drop the declaration when a nation with no fleet declares on one whose fleet outmatches it across the sea", () => {
+    const after = ruled(
+      ISLES,
+      ISLE_SIMULATION,
+      byRules({ kind: "declare", nation: 1, target: 0 })
+    );
+
+    expect(enemiesOf(after.diplomacy.wars, 1)).toStrictEqual([]);
+  });
+
+  it("should change the trade law and record the ruling when a nation takes a new one", () => {
+    const ruling = byRules({
+      kind: "trade",
+      law: "limited-exports",
+      nation: 1,
+    });
+
+    const after = ruled(ROW_WORLD, ROW_SIMULATION, ruling);
+
+    expect({
+      chronicle: after.chronicle,
+      law: after.economies[1]?.tradeLaw,
+    }).toStrictEqual({
+      chronicle: [{ day: 0, ruling, seq: 0 }],
+      law: "limited-exports",
+    });
+  });
+
+  it("should change nothing when a nation keeps the trade law it has", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "trade", law: "export-focus", nation: 1 })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
+  it("should turn the dockyards and record the ruling when a nation orders a new class of ship", () => {
+    const ruling = byRules({
+      kind: "shipbuilding",
+      nation: 3,
+      order: "destroyer",
+    });
+
+    const after = ruled(ROW_WORLD, ROW_SIMULATION, ruling);
+
+    expect({
+      chronicle: after.chronicle,
+      order: after.navies[3]?.order,
+    }).toStrictEqual({
+      chronicle: [{ day: 0, ruling, seq: 0 }],
+      order: "destroyer",
+    });
+  });
+
+  it("should change nothing when a nation's dockyards keep the order they have", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "shipbuilding", nation: 3, order: "convoy" })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
+  it("should change nothing when a puppet's dockyards are ruled on", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        SUBJECTS,
+        byRules({ kind: "shipbuilding", nation: 2, order: "battleship" })
+      )
+    ).toBe(SUBJECTS);
   });
 });

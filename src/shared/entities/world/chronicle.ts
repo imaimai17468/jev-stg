@@ -2,7 +2,9 @@ import type { ConscriptionLaw, IndustryPlan } from "./economy";
 import type { FocusId } from "./focus";
 import type { Settlement } from "./peace";
 import type { TechId } from "./research";
+import type { ShipyardOrder } from "./ships";
 import type { Stance } from "./stance";
+import type { TradeLaw } from "./trade";
 
 /** One thing a government decided. */
 export type Decision =
@@ -37,7 +39,37 @@ export type Decision =
       readonly kind: "peace";
       readonly loser: number;
       readonly settlement: Settlement;
+    }
+  | {
+      readonly kind: "trade";
+      readonly nation: number;
+      readonly law: TradeLaw;
+    }
+  | {
+      readonly kind: "shipbuilding";
+      readonly nation: number;
+      readonly order: ShipyardOrder;
+    }
+  | {
+      readonly kind: "landing";
+      readonly nation: number;
+      /** The coast the divisions went ashore on. */
+      readonly target: number;
+      /** Whose coast it was. */
+      readonly defender: number;
+    }
+  | {
+      readonly kind: "white-peace";
+      readonly one: number;
+      readonly other: number;
     };
+
+/**
+ * What a government decides month by month and a surrendered nation's victor
+ * dictates, which is everything that goes through a ruling. A landing and a
+ * white peace come out of the day's own step, so no ruling carries them out.
+ */
+export type Order = Exclude<Decision, { kind: "landing" | "white-peace" }>;
 
 /** Who made a decision: Jev, with how sure it was, or the built-in rules. */
 export type Source =
@@ -47,8 +79,8 @@ export type Source =
 export const BY_RULES: Source = { kind: "rules" };
 
 /** A decision and who made it. */
-export interface Ruling {
-  readonly decision: Decision;
+export interface Ruling<Decided extends Decision = Decision> {
+  readonly decision: Decided;
   readonly source: Source;
 }
 
@@ -70,17 +102,21 @@ export interface Entry extends Carried {
  * peaces between nations, a nation's laws, plans and stances, or its research
  * and focus tree.
  */
-type Strand = "diplomacy" | "policy" | "advancement";
+type Strand = "diplomacy" | "policy" | "advancement" | "operations";
 
 const STRAND_OF = {
   conscription: "policy",
   declare: "diplomacy",
   focus: "advancement",
   join: "diplomacy",
+  landing: "operations",
   peace: "diplomacy",
   plan: "policy",
   research: "advancement",
+  shipbuilding: "policy",
   stance: "policy",
+  trade: "policy",
+  "white-peace": "diplomacy",
 } satisfies Readonly<Record<Decision["kind"], Strand>>;
 
 /**
@@ -91,6 +127,7 @@ const STRAND_OF = {
 const STRAND_LENGTH = {
   advancement: 60,
   diplomacy: 60,
+  operations: 60,
   policy: 60,
 } satisfies Readonly<Record<Strand, number>>;
 
