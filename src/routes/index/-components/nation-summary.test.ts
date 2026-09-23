@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import { startCompliance } from "@/shared/entities/world/compliance";
 import {
   INDEPENDENT,
   openingDiplomacy,
@@ -59,6 +60,7 @@ const OWNERS = Int32Array.from([0, 0, 1, UNASSIGNED, 0]);
 const SIMULATION: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
+  compliance: startCompliance(OWNERS),
   negotiations: [],
   stances: ["balanced", "balanced"],
   clock: START_CLOCK,

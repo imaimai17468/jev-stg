@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { START_ADVANCEMENT } from "./advancement";
 import { LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
+import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
@@ -15,6 +16,7 @@ const OPENING: Simulation = {
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   clock: START_CLOCK,
+  compliance: startCompliance(LINE_OWNERS),
   diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
   divisions: [],
   economies: [

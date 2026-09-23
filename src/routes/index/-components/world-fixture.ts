@@ -1,6 +1,7 @@
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import { startCompliance } from "@/shared/entities/world/compliance";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Nation } from "@/shared/entities/world/nations";
@@ -62,6 +63,7 @@ export const fixtureSimulation = (
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   chronicle: [],
   clock: START_CLOCK,
+  compliance: startCompliance(HELD_BY_TWO),
   diplomacy: openingDiplomacy(HELD_BY_TWO, 2, []),
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],

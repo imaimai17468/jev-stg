@@ -1,6 +1,7 @@
 import { START_ADVANCEMENT } from "./advancement";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
+import { startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
@@ -35,6 +36,7 @@ export const ROW_SIMULATION: Simulation = {
   advancements: ROW_WORLD.nations.map(() => START_ADVANCEMENT),
   chronicle: [],
   clock: START_CLOCK,
+  compliance: startCompliance(ROW_OWNERS),
   diplomacy: ROW_PEACE,
   divisions: [],
   economies: ROW_WORLD.nations.map(() => ({
