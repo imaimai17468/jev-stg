@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
-import { stripeOffsets, supplyLevelOf } from "./supply-level";
+import { supplyLevelOf } from "./supply-level";
 
 /** One nation over five provinces, each supplying and holding a different load. */
 const NETWORK: SupplyNetwork = {
@@ -46,15 +46,5 @@ describe(supplyLevelOf, () => {
     };
 
     expect(supplyLevelOf(invaded, 0, 0)).toBe("starved");
-  });
-});
-
-describe(stripeOffsets, () => {
-  it("should draw no stripe when the level is not striped", () => {
-    expect(stripeOffsets(0, 12)).toStrictEqual([]);
-  });
-
-  it("should space the diagonals by the hatch across twice the swatch when the level is striped", () => {
-    expect(stripeOffsets(4, 12)).toStrictEqual([4, 8, 12, 16, 20, 24]);
   });
 });

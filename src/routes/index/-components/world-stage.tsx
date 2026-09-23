@@ -94,6 +94,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
       <WorldMap
+        compliance={simulation.compliance}
         divisions={simulation.divisions}
         highlighted={selected}
         mode={mode}

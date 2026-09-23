@@ -35,6 +35,9 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
       <PanelSection title="傀儡">
         <NationList empty="傀儡国はありません" names={summary.puppets} />
       </PanelSection>
+      <PanelSection title="占領地">
+        <StatRows layout="column" stats={summary.occupation} />
+      </PanelSection>
       <PanelSection title="補給">
         <StatRows layout="column" stats={summary.supply} />
       </PanelSection>
