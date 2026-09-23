@@ -1,3 +1,4 @@
+import type { Aircraft, Aviation } from "./aircraft";
 import type { ConscriptionLaw, IndustryPlan } from "./economy";
 import type { FocusId } from "./focus";
 import type { Settlement } from "./peace";
@@ -49,6 +50,16 @@ export type Decision =
       readonly kind: "shipbuilding";
       readonly nation: number;
       readonly order: ShipyardOrder;
+    }
+  | {
+      readonly kind: "aircraft";
+      readonly nation: number;
+      readonly aircraft: Aircraft;
+    }
+  | {
+      readonly kind: "aviation";
+      readonly nation: number;
+      readonly aviation: Aviation;
     }
   | {
       readonly kind: "landing";
@@ -105,6 +116,8 @@ export interface Entry extends Carried {
 type Strand = "diplomacy" | "policy" | "advancement" | "operations";
 
 const STRAND_OF = {
+  aircraft: "policy",
+  aviation: "policy",
   conscription: "policy",
   declare: "diplomacy",
   focus: "advancement",

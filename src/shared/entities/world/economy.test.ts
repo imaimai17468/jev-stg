@@ -1,54 +1,62 @@
 import { describe, expect, it } from "vite-plus/test";
+import { airspaceOf } from "./airspace";
 import type { Reach } from "./compliance";
 import { FULL_REACH } from "./compliance";
 import type { Footing, NationEconomy } from "./economy";
 import {
+  burnt,
   constructionProgress,
   NO_ECONOMY,
   producedOneDay,
   shareTransferred,
-  shipbuildingOf,
+  outputOf,
   startEconomies,
   upkept,
   withConscription,
   withPlan,
   withTradeLaw,
 } from "./economy";
+import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
 import { NO_MODIFIERS } from "./modifiers";
 import { NO_RESOURCES } from "./resources";
 import { UNASSIGNED } from "./spread";
 
 /** Thirty factories' worth of inland plains with nothing to dig, held by one nation. */
+const PROVINCES: World["provinces"] = [
+  {
+    cells: 1000,
+    id: 0,
+    kind: "land",
+    neighbours: [],
+    terrain: "plains",
+    x: 0,
+    y: 0,
+  },
+  { cells: 4, id: 1, kind: "sea", neighbours: [], x: 1, y: 0 },
+];
+
 const WORLD: World = {
+  airspace: airspaceOf(PROVINCES, 1),
   cellProvince: Int32Array.from([0, 1]),
   deposits: [NO_RESOURCES, NO_RESOURCES],
   grid: { height: 1, width: 2 },
   nations: [
     { capital: 0, colour: { blue: 0, green: 0, red: 0 }, id: 0, name: "国0" },
   ],
-  provinces: [
-    {
-      cells: 1000,
-      id: 0,
-      kind: "land",
-      neighbours: [],
-      terrain: "plains",
-      x: 0,
-      y: 0,
-    },
-    { cells: 4, id: 1, kind: "sea", neighbours: [], x: 1, y: 0 },
-  ],
+  provinces: PROVINCES,
   seed: 1,
 };
 
 /** Twenty civilian and ten military factories, no dockyard, and nobody living there. */
 const INDUSTRY: NationEconomy = {
+  burned: 0,
   civilianFactories: 20,
   conscription: "volunteer",
   construction: 0,
   dockyards: 0,
   equipment: 0,
+  fuel: 0,
   manpower: 0,
   militaryFactories: 10,
   plan: "civilian",
@@ -60,11 +68,13 @@ const INDUSTRY: NationEconomy = {
 
 /** A million people and no industry at all. */
 const PEOPLE: NationEconomy = {
+  burned: 0,
   civilianFactories: 0,
   conscription: "volunteer",
   construction: 0,
   dockyards: 0,
   equipment: 0,
+  fuel: 0,
   manpower: 0,
   militaryFactories: 0,
   plan: "civilian",
@@ -81,6 +91,8 @@ const OWNERS = Int32Array.from([0, UNASSIGNED]);
  * resource, trading no factories away and living inland.
  */
 const INLAND: Footing = {
+  airSupplied: 1,
+  aviation: 0,
   coastal: 0,
   modifiers: NO_MODIFIERS,
   reach: FULL_REACH,
@@ -92,11 +104,13 @@ describe(startEconomies, () => {
   it("should split a nation's factories by its plan when the world opens", () => {
     expect(startEconomies(WORLD, OWNERS)).toStrictEqual([
       {
+        burned: 0,
         civilianFactories: 25,
         conscription: "volunteer",
         construction: 0,
         dockyards: 0,
         equipment: 0,
+        fuel: FUEL_CAPACITY,
         manpower: 450_000,
         militaryFactories: 5,
         plan: "civilian",
@@ -156,14 +170,43 @@ describe(withTradeLaw, () => {
   });
 });
 
-describe(shipbuildingOf, () => {
+describe(outputOf, () => {
   it("should put two a day into ships for every dockyard less the share lost when it lacks resources", () => {
     expect(
-      shipbuildingOf(
+      outputOf(
         { ...INDUSTRY, dockyards: 5 },
-        { ...INLAND, supplied: 0.5 }
+        { ...INLAND, airSupplied: 0.1, supplied: 0.5 },
+        "ships"
       )
     ).toBe(5);
+  });
+
+  it("should put three and a half a day into planes for every factory on them less the share their own resources lose when a fifth of the factories are on planes", () => {
+    expect(
+      outputOf(
+        INDUSTRY,
+        { ...INLAND, airSupplied: 0.5, aviation: 0.2, supplied: 0.1 },
+        "aircraft"
+      )
+    ).toBeCloseTo(3.5, 10);
+  });
+});
+
+describe(burnt, () => {
+  it("should take the demand out of the stockpile and add it to what was burned when the stockpile covers it", () => {
+    expect(burnt({ ...NO_ECONOMY, burned: 5, fuel: 100 }, 30)).toStrictEqual({
+      ...NO_ECONOMY,
+      burned: 35,
+      fuel: 70,
+    });
+  });
+
+  it("should empty the stockpile and count only what it held as burned when the demand runs past it", () => {
+    expect(burnt({ ...NO_ECONOMY, fuel: 10 }, 88)).toStrictEqual({
+      ...NO_ECONOMY,
+      burned: 10,
+      fuel: 0,
+    });
   });
 });
 
@@ -278,6 +321,13 @@ describe(producedOneDay, () => {
     expect(
       producedOneDay(INDUSTRY, { ...INLAND, supplied: 0.5 }).equipment
     ).toBe(25);
+  });
+
+  it("should turn out equipment only from the factories not on planes when a fifth of them are", () => {
+    expect(
+      producedOneDay(INDUSTRY, { ...INLAND, airSupplied: 0, aviation: 0.2 })
+        .equipment
+    ).toBeCloseTo(40, 10);
   });
 
   it("should put more into the site when the nation's trade hands it civilian factories", () => {

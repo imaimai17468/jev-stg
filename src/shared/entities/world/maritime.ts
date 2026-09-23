@@ -1,6 +1,14 @@
 import { Option } from "effect";
 import type { Diplomacy } from "./diplomacy";
 import type { Division } from "./divisions";
+import {
+  COMBAT_FUEL_MULTIPLE,
+  enginesKeptWith,
+  fuelShareOf,
+  gunsKeptWith,
+  makesWayOn,
+  SHIP_FUEL_PER_DAY,
+} from "./fuel";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import type { Invasion, Muster } from "./invasion";
@@ -9,8 +17,9 @@ import { itemAt } from "./lookup";
 import { musteringAt, sentToMuster } from "./muster";
 import type { NationPair } from "./nations";
 import { neighbouringNations } from "./nations";
-import { foughtAtSea } from "./naval-combat";
-import type { Navy, Station } from "./navy";
+import type { SeaBattles } from "./naval-combat";
+import { foughtAtSea, foughtToday } from "./naval-combat";
+import type { Navy, Station, TaskForce } from "./navy";
 import {
   FLEET_ROLES,
   fleetOf,
@@ -31,6 +40,7 @@ import {
 } from "./seas";
 import type { Sailings, Voyage, Waters } from "./shipping";
 import { idleConvoys, shippedOneDay } from "./shipping";
+import { hullOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Lines, SupplyReach } from "./supply";
 import { reachOf } from "./supply";
@@ -62,13 +72,43 @@ export interface Coasts {
   readonly landmasses: Int32Array;
   /** Where each nation musters, by nation id. */
   readonly musters: readonly number[];
+  /** What each nation's air superiority adds to its ships' hold over each zone, by nation id and then province id. */
+  readonly lift: readonly Float32Array[];
+  /** The fuel in each nation's stockpile, by nation id. */
+  readonly fuel: readonly number[];
 }
 
 /** A day at sea, and the landings that went ashore on it. */
 export interface Seafaring extends Seas {
   /** The landings on an enemy coast that went ashore today, transfers left out. */
   readonly landings: readonly Invasion[];
+  /** The fuel each nation's ships burned today, by nation id. */
+  readonly burned: readonly number[];
 }
+
+/** The fuel a task force burns in a day on the move. */
+const underwayFuelOf = (fleet: TaskForce): number =>
+  fleet.ships.reduce(
+    (total, ship) => total + hullOf(ship.shipClass).fuel * SHIP_FUEL_PER_DAY,
+    0
+  );
+
+/**
+ * The share of what its ships would burn if every task force at sea made way
+ * today that each nation's stockpile covers, by nation id.
+ */
+const fuelSharesOf = (
+  navies: readonly Navy[],
+  fuel: readonly number[]
+): readonly number[] =>
+  navies.map((navy, nation) =>
+    fuelShareOf(
+      itemAt(fuel, nation, 0),
+      navy.fleets
+        .filter((fleet) => fleet.zone !== UNASSIGNED)
+        .reduce((total, fleet) => total + underwayFuelOf(fleet), 0)
+    )
+  );
 
 /** Where each nation's home port is today, by nation id. */
 const homePortsOf = (
@@ -156,21 +196,27 @@ const stationOf = (
   };
 };
 
-/** Every navy after its task forces have taken their orders and sailed one zone. */
+/**
+ * Every navy after its task forces have taken their orders and sailed one
+ * zone, on the days the fuel it has leaves its engines the speed to.
+ */
 const sailedEverywhere = (
   seas: Seas,
   coasts: Coasts,
-  homes: readonly number[]
+  shares: readonly number[]
 ): readonly Navy[] => {
-  const waters = watersOf(coasts.graph, seas.navies);
+  const waters = watersOf(coasts.graph, seas.navies, coasts.lift);
   return seas.navies.map((navy, nation) => {
     const station = stationOf(
       seas,
       coasts,
       waters,
       nation,
-      itemAt(homes, nation, UNASSIGNED)
+      itemAt(coasts.homes, nation, UNASSIGNED)
     );
+    if (!makesWayOn(coasts.day, enginesKeptWith(itemAt(shares, nation, 1)))) {
+      return navy;
+    }
     return {
       ...navy,
       fleets: navy.fleets.map((fleet) => {
@@ -397,21 +443,48 @@ const sailingsOf = (
 };
 
 /**
+ * The fuel each nation's ships burned today, by nation id: a task force that
+ * made way burns its day's fuel, and one that fought twice that, whether it
+ * moved or held.
+ */
+const burnedAtSea = (
+  before: readonly Navy[],
+  battles: SeaBattles
+): readonly number[] =>
+  battles.navies.map((navy, nation) => {
+    let burned = 0;
+    for (const [index, fleet] of navy.fleets.entries()) {
+      const was = itemAt(itemAt(before, nation, navy).fleets, index, fleet);
+      const moved = Number(was.zone !== fleet.zone);
+      const fought = Number(
+        foughtToday(battles, FLEET_ROLES.length, nation, index)
+      );
+      burned +=
+        underwayFuelOf(fleet) * Math.max(moved, COMBAT_FUEL_MULTIPLE * fought);
+    }
+    return burned;
+  });
+
+/**
  * One day at sea: every task force takes its orders and sails, every battle
  * at sea is fought, every landing goes in, waits or comes home and new ones
  * are planned, and last the convoys run their lanes past whatever the enemy
- * holds of the sea that day.
+ * holds of the sea that day. A nation short of fuel sails on fewer days and
+ * fires with less of its guns, and the air superiority it holds over a zone
+ * adds to what its ships hold there.
  */
 export const seafaredOneDay = (seas: Seas, coasts: Coasts): Seafaring => {
   const { homes } = coasts;
-  const sailedNavies = sailedEverywhere(seas, coasts, homes);
+  const shares = fuelSharesOf(seas.navies, coasts.fuel);
+  const sailedNavies = sailedEverywhere(seas, coasts, shares);
   const battles = foughtAtSea(
     sailedNavies,
     coasts.diplomacy.wars,
-    FLEET_ROLES.length
+    FLEET_ROLES.length,
+    shares.map(gunsKeptWith)
   );
   const waters: Waters = {
-    all: watersOf(coasts.graph, battles.navies),
+    all: watersOf(coasts.graph, battles.navies, coasts.lift),
     diplomacy: coasts.diplomacy,
     graph: coasts.graph,
     raiders: watersOf(
@@ -419,7 +492,8 @@ export const seafaredOneDay = (seas: Seas, coasts: Coasts): Seafaring => {
       battles.navies.map((navy) => ({
         ...navy,
         fleets: navy.fleets.filter((fleet) => fleet.mission === "raid"),
-      }))
+      })),
+      coasts.lift
     ),
   };
   const reaches = coasts.world.nations.map((nation) =>
@@ -439,6 +513,7 @@ export const seafaredOneDay = (seas: Seas, coasts: Coasts): Seafaring => {
   };
   return {
     ...after,
+    burned: burnedAtSea(seas.navies, battles),
     landings: landings.landed,
     navies: shippedOneDay(
       waters,

@@ -1,6 +1,10 @@
 import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
+import type { AirForce } from "./air-force";
+import { allPlanesOf, NO_AIR_FORCE, planesOf } from "./air-force";
+import type { Aircraft, Aviation } from "./aircraft";
+import { AIRCRAFT, AVIATIONS } from "./aircraft";
 import { dateLabel } from "./calendar";
 import type { Negotiation, Order, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
@@ -22,6 +26,7 @@ import { menFor } from "./divisions";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
 import type { FocusId } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
+import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
 import { CONVOYS_PER_DIVISION } from "./invasion";
 import { itemAt } from "./lookup";
@@ -37,7 +42,9 @@ import { availableTechs, techOf } from "./research";
 import { ruled } from "./rulings";
 import { SHIPYARD_ORDERS } from "./ships";
 import type { Simulation } from "./simulation";
-import { realmOf, supplyOf } from "./simulation";
+import { realmOf, skiesOf, supplyOf } from "./simulation";
+import type { Skies } from "./skies";
+import { skyLostBy } from "./skies";
 import type { Stance } from "./stance";
 import { START_STANCE, STANCES } from "./stance";
 import type { Standoff } from "./statecraft";
@@ -87,6 +94,9 @@ interface Dossier {
   readonly supply: SupplyNetwork;
   /** Every nation's navy, by nation id. */
   readonly navies: readonly Navy[];
+  /** Every nation's air force, by nation id. */
+  readonly airForces: readonly AirForce[];
+  readonly skies: Skies;
   /** The share of its arms output it loses to the resources it goes without. */
   readonly shortage: number;
 }
@@ -172,6 +182,7 @@ const briefOf = (
 ): NationBrief => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   const enemies = enemiesOf(standoff.diplomacy.wars, nation);
+  const airForce = itemAt(dossier.airForces, nation, NO_AIR_FORCE);
   return {
     ...offersOf(dossier.advancement),
     atWar: enemies.length > 0,
@@ -183,16 +194,24 @@ const briefOf = (
         total + fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY)),
       0
     ),
+    enemyPlanes: enemies.reduce(
+      (total, enemy) =>
+        total + allPlanesOf(itemAt(dossier.airForces, enemy, NO_AIR_FORCE)),
+      0
+    ),
     enemyStrength: enemyStrength(standoff, nation),
     equipment: economy.equipment,
     factions: factionsOf(standoff, nation),
     fleet: fleetStrength(itemAt(dossier.navies, nation, NO_NAVY)),
+    fuel: Math.min(1, economy.fuel / FUEL_CAPACITY),
     manpower: economy.manpower,
     militaryFactories: economy.militaryFactories,
     nation,
+    planes: allPlanesOf(airForce),
     population: economy.population,
     rivals: rivalsOf(standoff, nation),
     shortage: dossier.shortage,
+    skyLost: skyLostBy(dossier.skies, nation),
     strength: sideStrength(standoff, nation),
     undersupplied: undersuppliedShare(
       dossier.supply,
@@ -232,8 +251,10 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
             nation,
             START_ADVANCEMENT
           ),
+          airForces: simulation.airForces,
           navies: simulation.navies,
           shortage: itemAt(ledgers, nation, NO_LEDGER).shortage,
+          skies: skiesOf(simulation),
           supply,
         },
         nation
@@ -382,6 +403,89 @@ const tradeAndShipsByRules = (
   ];
 };
 
+/** The weight of aviation the rules take with the sky held, and with it lost. */
+const AVIATION_BY_SKY: readonly Aviation[] = ["light", "heavy"];
+
+/** What the rules weigh in choosing the plane to build. */
+interface AirPicture {
+  readonly atWar: boolean;
+  readonly skyLost: boolean;
+  readonly outnumbered: boolean;
+  readonly outgunnedAtSea: boolean;
+  /** The share of its planes that are fighters, from 0 to 1. */
+  readonly fighterShare: number;
+}
+
+/**
+ * The share of its planes a nation at peace keeps as fighters before the
+ * rules build it close air support, and the two planes it builds on either
+ * side of that share. This game's own.
+ */
+const PEACETIME_FIGHTERS = 2 / 3;
+const PEACETIME_AIRCRAFT: readonly Aircraft[] = ["fighter", "close-support"];
+
+const aircraftByRules = (picture: AirPicture): Aircraft => {
+  if (!picture.atWar) {
+    return itemAt(
+      PEACETIME_AIRCRAFT,
+      Number(picture.fighterShare >= PEACETIME_FIGHTERS),
+      "fighter"
+    );
+  }
+  if (picture.skyLost || picture.outnumbered) {
+    return "fighter";
+  }
+  if (picture.outgunnedAtSea) {
+    return "naval-bomber";
+  }
+  return "close-support";
+};
+
+/**
+ * What the rules put a nation's air factories on this month: some of its
+ * military factories on planes always, and more of them while its enemies
+ * hold the sky anywhere it fights; at peace, fighters until they make up two
+ * thirds of its planes and close air support after that; at war, fighters
+ * while its enemies hold any of the sky or have more fighters than it does,
+ * otherwise naval bombers while its enemies outgun it at sea, and close air
+ * support after that.
+ */
+const airByRules = (
+  simulation: Simulation,
+  nation: number
+): readonly Order[] => {
+  const enemies = enemiesOf(simulation.diplomacy.wars, nation);
+  const skyLost = skyLostBy(skiesOf(simulation), nation) > 0;
+  const enemyOf = (read: (navy: Navy, airForce: AirForce) => number) =>
+    enemies.reduce(
+      (total, enemy) =>
+        total +
+        read(
+          itemAt(simulation.navies, enemy, NO_NAVY),
+          itemAt(simulation.airForces, enemy, NO_AIR_FORCE)
+        ),
+      0
+    );
+  const airForce = itemAt(simulation.airForces, nation, NO_AIR_FORCE);
+  const aviation = itemAt(AVIATION_BY_SKY, Number(skyLost), "light");
+  const aircraft = aircraftByRules({
+    atWar: enemies.length > 0,
+    fighterShare:
+      planesOf(airForce, "fighter") / Math.max(1, allPlanesOf(airForce)),
+    outgunnedAtSea:
+      enemyOf((navy) => fleetStrength(navy)) >
+      fleetStrength(itemAt(simulation.navies, nation, NO_NAVY)),
+    outnumbered:
+      planesOf(airForce, "fighter") <
+      enemyOf((_, enemy) => planesOf(enemy, "fighter")),
+    skyLost,
+  });
+  return [
+    { aviation, kind: "aviation", nation },
+    { aircraft, kind: "aircraft", nation },
+  ];
+};
+
 /** The branches that make a nation's army fight better. */
 const ARMY_BRANCHES: ReadonlySet<TechBranch> = new Set([
   "infantry",
@@ -479,6 +583,7 @@ export const ruledByRules = (
       [
         ...decisionsByRules(standoffOf(world, current), nation, random),
         ...tradeAndShipsByRules(current, nation),
+        ...airByRules(current, nation),
       ],
       BY_RULES
     );
@@ -569,6 +674,20 @@ const decisionOf = (
       kind: "shipbuilding",
       nation,
       order,
+    }));
+  }
+  if (question === "aircraft") {
+    return Option.map(pickOf(AIRCRAFT, choice), (aircraft): Order => ({
+      aircraft,
+      kind: "aircraft",
+      nation,
+    }));
+  }
+  if (question === "aviation") {
+    return Option.map(pickOf(AVIATIONS, choice), (aviation): Order => ({
+      aviation,
+      kind: "aviation",
+      nation,
     }));
   }
   if (question === "faction") {

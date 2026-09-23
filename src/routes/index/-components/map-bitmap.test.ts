@@ -1,7 +1,9 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { startCompliance } from "@/shared/entities/world/compliance";
+import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { paintWorld } from "./map-bitmap";
+import { airTintOf } from "./map-mode";
 import type { Tint } from "./map-mode";
 import {
   COMPLIANCE_COLOURS,
@@ -20,6 +22,17 @@ import {
 
 /** The map coloured by who holds what. */
 const POLITICAL: Tint = { mode: "political" };
+
+/** Each province of the fixture in a strategic region of its own. */
+const REGION_EACH = Int32Array.from([0, 1, 2]);
+
+/** The air map over the fixture with `first` and `second` the air power the two nations fly over each region. */
+const skies = (
+  first: readonly number[],
+  second: readonly number[],
+  regionOf: Int32Array = REGION_EACH
+): Tint =>
+  airTintOf([Float32Array.from(first), Float32Array.from(second)], regionOf);
 
 /** Nothing picked, so no nation is drawn brighter. */
 const NO_HIGHLIGHT = Option.none<number>();
@@ -272,13 +285,16 @@ describe(paintWorld, () => {
 
   it("should fill a province with its richest resource's colour when the map shows resources", () => {
     const resources: Tint = {
-      deposits: [
-        { chromium: 0, steel: 0, tungsten: 4 },
-        { chromium: 0, steel: 0, tungsten: 0 },
-        { chromium: 0, steel: 0, tungsten: 0 },
-      ],
+      deposits: [{ ...NO_RESOURCES, tungsten: 4 }, NO_RESOURCES, NO_RESOURCES],
       mode: "resources",
-      world: { chromium: 10, steel: 10, tungsten: 10 },
+      world: {
+        aluminium: 10,
+        chromium: 10,
+        oil: 10,
+        rubber: 10,
+        steel: 10,
+        tungsten: 10,
+      },
     };
 
     expect(
@@ -290,6 +306,119 @@ describe(paintWorld, () => {
       RESOURCE_COLOURS.tungsten.red,
       RESOURCE_COLOURS.tungsten.green,
       RESOURCE_COLOURS.tungsten.blue,
+      255,
+    ]);
+  });
+
+  it("should dim the land in its holder's colour when nobody flies over its region on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_TWO,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [0, 0, 0])
+        ),
+        0
+      )
+    ).toStrictEqual([Math.round(200 * NAVAL_LAND_SHADE), 0, 0, 255]);
+  });
+
+  it("should leave a sea zone the sea's colour when nobody flies over its region on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_TWO,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [0, 0, 0])
+        ),
+        11
+      )
+    ).toStrictEqual([
+      MAP_COLOURS.sea.red,
+      MAP_COLOURS.sea.green,
+      MAP_COLOURS.sea.blue,
+      255,
+    ]);
+  });
+
+  it("should paint the land in the colour of the nation flying the most when it holds the sky on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_TWO,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [10, 0, 0])
+        ),
+        0
+      )
+    ).toStrictEqual([100, 0, 0, 255]);
+  });
+
+  it("should paint a sea zone in the colour of the nation flying the most when it holds the sky on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_TWO,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [0, 0, 10])
+        ),
+        11
+      )
+    ).toStrictEqual([100, 0, 0, 255]);
+  });
+
+  it("should stripe the land when two nations fight for its sky on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_TWO,
+          NO_HIGHLIGHT,
+          skies([6, 0, 0], [4, 0, 0])
+        ),
+        0
+      )
+    ).toStrictEqual([Math.round(200 * HATCH_SHADE), 0, 0, 255]);
+  });
+
+  it("should draw a region border when the neighbouring province lies in another region on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_ONE,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [0, 0, 0])
+        ),
+        1
+      )
+    ).toStrictEqual([
+      MAP_COLOURS.airBorder.red,
+      MAP_COLOURS.airBorder.green,
+      MAP_COLOURS.airBorder.blue,
+      255,
+    ]);
+  });
+
+  it("should draw a province border when the neighbouring province lies in the same region on the air map", () => {
+    expect(
+      channelsAt(
+        paintWorld(
+          FIXTURE_WORLD,
+          HELD_BY_ONE,
+          NO_HIGHLIGHT,
+          skies([0, 0, 0], [0, 0, 0], Int32Array.from([0, 0, 1]))
+        ),
+        1
+      )
+    ).toStrictEqual([
+      MAP_COLOURS.provinceBorder.red,
+      MAP_COLOURS.provinceBorder.green,
+      MAP_COLOURS.provinceBorder.blue,
       255,
     ]);
   });

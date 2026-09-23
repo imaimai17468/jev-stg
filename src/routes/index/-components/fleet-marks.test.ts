@@ -32,7 +32,6 @@ describe(fleetMarks, () => {
         count: 3,
         x: 4.5,
         y: 0.5,
-        zone: 2,
       },
     ]);
   });

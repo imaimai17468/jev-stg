@@ -66,10 +66,11 @@ describe(paidForDivision, () => {
 });
 
 /** A division of a nation with nothing researched, fully supplied. */
-const SUPPLIED: Backing = { fill: 1, modifiers: NO_MODIFIERS };
+const SUPPLIED: Backing = { air: 1, fill: 1, modifiers: NO_MODIFIERS };
 
 /** A fully supplied division of a nation whose modifiers `bonus` raises. */
 const backedBy = (bonus: Partial<Modifiers>): Backing => ({
+  air: 1,
   fill: 1,
   modifiers: { ...NO_MODIFIERS, ...bonus },
 });
@@ -95,8 +96,14 @@ describe("attackOf under modifiers", () => {
 describe("attackOf out of supply", () => {
   it("should keep only the unsupplied share of its worth when the division gets no supply", () => {
     expect(
-      attackOf(division({}), { fill: 0, modifiers: NO_MODIFIERS })
+      attackOf(division({}), { air: 1, fill: 0, modifiers: NO_MODIFIERS })
     ).toBeCloseTo(1.8);
+  });
+});
+
+describe("attackOf under the enemy's air superiority", () => {
+  it("should keep only the share the enemy's sky leaves it when the enemy holds the air overhead", () => {
+    expect(attackOf(division({}), { ...SUPPLIED, air: 0.65 })).toBeCloseTo(3.9);
   });
 });
 
@@ -131,6 +138,7 @@ describe(rested, () => {
   it("should recover nothing when the division gets no supply", () => {
     expect(
       rested(division({ organisation: 20 }), {
+        air: 1,
         fill: 0,
         modifiers: NO_MODIFIERS,
       }).organisation

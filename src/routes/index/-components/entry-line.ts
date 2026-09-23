@@ -16,7 +16,12 @@ import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
 import { techOf } from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
-import { ORDER_NAMES, TRADE_LAW_NAMES } from "./naval-names";
+import {
+  AIRCRAFT_NAMES,
+  AVIATION_NAMES,
+  ORDER_NAMES,
+  TRADE_LAW_NAMES,
+} from "./naval-names";
 
 /** One chronicle entry as the feed prints it. */
 export interface EntryLine {
@@ -91,6 +96,15 @@ const described = (
   }
   if (decision.kind === "shipbuilding") {
     return { action: `造船 → ${ORDER_NAMES[decision.order]}`, actor };
+  }
+  if (decision.kind === "aircraft") {
+    return { action: `航空機 → ${AIRCRAFT_NAMES[decision.aircraft]}`, actor };
+  }
+  if (decision.kind === "aviation") {
+    return {
+      action: `航空機の生産 → ${AVIATION_NAMES[decision.aviation]}`,
+      actor,
+    };
   }
   if (decision.kind === "conscription") {
     return { action: `徴兵法 → ${LAW_NAMES[decision.law]}`, actor };

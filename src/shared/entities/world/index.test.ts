@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { airspaceOf } from "./airspace";
 import { generateWorld, NATION_COUNT } from "./index";
 import { initialOwners } from "./nations";
 import { UNASSIGNED } from "./spread";
@@ -41,5 +42,11 @@ describe(generateWorld, () => {
 
   it("should draw the same nations when the seed is the same", () => {
     expect(generateWorld(31).nations).toStrictEqual(generateWorld(31).nations);
+  });
+
+  it("should divide the world's own provinces into its strategic regions when the world is drawn", () => {
+    const world = generateWorld(31);
+
+    expect(world.airspace).toStrictEqual(airspaceOf(world.provinces, 31));
   });
 });

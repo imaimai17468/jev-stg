@@ -9,6 +9,7 @@ export type MapMode =
   | "supply"
   | "compliance"
   | "naval"
+  | "air"
   | "resources";
 
 /** Every map mode, in the order the controls offer them. */
@@ -17,6 +18,7 @@ export const MAP_MODES: readonly MapMode[] = [
   "supply",
   "compliance",
   "naval",
+  "air",
   "resources",
 ];
 
@@ -29,6 +31,13 @@ export type Tint =
       readonly mode: "naval";
       /** Every nation's weight over each zone, by nation id and then province id. */
       readonly waters: readonly Float32Array[];
+    }
+  | {
+      readonly mode: "air";
+      /** Every nation's air power over each region, by nation id and then region id. */
+      readonly power: readonly Float32Array[];
+      /** The region each province lies in, by province id. */
+      readonly regionOf: Int32Array;
     }
   | {
       readonly mode: "resources";
@@ -49,20 +58,31 @@ export const resourceTintOf = (
   deposits: readonly ResourceNeed[]
 ): ResourceTint => ({ deposits, mode: "resources", world: totalOf(deposits) });
 
+/** The tint of the air map, which a new day's air battles change. */
+type AirTint = Extract<Tint, { readonly mode: "air" }>;
+
+/** The air map's tint for the air power every nation flew over each region today. */
+export const airTintOf = (
+  power: readonly Float32Array[],
+  regionOf: Int32Array
+): AirTint => ({ mode: "air", power, regionOf });
+
 /** What the map modes other than the political one colour by. */
 export interface Readings {
   readonly network: SupplyNetwork;
   readonly compliance: Compliance;
   readonly waters: readonly Float32Array[];
+  readonly air: AirTint;
   readonly resources: ResourceTint;
 }
 
 const POLITICAL: Tint = { mode: "political" };
 
 /**
- * The tint a map in `mode` repaints with. The political tint is one value and
- * the resource tint is the one the readings carry, so a repaint keyed on
- * either does not rerun each day the other readings change.
+ * The tint a map in `mode` repaints with. The political tint is one value, and
+ * the air and the resource tints are the ones the readings carry, so a
+ * repaint keyed on any of them does not rerun each day the other readings
+ * change.
  */
 export const tintFor = (mode: MapMode, readings: Readings): Tint => {
   if (mode === "supply") {
@@ -73,6 +93,9 @@ export const tintFor = (mode: MapMode, readings: Readings): Tint => {
   }
   if (mode === "naval") {
     return { mode, waters: readings.waters };
+  }
+  if (mode === "air") {
+    return readings.air;
   }
   if (mode === "resources") {
     return readings.resources;

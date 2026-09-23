@@ -70,9 +70,30 @@ const UNOWNED_FILL: Fill = { colour: MAP_COLOURS.unowned, hatch: 0 };
 
 /** How much each map mode that paints the land by its holder dims it. */
 const LAND_SHADE_FOR = {
+  air: NAVAL_LAND_SHADE,
   naval: NAVAL_LAND_SHADE,
   political: 1,
-} satisfies Readonly<Record<"naval" | "political", number>>;
+} satisfies Readonly<Record<"air" | "naval" | "political", number>>;
+
+/**
+ * What the air map paints a province under a sky someone flies in: the colour
+ * of the nation flying the most there, striped where another's planes share
+ * it, over the region the province lies in.
+ */
+const skyFill = (
+  nations: readonly Nation[],
+  province: number,
+  tint: Extract<Tint, { readonly mode: "air" }>
+): Option.Option<Fill> => {
+  const hold = seaHoldOf(tint.power, valueAt(tint.regionOf, province));
+  if (hold.level === "empty") {
+    return Option.none();
+  }
+  return Option.some({
+    colour: itemAt(nations, hold.leader, UNOWNED_NATION).colour,
+    hatch: SEA_HOLD_HATCH[hold.level],
+  });
+};
 
 /**
  * The paint a land province takes under `tint`: its holder's colour shaded by
@@ -106,6 +127,12 @@ const paintOf = (
       shade: 1,
     };
   }
+  if (tint.mode === "air") {
+    const sky = skyFill(nations, province.id, tint);
+    if (Option.isSome(sky)) {
+      return { ...sky.value, shade: 1 };
+    }
+  }
   if (tint.mode === "compliance" && holder === UNASSIGNED) {
     return { colour: MAP_COLOURS.unowned, hatch: 0, shade: 1 };
   }
@@ -129,14 +156,21 @@ const paintOf = (
 };
 
 /**
- * What a sea zone is filled with: the flat sea, or on the naval map the colour
- * of the nation that holds it, striped where another's ships share it.
+ * What a sea zone is filled with: the flat sea, on the naval map the colour
+ * of the nation that holds it, striped where another's ships share it, and on
+ * the air map the colour of its sky.
  */
 const seaFill = (
   nations: readonly Nation[],
   zone: number,
   tint: Tint
 ): Fill => {
+  if (tint.mode === "air") {
+    return Option.getOrElse(skyFill(nations, zone, tint), () => ({
+      colour: MAP_COLOURS.sea,
+      hatch: 0,
+    }));
+  }
   if (tint.mode !== "naval") {
     return { colour: MAP_COLOURS.sea, hatch: 0 };
   }
@@ -205,15 +239,24 @@ const rightAndBelow = (grid: Grid, cell: number): readonly number[] => {
 const ownerOfCell = (world: World, owners: Int32Array, cell: number): number =>
   valueAt(owners, valueAt(world.cellProvince, cell));
 
+/** The region the province a cell belongs to lies in, where the map draws the regions. */
+const regionOfCell = (
+  world: World,
+  regions: Int32Array,
+  cell: number
+): number => valueAt(regions, valueAt(world.cellProvince, cell));
+
 /**
  * What one cell is painted: its province's colour, or a border where the
- * province to its right or below it differs.
+ * province to its right or below it differs, drawn pale where the two lie in
+ * different `regions`.
  */
 const cellColour = (
   world: World,
   owners: Int32Array,
   fills: readonly Fill[],
-  cell: number
+  cell: number,
+  regions: Int32Array
 ): Colour => {
   const province = valueAt(world.cellProvince, cell);
   const fill = itemAt(fills, province, UNOWNED_FILL);
@@ -223,6 +266,14 @@ const cellColour = (
   if (differing.length === 0) {
     return striped(world.grid, fill, cell);
   }
+  const region = regionOfCell(world, regions, cell);
+  if (
+    differing.some(
+      (neighbour) => regionOfCell(world, regions, neighbour) !== region
+    )
+  ) {
+    return MAP_COLOURS.airBorder;
+  }
   const owner = ownerOfCell(world, owners, cell);
   const crossesNation = differing.some(
     (neighbour) => ownerOfCell(world, owners, neighbour) !== owner
@@ -231,6 +282,17 @@ const cellColour = (
     return MAP_COLOURS.nationBorder;
   }
   return MAP_COLOURS.provinceBorder;
+};
+
+/** No province of a map that does not draw the regions lies apart from another. */
+const NO_REGIONS = new Int32Array(0);
+
+/** The regions the map in `tint` draws the borders of: the strategic regions on the air map, and none otherwise. */
+const regionsDrawnUnder = (tint: Tint): Int32Array => {
+  if (tint.mode === "air") {
+    return tint.regionOf;
+  }
+  return NO_REGIONS;
 };
 
 /**
@@ -254,9 +316,10 @@ export const paintWorld = (
       tint
     )
   );
+  const regions = regionsDrawnUnder(tint);
   const pixels = new Uint8ClampedArray(world.cellProvince.length * CHANNELS);
   for (const [cell] of world.cellProvince.entries()) {
-    const colour = cellColour(world, owners, fills, cell);
+    const colour = cellColour(world, owners, fills, cell, regions);
     const at = cell * CHANNELS;
     pixels[at] = colour.red;
     pixels[at + 1] = colour.green;

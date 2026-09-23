@@ -1,3 +1,6 @@
+import type { AirCover } from "./air-cover";
+import { coverOver } from "./air-cover";
+import { airframeOf } from "./aircraft";
 import type { Backing, Division } from "./divisions";
 import {
   attackOf,
@@ -13,6 +16,7 @@ import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { isLand, neighboursOf } from "./provinces";
+import { combatKeptUnder } from "./skies";
 import { UNASSIGNED } from "./spread";
 import type { SupplyNetwork } from "./supply";
 import { postOf } from "./supply";
@@ -112,7 +116,49 @@ export interface Theatre {
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
   readonly supply: SupplyNetwork;
+  readonly air: AirCover;
 }
+
+/**
+ * Hearts of Iron IV's close air support: a battle takes no more planes than
+ * three times the combat width the enemy fights with, and each plane strikes
+ * a division for its ground attack three times a day, the 0.035 of it that
+ * comes off the division's organisation. A division here fills one place of
+ * a battle's width, and this game counts it as ten of Hearts of Iron IV's,
+ * since its plains take eight divisions where Hearts of Iron IV's take
+ * ninety width.
+ */
+const SUPPORT_PER_WIDTH = 3;
+const WIDTH_PER_DIVISION = 10;
+const STRIKES_PER_DAY = 3;
+const ORGANISATION_PER_GROUND_ATTACK = 0.035;
+
+/**
+ * The organisation the close air support of `nations` takes off each division
+ * of an enemy `line` in `province` today.
+ */
+const supportStrikeOn = (
+  air: AirCover,
+  province: number,
+  nations: ReadonlySet<number>,
+  line: readonly Division[]
+): number => {
+  let planes = 0;
+  for (const nation of nations) {
+    planes += coverOver(air, "support", nation, province);
+  }
+  const joined = Math.min(
+    planes,
+    SUPPORT_PER_WIDTH * WIDTH_PER_DIVISION * line.length
+  );
+  return (
+    (joined *
+      airframeOf("close-support").groundAttack *
+      ORGANISATION_PER_GROUND_ATTACK *
+      STRIKES_PER_DAY) /
+    line.length
+  );
+};
 
 /**
  * How many neighbouring provinces the province is attacked from: every one held
@@ -156,6 +202,9 @@ export const foughtOneDay = (
 ): Battle => {
   const { owners, wars } = theatre;
   const backingOf = (division: Division): Backing => ({
+    air: combatKeptUnder(
+      coverOver(theatre.air, "enemy", division.nation, division.province)
+    ),
     fill: postOf(theatre.supply, division.nation, division.province).fill,
     modifiers: itemAt(theatre.modifiers, division.nation, NO_MODIFIERS),
   });
@@ -200,8 +249,17 @@ export const foughtOneDay = (
       (total, division) => total + defenceOf(division, backingOf(division)),
       0
     ) * terrainDefenceOf(province.terrain);
-  const toDefender = (attack * ORGANISATION_PER_POWER) / defenceLine.length;
-  const toAttacker = (defence * ORGANISATION_PER_POWER) / attackLine.length;
+  const toDefender =
+    (attack * ORGANISATION_PER_POWER) / defenceLine.length +
+    supportStrikeOn(
+      theatre.air,
+      province.id,
+      new Set(attackLine.map((division) => division.nation)),
+      defenceLine
+    );
+  const toAttacker =
+    (defence * ORGANISATION_PER_POWER) / attackLine.length +
+    supportStrikeOn(theatre.air, province.id, new Set([holder]), attackLine);
   const afterFire = fighting.map((division) => {
     if (!inLine.has(division)) {
       return division;

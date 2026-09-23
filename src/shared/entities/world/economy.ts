@@ -1,4 +1,5 @@
 import type { Reach } from "./compliance";
+import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
 import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
@@ -90,12 +91,17 @@ export interface Footing {
   readonly modifiers: Modifiers;
   readonly reach: Reach;
   /**
-   * The share of their output its military factories and dockyards keep, from
-   * 0 to 1, which the resources they go without take away.
+   * The share of their output its military factories building equipment and
+   * its dockyards keep, from 0 to 1, which the resources they go without take
+   * away.
    */
   readonly supplied: number;
+  /** The same share for its military factories on planes, which build with other resources. */
+  readonly airSupplied: number;
   /** Civilian factories its trade brought in, less the ones it paid out. */
   readonly traded: number;
+  /** The share of its military factories on planes, from 0 to 1. */
+  readonly aviation: number;
   /** The share of its people who live on the coast, from 0 to 1. */
   readonly coastal: number;
 }
@@ -130,6 +136,10 @@ export interface NationEconomy {
   readonly plan: IndustryPlan;
   /** The share of its divisions' daily upkeep the depots met, from 0 to 1. */
   readonly upkeepMet: number;
+  /** The fuel in its stockpile. */
+  readonly fuel: number;
+  /** The fuel its planes and ships burned yesterday, which is what it buys oil for today. */
+  readonly burned: number;
 }
 
 /** How much a nation's population grows in a year. */
@@ -154,11 +164,13 @@ const FACTORY_COST = 10_800;
 
 /** The economy of a nation the world does not hold. */
 export const NO_ECONOMY: NationEconomy = {
+  burned: 0,
   civilianFactories: 0,
   conscription: "volunteer",
   construction: 0,
   dockyards: 0,
   equipment: 0,
+  fuel: 0,
   manpower: 0,
   militaryFactories: 0,
   plan: "civilian",
@@ -289,28 +301,81 @@ const splitBuilt = (
  * The share of their full output the nation's military factories and
  * dockyards reach today: their technologies and focuses, the workers the
  * conscription law leaves them, the factories occupied ground lets it work,
- * and the resources they go without.
+ * and the `supplied` share the resources they go without leave them.
  */
-const armsOutput = (economy: NationEconomy, footing: Footing): number =>
+const armsOutput = (
+  economy: NationEconomy,
+  footing: Footing,
+  supplied: number
+): number =>
   (1 + footing.modifiers.production) *
   outputUnder(economy.conscription) *
   footing.reach.factories *
-  footing.supplied;
+  supplied;
 
 /** What one dockyard puts into a ship in a day, in Hearts of Iron IV's units. */
 const SHIPBUILDING_PER_DOCKYARD = 2;
 
-/** What the nation's dockyards put into ships and convoys today. */
-export const shipbuildingOf = (
+/** What one military factory puts into a plane in a day, in Hearts of Iron IV's units. */
+const AIRCRAFT_PER_FACTORY = 3.5;
+
+/** A kind of line that puts its day into something built piece by piece. */
+export type ProductionLine = "aircraft" | "ships";
+
+/** How many of a kind of line a nation has, what each puts in a day, and the share its resources leave it. */
+interface Lines {
+  readonly lines: number;
+  readonly perLine: number;
+  readonly supplied: number;
+}
+
+/** The military factories on planes, and the dockyards. */
+const LINES = {
+  aircraft: (economy: NationEconomy, footing: Footing): Lines => ({
+    lines: economy.militaryFactories * footing.aviation,
+    perLine: AIRCRAFT_PER_FACTORY,
+    supplied: footing.airSupplied,
+  }),
+  ships: (economy: NationEconomy, footing: Footing): Lines => ({
+    lines: economy.dockyards,
+    perLine: SHIPBUILDING_PER_DOCKYARD,
+    supplied: footing.supplied,
+  }),
+} satisfies Readonly<
+  Record<ProductionLine, (economy: NationEconomy, footing: Footing) => Lines>
+>;
+
+/** What the nation's lines of `line` put into the planes or the ships they are building today. */
+export const outputOf = (
   economy: NationEconomy,
-  footing: Footing
-): number =>
-  economy.dockyards * SHIPBUILDING_PER_DOCKYARD * armsOutput(economy, footing);
+  footing: Footing,
+  line: ProductionLine
+): number => {
+  const { lines, perLine, supplied } = LINES[line](economy, footing);
+  return lines * perLine * armsOutput(economy, footing, supplied);
+};
+
+/**
+ * The economy once its planes and ships have burned what they could of
+ * `demand`, which is what it counts toward the oil it buys tomorrow.
+ */
+export const burnt = (
+  economy: NationEconomy,
+  demand: number
+): NationEconomy => {
+  const used = Math.min(economy.fuel, demand);
+  return {
+    ...economy,
+    burned: economy.burned + used,
+    fuel: economy.fuel - used,
+  };
+};
 
 /**
  * The economy after one day of work, which is the step the calendar takes,
  * with the nation's technologies and focuses speeding up its construction,
- * its equipment and the reach of its conscription law, a heavy law taking
+ * the equipment of the military factories it does not have on planes, and
+ * the reach of its conscription law, a heavy law taking
  * some of the construction and the equipment back, and occupied ground giving
  * only the people and the factories its compliance lets the nation draw on.
  */
@@ -334,8 +399,9 @@ export const producedOneDay = (
     equipment:
       economy.equipment +
       economy.militaryFactories *
+        (1 - footing.aviation) *
         EQUIPMENT_PER_FACTORY *
-        armsOutput(economy, footing),
+        armsOutput(economy, footing, footing.supplied),
     manpower: freeManpower(economy, population, footing),
     militaryFactories: economy.militaryFactories + built.military,
     population,
@@ -451,6 +517,7 @@ export const startEconomies = (
         industry.factories * PLAN_SHARES[START_PLAN].military
       );
       return {
+        burned: 0,
         civilianFactories: industry.factories - militaryFactories,
         conscription: START_CONSCRIPTION,
         construction: 0,
@@ -458,6 +525,7 @@ export const startEconomies = (
           industry.factories * industry.coastal * START_DOCKYARD_SHARE
         ),
         equipment: 0,
+        fuel: FUEL_CAPACITY,
         manpower: manpowerCap(industry.population, START_CONSCRIPTION),
         militaryFactories,
         plan: START_PLAN,

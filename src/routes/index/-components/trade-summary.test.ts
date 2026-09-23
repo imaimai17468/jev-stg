@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
+import { NO_LEDGER } from "@/shared/entities/world/commerce";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { tradeSummaryOf } from "./trade-summary";
 
 describe(tradeSummaryOf, () => {
@@ -9,12 +11,25 @@ describe(tradeSummaryOf, () => {
         { ...NO_ECONOMY, tradeLaw: "free-trade" },
         {
           balance: {
-            exported: { chromium: 2, steel: 0, tungsten: 0 },
+            exported: { ...NO_RESOURCES, chromium: 2 },
             factories: 3,
-            imported: { chromium: 0, steel: 12.4, tungsten: 0 },
+            imported: { ...NO_RESOURCES, oil: 7, steel: 12.4 },
           },
-          extracted: { chromium: 6, steel: 30, tungsten: 1 },
-          need: { chromium: 0, steel: 44, tungsten: 5 },
+          extracted: {
+            aluminium: 4,
+            chromium: 6,
+            oil: 9,
+            rubber: 2,
+            steel: 30,
+            tungsten: 1,
+          },
+          need: {
+            ...NO_RESOURCES,
+            aluminium: 8,
+            rubber: 3,
+            steel: 44,
+            tungsten: 5,
+          },
           shortage: 0.256,
         }
       )
@@ -23,6 +38,9 @@ describe(tradeSummaryOf, () => {
       { label: "鋼鉄", value: "採掘 30・必要 44・輸入 12・輸出 0" },
       { label: "タングステン", value: "採掘 1・必要 5・輸入 0・輸出 0" },
       { label: "クロム", value: "採掘 6・必要 0・輸入 0・輸出 2" },
+      { label: "アルミ", value: "採掘 4・必要 8・輸入 0・輸出 0" },
+      { label: "ゴム", value: "採掘 2・必要 3・輸入 0・輸出 0" },
+      { label: "石油", value: "採掘 9・必要 0・輸入 7・輸出 0" },
       { label: "資源不足による軍需生産の低下", value: "26%" },
       { label: "交易で増減した民需工場", value: "+3" },
     ]);
@@ -31,14 +49,8 @@ describe(tradeSummaryOf, () => {
   it("should write the factories handed over with a minus when the trade paid them out", () => {
     expect(
       tradeSummaryOf(NO_ECONOMY, {
-        balance: {
-          exported: { chromium: 0, steel: 0, tungsten: 0 },
-          factories: -2,
-          imported: { chromium: 0, steel: 0, tungsten: 0 },
-        },
-        extracted: { chromium: 0, steel: 0, tungsten: 0 },
-        need: { chromium: 0, steel: 0, tungsten: 0 },
-        shortage: 0,
+        ...NO_LEDGER,
+        balance: { ...NO_LEDGER.balance, factories: -2 },
       }).at(-1)
     ).toStrictEqual({ label: "交易で増減した民需工場", value: "-2" });
   });

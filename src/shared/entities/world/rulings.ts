@@ -1,6 +1,8 @@
 import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
+import type { AirForce } from "./air-force";
+import { airForceUnder, NO_AIR_FORCE } from "./air-force";
 import type { Decision, Order, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
 import {
@@ -111,38 +113,61 @@ const advancementRuled = (
   });
 };
 
+/** `apply` carried out on what was `decided`, or none where `current` already is it. */
+const changedTo = <T, V>(
+  current: V,
+  decided: V,
+  apply: (value: V) => T
+): Option.Option<T> => {
+  if (current === decided) {
+    return Option.none();
+  }
+  return Option.some(apply(decided));
+};
+
 /** The economy under the law or the plan decided, or none where it already has it. */
 const economyRuled = (
   economy: NationEconomy,
   decision: Extract<Decision, { kind: "conscription" | "plan" | "trade" }>
 ): Option.Option<NationEconomy> => {
   if (decision.kind === "conscription") {
-    if (economy.conscription === decision.law) {
-      return Option.none();
-    }
-    return Option.some(withConscription(economy, decision.law));
+    return changedTo(economy.conscription, decision.law, (law) =>
+      withConscription(economy, law)
+    );
   }
   if (decision.kind === "trade") {
-    if (economy.tradeLaw === decision.law) {
-      return Option.none();
-    }
-    return Option.some(withTradeLaw(economy, decision.law));
+    return changedTo(economy.tradeLaw, decision.law, (law) =>
+      withTradeLaw(economy, law)
+    );
   }
-  if (economy.plan === decision.plan) {
-    return Option.none();
-  }
-  return Option.some(withPlan(economy, decision.plan));
+  return changedTo(economy.plan, decision.plan, (plan) =>
+    withPlan(economy, plan)
+  );
 };
 
 /** The navy with its dockyards on the order decided, or none where they already are. */
 const navyRuled = (
   navy: Navy,
   decision: Extract<Decision, { kind: "shipbuilding" }>
-): Option.Option<Navy> => {
-  if (navy.order === decision.order) {
-    return Option.none();
+): Option.Option<Navy> =>
+  changedTo(navy.order, decision.order, (order) => withOrder(navy, order));
+
+/**
+ * The air force with its factories on the plane or at the weight decided, or
+ * none where they already are.
+ */
+const airForceRuled = (
+  airForce: AirForce,
+  decision: Extract<Decision, { kind: "aircraft" | "aviation" }>
+): Option.Option<AirForce> => {
+  if (decision.kind === "aircraft") {
+    return changedTo(airForce.order, decision.aircraft, (order) =>
+      airForceUnder(airForce, { order })
+    );
   }
-  return Option.some(withOrder(navy, decision.order));
+  return changedTo(airForce.aviation, decision.aviation, (aviation) =>
+    airForceUnder(airForce, { aviation })
+  );
 };
 
 /**
@@ -184,6 +209,18 @@ const carriedOut = (
       decision.nation,
       navyRuled(itemAt(simulation.navies, decision.nation, NO_NAVY), decision),
       (navies) => ({ ...simulation, navies })
+    );
+  }
+  if (decision.kind === "aircraft" || decision.kind === "aviation") {
+    return replacedFor(
+      simulation,
+      simulation.airForces,
+      decision.nation,
+      airForceRuled(
+        itemAt(simulation.airForces, decision.nation, NO_AIR_FORCE),
+        decision
+      ),
+      (airForces) => ({ ...simulation, airForces })
     );
   }
   if (

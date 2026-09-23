@@ -1,3 +1,5 @@
+import type { AirCover } from "./air-cover";
+import { coverOver } from "./air-cover";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
 import {
@@ -22,6 +24,7 @@ import type { Modifiers } from "./modifiers";
 import { musteringAt } from "./muster";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
+import { paceUnder } from "./skies";
 import { UNASSIGNED } from "./spread";
 import type { Stance } from "./stance";
 import { attackOddsFor, START_STANCE } from "./stance";
@@ -141,6 +144,8 @@ export interface Command {
   readonly modifiers: readonly Modifiers[];
   /** What each nation's supply can do today. */
   readonly supply: SupplyNetwork;
+  /** What the planes overhead do to the divisions below them today. */
+  readonly air: AirCover;
 }
 
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
@@ -168,6 +173,7 @@ const foughtEverywhere = (
     }
     const battle = foughtOneDay(
       {
+        air: command.air,
         modifiers: command.modifiers,
         owners: before.owners,
         supply: command.supply,
@@ -205,23 +211,29 @@ const foughtEverywhere = (
   };
 };
 
-/** Where a division stands after a day of walking toward `target`. */
+/**
+ * Where a division stands after a day of walking toward `target`, slowed by
+ * the air superiority its enemies hold over the ground it walks from.
+ */
 const walkedToward = (
-  world: World,
+  line: Line,
   division: Division,
   target: number
 ): Division => {
   if (target === division.province) {
     return { ...division, marched: 0, movingTo: division.province };
   }
+  const pace = paceUnder(
+    coverOver(line.air, "enemy", division.nation, division.province)
+  );
   if (target !== division.movingTo) {
-    return { ...division, marched: 1, movingTo: target };
+    return { ...division, marched: pace, movingTo: target };
   }
   if (
-    division.marched + 1 <
-    marchDaysFor(provinceTerrain(world.provinces, target))
+    division.marched + pace <
+    marchDaysFor(provinceTerrain(line.world.provinces, target))
   ) {
-    return { ...division, marched: division.marched + 1 };
+    return { ...division, marched: division.marched + pace };
   }
   return { ...division, arrival: "march", marched: 0, province: target };
 };
@@ -254,6 +266,7 @@ interface Line {
   readonly stances: readonly Stance[];
   readonly garrisons: ReadonlyMap<number, number>;
   readonly supply: SupplyNetwork;
+  readonly air: AirCover;
 }
 
 /**
@@ -388,7 +401,7 @@ const orderedStack = (
   const onward = stepToward(line.graph, open.field, province);
   const onTheLine = valueAt(fields.line, province) === 0;
   if (!onTheLine && open.room === "line" && onward !== province) {
-    return stack.map((division) => walkedToward(line.world, division, onward));
+    return stack.map((division) => walkedToward(line, division, onward));
   }
   const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
   const staying = heldBack(
@@ -401,12 +414,12 @@ const orderedStack = (
   const kept = new Set(staying);
   return stack.map((division) => {
     if (!kept.has(division)) {
-      return walkedToward(line.world, division, onward);
+      return walkedToward(line, division, onward);
     }
     if (attacking.has(division)) {
-      return walkedToward(line.world, division, target);
+      return walkedToward(line, division, target);
     }
-    return walkedToward(line.world, division, province);
+    return walkedToward(line, division, province);
   });
 };
 
@@ -423,6 +436,7 @@ const marchedEverywhere = (
 ): Armies => {
   const { wars } = command;
   const line: Line = {
+    air: command.air,
     garrisons: garrisons(armies.owners, armies.divisions),
     graph,
     owners: armies.owners,

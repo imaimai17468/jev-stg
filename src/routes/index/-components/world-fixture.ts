@@ -1,5 +1,7 @@
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
+import { airspaceOf } from "@/shared/entities/world/airspace";
 import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { startCompliance } from "@/shared/entities/world/compliance";
@@ -30,19 +32,22 @@ const land = (id: number, x: number, cells: number): Province => ({
   y: 0,
 });
 
+const FIXTURE_PROVINCES: readonly Province[] = [
+  land(0, 0.5, 4),
+  land(1, 2.5, 4),
+  { cells: 4, id: 2, kind: "sea", neighbours: [], x: 4.5, y: 0.5 },
+];
+
 /**
  * Six columns over two rows: two land provinces and a sea zone beyond them,
  * which is every case the painter branches on.
  */
 export const FIXTURE_WORLD: World = {
+  airspace: airspaceOf(FIXTURE_PROVINCES, 1),
   cellProvince: Int32Array.from([0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2]),
   grid: { height: 2, width: 6 },
   nations: [nation(0, 200), nation(1, 100)],
-  provinces: [
-    land(0, 0.5, 4),
-    land(1, 2.5, 4),
-    { cells: 4, id: 2, kind: "sea", neighbours: [], x: 4.5, y: 0.5 },
-  ],
+  provinces: FIXTURE_PROVINCES,
   deposits: [NO_RESOURCES, NO_RESOURCES, NO_RESOURCES],
   seed: 1,
 };
@@ -65,6 +70,9 @@ export const fixtureSimulation = (
   patch: Partial<Simulation> = {}
 ): Simulation => ({
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
+  airBases: new Uint8Array(3),
+  airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
+  airPower: [new Float32Array(3), new Float32Array(3)],
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(HELD_BY_TWO),

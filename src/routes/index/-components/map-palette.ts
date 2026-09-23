@@ -16,6 +16,8 @@ interface MapColours {
   readonly provinceBorder: Colour;
   /** Between two nations, dark enough to read as a front line when it moves. */
   readonly nationBorder: Colour;
+  /** Between two strategic regions on the air map, pale so it reads over any nation's colour. */
+  readonly airBorder: Colour;
 }
 
 /**
@@ -26,6 +28,7 @@ interface MapColours {
  * picked against the same dark surface those tokens define.
  */
 export const MAP_COLOURS: MapColours = {
+  airBorder: { blue: 235, green: 235, red: 235 },
   nationBorder: { blue: 16, green: 14, red: 12 },
   provinceBorder: { blue: 34, green: 30, red: 26 },
   sea: { blue: 38, green: 26, red: 18 },
@@ -123,12 +126,16 @@ export const NAVAL_LAND_SHADE = 0.45;
 
 /**
  * What the resource map paints a province by its richest resource: a steel
- * blue for steel, amber for tungsten, green for chromium, and a dark grey where
+ * blue for steel, amber for tungsten, green for chromium, a pale silver for
+ * aluminium, a dark brown for rubber, a violet for oil, and a dark grey where
  * it yields nothing.
  */
 export const RESOURCE_COLOURS = {
+  aluminium: { blue: 225, green: 215, red: 210 },
   chromium: { blue: 120, green: 180, red: 70 },
   none: { blue: 60, green: 58, red: 56 },
+  oil: { blue: 170, green: 80, red: 150 },
+  rubber: { blue: 40, green: 90, red: 140 },
   steel: { blue: 200, green: 160, red: 120 },
   tungsten: { blue: 40, green: 160, red: 225 },
 } satisfies Readonly<Record<ResourceLevel, Colour>>;

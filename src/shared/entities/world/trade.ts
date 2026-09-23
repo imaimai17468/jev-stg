@@ -190,7 +190,10 @@ export const marketCleared = (
 ): readonly Deal[] => {
   const ledger: Ledger = {
     available: {
+      aluminium: offered(traders, "aluminium"),
       chromium: offered(traders, "chromium"),
+      oil: offered(traders, "oil"),
+      rubber: offered(traders, "rubber"),
       steel: offered(traders, "steel"),
       tungsten: offered(traders, "tungsten"),
     },

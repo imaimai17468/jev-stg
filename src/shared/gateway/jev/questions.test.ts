@@ -12,18 +12,22 @@ const BRIEF: NationBrief = {
   convoys: 12.4,
   dockyards: 0,
   enemyFleet: 30.6,
+  enemyPlanes: 480.6,
   enemyStrength: 40_000,
   equipment: 1500.4,
   factions: [{ faction: 0, strength: 60_000 }],
   fleet: 10.2,
   focuses: [],
   freeSlots: 0,
+  fuel: 0.726,
   manpower: 90_000.6,
   militaryFactories: 5,
   nation: 1,
+  planes: 300.4,
   population: 3_000_000.2,
   rivals: [{ nation: 2, strength: 20_000 }],
   shortage: 0.126,
+  skyLost: 0.334,
   strength: 20_000,
   techs: [],
   undersupplied: 0.254,
@@ -45,13 +49,15 @@ const TALKS: PeaceTalks = {
 };
 
 describe(evaluationFor, () => {
-  it("should ask a government about its law, plan, stance, war, trade and faction when it has rivals and factions in reach", () => {
+  it("should ask a government about its law, plan, stance, war, trade, planes and faction when it has rivals and factions in reach", () => {
     expect(Object.keys(evaluationFor(COUNCIL).body.questions)).toStrictEqual([
       "n1_conscription",
       "n1_plan",
       "n1_stance",
       "n1_war",
       "n1_trade",
+      "n1_aviation",
+      "n1_aircraft",
       "n1_faction",
     ]);
   });
@@ -67,6 +73,8 @@ describe(evaluationFor, () => {
     ).toStrictEqual({
       criteria: {
         battleship: "戦艦（費用3000、制海権への重みが最も大きい）",
+        carrier:
+          "空母（費用2094、艦載機20機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）",
         convoy: "輸送船（費用100、海越しの補給・交易・上陸に使う）",
         cruiser: "巡洋艦（費用1900、主力艦を守る護衛艦）",
         destroyer: "駆逐艦（費用500、護衛艦で、潜水艦を爆雷で沈める）",
@@ -74,6 +82,35 @@ describe(evaluationFor, () => {
       },
       instructions:
         "国1の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。",
+      type: "choice",
+    });
+  });
+
+  it("should offer each weight of aviation with the share of military factories it takes when the aviation question is asked", () => {
+    expect(evaluationFor(COUNCIL).body.questions.n1_aviation).toStrictEqual({
+      criteria: {
+        heavy: "軍需工場の40%で航空機を作り、残りで装備を作る",
+        light: "軍需工場の20%で航空機を作り、残りで装備を作る",
+        none: "航空機を作らない（軍需工場はすべて装備を作る）",
+      },
+      instructions:
+        "国1は軍需工場のどれだけを航空機の生産に回しますか。航空機が多いほど制空権を取りやすくなりますが、そのぶん師団の装備が減り、航空機はアルミとゴムを使います。",
+      type: "choice",
+    });
+  });
+
+  it("should offer each plane with what one costs and does when the aircraft question is asked", () => {
+    expect(evaluationFor(COUNCIL).body.questions.n1_aircraft).toStrictEqual({
+      criteria: {
+        "close-support":
+          "近接航空支援機（1機の費用22、前線の敵師団の組織力を削る）",
+        fighter:
+          "戦闘機（1機の費用24、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）",
+        "naval-bomber":
+          "雷撃機（1機の費用26、送られた海の敵艦を攻撃して沈める）",
+      },
+      instructions:
+        "国1の航空機工場は次にどの機種を作りますか。戦闘機がいないと制空権を奪われ、近接航空支援機と雷撃機も撃ち落とされます。",
       type: "choice",
     });
   });
@@ -106,6 +143,8 @@ describe(evaluationFor, () => {
       "n1_plan",
       "n1_stance",
       "n1_trade",
+      "n1_aviation",
+      "n1_aircraft",
     ]);
   });
 
@@ -194,10 +233,14 @@ describe(evaluationFor, () => {
           ],
           工場: { 民需: 20, 軍需: 5 },
           戦争中: true,
+          敵に制空権を握られている空の割合: 0.33,
           敵に対する兵力比: 0.5,
           敵の兵力: 40_000,
+          敵の航空機: 481,
           敵の艦隊の強さ: 31,
+          燃料の備蓄の割合: 0.73,
           自陣営の兵力: 20_000,
+          航空機: 300,
           艦隊の強さ: 10,
           装備: 1500,
           補給が足りない師団の割合: 0.25,
@@ -251,10 +294,14 @@ describe("evaluationFor at peace", () => {
           宣戦できる国: [],
           工場: { 民需: 20, 軍需: 5 },
           戦争中: false,
+          敵に制空権を握られている空の割合: 0.33,
           敵に対する兵力比: "相手は兵を出していない",
           敵の兵力: 0,
+          敵の航空機: 481,
           敵の艦隊の強さ: 31,
+          燃料の備蓄の割合: 0.73,
           自陣営の兵力: 20_000,
+          航空機: 300,
           艦隊の強さ: 10,
           装備: 1500,
           補給が足りない師団の割合: 0.25,

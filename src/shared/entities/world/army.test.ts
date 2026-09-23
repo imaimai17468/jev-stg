@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Armies } from "./army";
+import type { Armies, Command } from "./army";
 import { armiesAfterOneDay } from "./army";
 import {
   division,
@@ -10,6 +10,7 @@ import {
 } from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import { itemAt } from "./lookup";
 import { noWars } from "./wars";
 
 /** Enough men and weapons for one division and change. */
@@ -25,6 +26,15 @@ const startingWith = (patch: Partial<Armies>): Armies => ({
   owners: LINE_OWNERS,
   ...patch,
 });
+
+/** The two nations at war, with nation 0's enemies holding the whole sky over every province. */
+const UNDER_ENEMY_SKY: Command = {
+  ...WAR_COMMAND,
+  air: {
+    enemy: [Float32Array.from([1, 1, 1, 1, 1]), new Float32Array(5)],
+    support: [],
+  },
+};
 
 describe(armiesAfterOneDay, () => {
   it("should raise a division at the capital and take its cost out when a nation can afford one", () => {
@@ -124,6 +134,32 @@ describe(armiesAfterOneDay, () => {
     expect(
       armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, setting).divisions
     ).toStrictEqual([division({ marched: 1, movingTo: 1, nation: 0 })]);
+  });
+
+  it("should walk three tenths slower when its enemies hold the whole sky over the ground it walks from", () => {
+    const setting = startingWith({
+      divisions: [division({ marched: 0, movingTo: 1, nation: 0 })],
+      economies: [NO_ECONOMY, NO_ECONOMY],
+    });
+
+    expect(
+      itemAt(
+        armiesAfterOneDay(LINE_WORLD, UNDER_ENEMY_SKY, setting).divisions,
+        0,
+        division({})
+      ).marched
+    ).toBeCloseTo(0.7, 10);
+  });
+
+  it("should set out at the slower pace when its enemies hold the whole sky and it turns toward a new province", () => {
+    expect(
+      itemAt(
+        armiesAfterOneDay(LINE_WORLD, UNDER_ENEMY_SKY, startingWith({}))
+          .divisions,
+        0,
+        division({})
+      ).marched
+    ).toBeCloseTo(0.7, 10);
   });
 
   it("should stand still when the division already stands on its border at peace", () => {

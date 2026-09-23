@@ -16,6 +16,7 @@ const SUMMARY: NationSummary = {
     researched: 0,
     slots: [],
   },
+  air: [],
   cells: 6943,
   divisions: 0,
   economy: { ...NO_ECONOMY, population: 125_166_336 },

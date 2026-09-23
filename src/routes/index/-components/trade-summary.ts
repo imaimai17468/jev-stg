@@ -7,7 +7,10 @@ import { TRADE_LAW_NAMES } from "./naval-names";
 import type { Stat } from "./stat";
 
 const RESOURCE_NAMES = {
+  aluminium: "アルミ",
   chromium: "クロム",
+  oil: "石油",
+  rubber: "ゴム",
   steel: "鋼鉄",
   tungsten: "タングステン",
 } satisfies Readonly<Record<Resource, string>>;

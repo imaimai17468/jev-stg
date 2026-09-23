@@ -53,6 +53,7 @@ describe(navySummaryOf, () => {
       { label: "駆逐艦", value: "2" },
       { label: "巡洋艦", value: "0" },
       { label: "戦艦", value: "1" },
+      { label: "空母", value: "0" },
       { label: "潜水艦", value: "0" },
       { label: "輸送船（航路で使用中）", value: "40（12）" },
       { label: "飛び地に届いた補給", value: "33%" },

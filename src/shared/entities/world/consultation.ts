@@ -52,6 +52,8 @@ const NationBriefSchema = Schema.Struct({
   dockyards: Amount,
   /** What every nation it is fighting has at sea. */
   enemyFleet: Amount,
+  /** The planes every nation it is fighting has. */
+  enemyPlanes: Amount,
   /** The men everyone the nation is fighting has in the field. */
   enemyStrength: Amount,
   equipment: Amount,
@@ -67,14 +69,20 @@ const NationBriefSchema = Schema.Struct({
   freeSlots: Schema.Int.check(
     Schema.isBetween({ maximum: MOST_SLOTS, minimum: 0 })
   ),
+  /** The share of what it can store that its fuel stockpile holds. */
+  fuel: Share,
   manpower: Amount,
   militaryFactories: Amount,
   nation: NationId,
+  /** The planes it has. */
+  planes: Amount,
   population: Amount,
   /** Nations it may declare on, empty unless it is independent and at peace. */
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
   /** The share of its arms output lost to the resources it goes without. */
   shortage: Share,
+  /** The share of the skies its side and its enemies both fly over where the enemies hold air superiority. */
+  skyLost: Share,
   /** The men its own side has in the field. */
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
@@ -127,6 +135,8 @@ export type Question =
   | "focus"
   | "trade"
   | "shipbuilding"
+  | "aircraft"
+  | "aviation"
   | "terms";
 
 const QUESTIONS: readonly Question[] = [
@@ -139,6 +149,8 @@ const QUESTIONS: readonly Question[] = [
   "focus",
   "trade",
   "shipbuilding",
+  "aircraft",
+  "aviation",
   "terms",
 ];
 

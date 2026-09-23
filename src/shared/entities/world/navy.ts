@@ -116,9 +116,14 @@ const SCREENS_PER_CAPITAL = 3;
 const screensOf = (fleet: TaskForce): number =>
   fleet.ships.filter((ship) => hullOf(ship.shipClass).role === "screen").length;
 
+/** Whether a ship of `shipClass` wants screens beside it: a capital ship or a carrier. */
+const isScreened = (shipClass: ShipClass): boolean => {
+  const { role } = hullOf(shipClass);
+  return role === "capital" || role === "carrier";
+};
+
 const capitalsOf = (fleet: TaskForce): number =>
-  fleet.ships.filter((ship) => hullOf(ship.shipClass).role === "capital")
-    .length;
+  fleet.ships.filter((ship) => isScreened(ship.shipClass)).length;
 
 /**
  * The share of the screens its capital ships want that `fleet` has, from 0 to
@@ -133,8 +138,8 @@ export const screeningOf = (fleet: TaskForce): number => {
 };
 
 /**
- * The task force a new warship of `shipClass` joins: a battleship or a cruiser
- * the battle fleet, a submarine the raiders, and a destroyer the battle fleet
+ * The task force a new warship of `shipClass` joins: a battleship, a carrier
+ * or a cruiser the battle fleet, a submarine the raiders, and a destroyer the battle fleet
  * while its capital ships lack screens and the escorts after that.
  */
 const roleFor = (navy: Navy, shipClass: ShipClass): FleetRole => {
@@ -221,6 +226,7 @@ export const withOrder = (navy: Navy, order: ShipyardOrder): Navy => ({
  */
 const OPENING_FLEET_PER_DOCKYARD = {
   battleship: 0.25,
+  carrier: 0.1,
   cruiser: 0.5,
   destroyer: 2,
   submarine: 1,
@@ -242,9 +248,7 @@ export const openingNavy = (dockyards: number, home: number): Navy => {
     convoys: dockyards * OPENING_CONVOYS_PER_DOCKYARD,
   };
   for (const shipClass of SHIP_CLASSES.toSorted(
-    (one, other) =>
-      Number(hullOf(one).role !== "capital") -
-      Number(hullOf(other).role !== "capital")
+    (one, other) => Number(!isScreened(one)) - Number(!isScreened(other))
   )) {
     const count = Math.floor(dockyards * OPENING_FLEET_PER_DOCKYARD[shipClass]);
     for (let built = 0; built < count; built += 1) {
@@ -391,22 +395,29 @@ export const weightOf = (fleet: TaskForce): number =>
     0
   ) * MISSION_SUPREMACY[fleet.mission];
 
+/** A nation's ships without the lift of any air superiority. */
+const NO_LIFT = new Float32Array(0);
+
 /**
  * The weight each nation's task forces hold over each province, by nation id
  * and then by province id: a task force counts in its own zone and every zone
- * beside it, which is the stretch of sea a mission covers.
+ * beside it, which is the stretch of sea a mission covers, and its weight
+ * grows by the share `lift` gives its nation over the zone it is in, which is
+ * what its air superiority adds.
  */
 export const watersOf = (
   graph: ProvinceGraph,
-  navies: readonly Navy[]
+  navies: readonly Navy[],
+  lift: readonly Float32Array[]
 ): readonly Float32Array[] =>
-  navies.map((navy) => {
+  navies.map((navy, nation) => {
     const weights = new Float32Array(graph.adjacency.length);
+    const lifted = itemAt(lift, nation, NO_LIFT);
     for (const fleet of navy.fleets) {
       if (fleet.zone === UNASSIGNED) {
         continue;
       }
-      const weight = weightOf(fleet);
+      const weight = weightOf(fleet) * (1 + valueAt(lifted, fleet.zone));
       for (const zone of aroundZone(graph, fleet.zone)) {
         weights[zone] = valueAt(weights, zone) + weight;
       }
@@ -465,9 +476,10 @@ const DESTROYERS_PER_CRUISER = 2;
 
 /**
  * What the rules set a nation's dockyards to: convoys while its lanes or its
- * landings want more than it has, then screens until its capital ships have
- * three each, then submarines at war until it has one for every two
- * destroyers, and battleships after that.
+ * landings want more than it has, then screens until its capital ships and
+ * carriers have three each, then submarines at war until it has one for every
+ * two destroyers, and after that a carrier while it has fewer of them than
+ * battleships and a battleship once they are even.
  */
 export const orderByRules = (
   navy: Navy,
@@ -478,10 +490,11 @@ export const orderByRules = (
   const count = (shipClass: ShipClass) =>
     ships.filter((ship) => ship.shipClass === shipClass).length;
   const screens = count("destroyer") + count("cruiser");
+  const capitals = count("battleship") + count("carrier");
   if (navy.convoys < convoysWanted) {
     return "convoy";
   }
-  if (screens < SCREENS_PER_CAPITAL * count("battleship")) {
+  if (screens < SCREENS_PER_CAPITAL * capitals) {
     if (count("destroyer") >= DESTROYERS_PER_CRUISER * count("cruiser")) {
       return "cruiser";
     }
@@ -492,6 +505,9 @@ export const orderByRules = (
     count("submarine") < SUBMARINES_PER_DESTROYER * count("destroyer")
   ) {
     return "submarine";
+  }
+  if (count("carrier") < count("battleship")) {
+    return "carrier";
   }
   return "battleship";
 };

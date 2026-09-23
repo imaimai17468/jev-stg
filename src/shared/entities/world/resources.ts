@@ -11,11 +11,25 @@ import { randomFromSeed, streamSeed } from "./random";
 import type { Terrain } from "./terrain";
 
 /**
- * The resources the factories of this world draw on. Hearts of Iron IV also
- * has oil, aluminium and rubber, which its aircraft and motor pools burn, and
- * those arrive with the air forces.
+ * The resources the factories build with, which Hearts of Iron IV docks a
+ * production line 5% of its output for each unit it goes without.
  */
-const ResourceSchema = Schema.Literals(["steel", "tungsten", "chromium"]);
+const MaterialSchema = Schema.Literals([
+  "steel",
+  "tungsten",
+  "chromium",
+  "aluminium",
+  "rubber",
+]);
+
+const MATERIALS = MaterialSchema.literals;
+
+/**
+ * Every resource this world digs: the materials, and the oil its refineries
+ * turn into the fuel its aircraft and ships burn, which no factory builds
+ * with.
+ */
+const ResourceSchema = Schema.Literals([...MATERIALS, "oil"]);
 
 export type Resource = typeof ResourceSchema.Type;
 
@@ -26,17 +40,26 @@ export interface ResourceNeed {
   readonly steel: number;
   readonly tungsten: number;
   readonly chromium: number;
+  readonly aluminium: number;
+  readonly rubber: number;
+  readonly oil: number;
 }
 
 export const NO_RESOURCES: ResourceNeed = {
+  aluminium: 0,
   chromium: 0,
+  oil: 0,
+  rubber: 0,
   steel: 0,
   tungsten: 0,
 };
 
 /** Each resource of `one` added to the same resource of `other`. */
 export const plus = (one: ResourceNeed, other: ResourceNeed): ResourceNeed => ({
+  aluminium: one.aluminium + other.aluminium,
   chromium: one.chromium + other.chromium,
+  oil: one.oil + other.oil,
+  rubber: one.rubber + other.rubber,
   steel: one.steel + other.steel,
   tungsten: one.tungsten + other.tungsten,
 });
@@ -47,26 +70,72 @@ export const totalOf = (needs: readonly ResourceNeed[]): ResourceNeed =>
 
 /** Each resource of `need` multiplied by `factor`. */
 export const scaled = (need: ResourceNeed, factor: number): ResourceNeed => ({
+  aluminium: need.aluminium * factor,
   chromium: need.chromium * factor,
+  oil: need.oil * factor,
+  rubber: need.rubber * factor,
   steel: need.steel * factor,
   tungsten: need.tungsten * factor,
 });
 
 /**
  * What one province of each terrain yields of each resource a day, on
- * average. The mountains and the hills hold the ore; the open ground holds a
- * little iron and nothing rarer. Hearts of Iron IV gives no typical size for a
- * state's deposits, so these are this game's own, set so the world digs
- * about three times what the factories it opens with take, and not enough
- * for the ones a long war builds.
+ * average. The mountains and the hills hold the ore and the bauxite, the
+ * forests the rubber, and the deserts and the tundra the oil; the open ground
+ * holds a little iron and nothing rarer. Hearts of Iron IV gives no typical
+ * size for a state's deposits, so these are this game's own, set so the world
+ * digs about three times what the factories it opens with take, and not
+ * enough for the ones a long war builds.
  */
 const TERRAIN_DEPOSITS = {
-  desert: { chromium: 0.8, steel: 2, tungsten: 0.6 },
-  forest: { chromium: 0, steel: 3, tungsten: 0.3 },
-  hills: { chromium: 0.2, steel: 8, tungsten: 3 },
-  mountains: { chromium: 1.2, steel: 10, tungsten: 9 },
-  plains: { chromium: 0, steel: 2, tungsten: 0 },
-  tundra: { chromium: 0.8, steel: 4, tungsten: 1 },
+  desert: {
+    aluminium: 0.6,
+    chromium: 0.8,
+    oil: 2,
+    rubber: 0,
+    steel: 2,
+    tungsten: 0.6,
+  },
+  forest: {
+    aluminium: 0.2,
+    chromium: 0,
+    oil: 0.1,
+    rubber: 1.5,
+    steel: 3,
+    tungsten: 0.3,
+  },
+  hills: {
+    aluminium: 3,
+    chromium: 0.2,
+    oil: 0.2,
+    rubber: 0,
+    steel: 8,
+    tungsten: 3,
+  },
+  mountains: {
+    aluminium: 3.5,
+    chromium: 1.2,
+    oil: 0,
+    rubber: 0,
+    steel: 10,
+    tungsten: 9,
+  },
+  plains: {
+    aluminium: 0.2,
+    chromium: 0,
+    oil: 0.4,
+    rubber: 0.3,
+    steel: 2,
+    tungsten: 0,
+  },
+  tundra: {
+    aluminium: 1,
+    chromium: 0.8,
+    oil: 1.2,
+    rubber: 0,
+    steel: 4,
+    tungsten: 1,
+  },
 } satisfies Readonly<Record<Terrain, ResourceNeed>>;
 
 /** The stream of draws the deposits come from, apart from the world's own. */
@@ -78,32 +147,52 @@ const DEPOSIT_STREAM = 7;
  */
 const DEPOSIT_SPREAD = 2;
 
-/** One province's deposits, drawn around its terrain's average. */
-const depositOf = (
-  province: LandProvince,
-  draw: () => number
-): ResourceNeed => {
+/** The stream the oil, the bauxite and the rubber are drawn from, apart from the ore's. */
+const FUEL_AND_ALLOY_STREAM = 13;
+
+/** The draws one province's deposits are taken from. */
+interface Draws {
+  /** The ore, from the stream it has always come from. */
+  readonly ore: () => number;
+  /** The oil, the bauxite and the rubber, from a stream of their own. */
+  readonly rest: () => number;
+}
+
+/**
+ * One province's deposits, drawn around its terrain's average. The ore comes
+ * from its own stream, three draws a province as before the oil, the bauxite
+ * and the rubber came into the world, so every seed lays its ore where it
+ * always did.
+ */
+const depositOf = (province: LandProvince, draws: Draws): ResourceNeed => {
   const average = TERRAIN_DEPOSITS[province.terrain];
-  return {
-    chromium: Math.round(average.chromium * DEPOSIT_SPREAD * draw()),
-    steel: Math.round(average.steel * DEPOSIT_SPREAD * draw()),
-    tungsten: Math.round(average.tungsten * DEPOSIT_SPREAD * draw()),
-  };
+  const around = (resource: Resource, draw: () => number) =>
+    Math.round(average[resource] * DEPOSIT_SPREAD * draw());
+  const chromium = around("chromium", draws.ore);
+  const steel = around("steel", draws.ore);
+  const tungsten = around("tungsten", draws.ore);
+  const aluminium = around("aluminium", draws.rest);
+  const rubber = around("rubber", draws.rest);
+  const oil = around("oil", draws.rest);
+  return { aluminium, chromium, oil, rubber, steel, tungsten };
 };
 
 /**
  * What each province yields a day, by province id, and none at sea. The draws
- * come from a stream of their own, so the ground and the borders the world's
+ * come from streams of their own, so the ground and the borders the world's
  * seed drew stay where they were.
  */
 export const depositsOf = (
   provinces: readonly Province[],
   seed: number
 ): readonly ResourceNeed[] => {
-  const random = randomFromSeed(streamSeed(seed, DEPOSIT_STREAM));
+  const draws: Draws = {
+    ore: randomFromSeed(streamSeed(seed, DEPOSIT_STREAM)).unit,
+    rest: randomFromSeed(streamSeed(seed, FUEL_AND_ALLOY_STREAM)).unit,
+  };
   const deposits = provinces.map(() => NO_RESOURCES);
   for (const province of landProvinces(provinces)) {
-    deposits[province.id] = depositOf(province, random.unit);
+    deposits[province.id] = depositOf(province, draws);
   }
   return deposits;
 };
@@ -124,11 +213,17 @@ export const extractedBy = (
         itemAt(world.deposits, province.id, NO_RESOURCES)[resource] *
         reachUnder(occupancyOf(compliance, holder, province.id)).factories
     );
+  const aluminium = dug("aluminium");
+  const chromium = dug("chromium");
+  const oil = dug("oil");
+  const rubber = dug("rubber");
   const steel = dug("steel");
   const tungsten = dug("tungsten");
-  const chromium = dug("chromium");
   return world.nations.map((nation) => ({
+    aluminium: valueAt(aluminium, nation.id),
     chromium: valueAt(chromium, nation.id),
+    oil: valueAt(oil, nation.id),
+    rubber: valueAt(rubber, nation.id),
     steel: valueAt(steel, nation.id),
     tungsten: valueAt(tungsten, nation.id),
   }));
@@ -140,7 +235,7 @@ export const extractedBy = (
  * since about half the lines turn out guns.
  */
 export const MILITARY_FACTORY_NEED: ResourceNeed = {
-  chromium: 0,
+  ...NO_RESOURCES,
   steel: 2,
   tungsten: 0.5,
 };
@@ -157,27 +252,53 @@ const PENALTY_PER_UNIT = 0.05;
 
 /**
  * The share of its output a group of `factories` keeps when it goes `missing`
- * units a day short: each missing unit takes 5% off one line of factories,
- * and nothing is left once every line has lost everything.
+ * units a day short: each missing unit of a material takes 5% off one line of
+ * factories, and nothing is left once every line has lost everything. Oil
+ * goes to the refineries rather than the lines, so going without it costs the
+ * factories nothing.
  */
 export const outputShareWhenShort = (
   factories: number,
   missing: ResourceNeed
 ): number => {
   let units = 0;
-  for (const resource of RESOURCES) {
+  for (const resource of MATERIALS) {
     units += Math.max(0, missing[resource]);
   }
   const lost = units * PENALTY_PER_UNIT * FACTORIES_PER_LINE;
   return Math.max(0, 1 - lost / Math.max(1, factories));
 };
 
+/** `need` split into what the lines on planes build with and what every other line does. */
+export interface SplitNeed {
+  readonly aircraft: ResourceNeed;
+  readonly arms: ResourceNeed;
+}
+
+/**
+ * `need` split by the lines that build with it: aluminium and rubber, which
+ * only the planes take here, and the rest. Hearts of Iron IV takes a missing
+ * resource off the lines that use it, so a shortage of one side's materials
+ * leaves the other side's lines working.
+ */
+export const splitByLine = (need: ResourceNeed): SplitNeed => ({
+  aircraft: {
+    ...NO_RESOURCES,
+    aluminium: need.aluminium,
+    rubber: need.rubber,
+  },
+  arms: { ...need, aluminium: 0, rubber: 0 },
+});
+
 /** How far `held` falls short of `need`, resource by resource. */
 export const shortfall = (
   need: ResourceNeed,
   held: ResourceNeed
 ): ResourceNeed => ({
+  aluminium: Math.max(0, need.aluminium - held.aluminium),
   chromium: Math.max(0, need.chromium - held.chromium),
+  oil: Math.max(0, need.oil - held.oil),
+  rubber: Math.max(0, need.rubber - held.rubber),
   steel: Math.max(0, need.steel - held.steel),
   tungsten: Math.max(0, need.tungsten - held.tungsten),
 });

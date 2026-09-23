@@ -15,6 +15,8 @@ interface Drawn {
   readonly crates: readonly SupplyState[];
   /** Each fleet counter as its number and the point it was centred on. */
   readonly fleets: readonly (readonly number[])[];
+  /** Each wing counter as its number and the point it was centred on. */
+  readonly wings: readonly (readonly number[])[];
 }
 
 interface Recorder {
@@ -29,8 +31,9 @@ const recorder = (): Recorder => {
   const counters: number[][] = [];
   const crates: SupplyState[] = [];
   const fleets: number[][] = [];
+  const wings: number[][] = [];
   return {
-    drawn: { cleared, counters, crates, fleets, texts, worlds },
+    drawn: { cleared, counters, crates, fleets, texts, wings, worlds },
     pen: {
       clear: (width, height) => {
         cleared.push([width, height]);
@@ -45,6 +48,9 @@ const recorder = (): Recorder => {
       text: (value) => {
         texts.push(value);
       },
+      wing: (value, x, y) => {
+        wings.push([Number(value), x, y]);
+      },
       world: (x, y, width, height) => {
         worlds.push([x, y, width, height]);
       },
@@ -55,7 +61,7 @@ const recorder = (): Recorder => {
 const VIEW = { scale: 2, x: 1, y: 1 };
 const SURFACE = { height: 100, width: 200 };
 
-const NOTHING_OVER = { fleets: [], labels: [], marks: [] };
+const NOTHING_OVER = { fleets: [], labels: [], marks: [], wings: [] };
 
 const label = (weight: number): NationLabel => ({
   id: 0,
@@ -155,11 +161,28 @@ describe(drawMap, () => {
           count: 4,
           x: 4.5,
           y: 0.5,
-          zone: 2,
         },
       ],
     });
 
     expect(drawn.fleets).toStrictEqual([[4, 7, -1]]);
+  });
+
+  it("should centre a wing counter on its region when planes fly a mission over it", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
+      wings: [
+        {
+          colour: { blue: 0, green: 0, red: 0 },
+          count: 120,
+          x: 1.5,
+          y: 2,
+        },
+      ],
+    });
+
+    expect(drawn.wings).toStrictEqual([[120, 1, 2]]);
   });
 });

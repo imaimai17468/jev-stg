@@ -44,6 +44,9 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
       <PanelSection title="海軍">
         <StatRows layout="column" stats={summary.navy} />
       </PanelSection>
+      <PanelSection title="空軍">
+        <StatRows layout="column" stats={summary.air} />
+      </PanelSection>
       <PanelSection title="資源と交易">
         <StatRows layout="column" stats={summary.trade} />
       </PanelSection>

@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { division } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
+import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "./fuel";
 import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import type { Coasts, Seas } from "./maritime";
@@ -19,7 +20,7 @@ import {
 } from "./sea-fixture";
 import { landmassesOf } from "./seas";
 import type { ShipClass } from "./ships";
-import { launched } from "./ships";
+import { hullOf, launched } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Deal } from "./trade";
 
@@ -62,9 +63,11 @@ const coastsOn = (
   day,
   deals,
   diplomacy,
+  fuel: [FUEL_CAPACITY, FUEL_CAPACITY],
   graph: ISLES_GRAPH,
   homes: homeZonesOf(ISLES_WORLD, owners),
   landmasses: landmassesOf(ISLES_GRAPH),
+  lift: [],
   lines: {
     diplomacy,
     divisions: [],
@@ -470,6 +473,104 @@ describe(seafaredOneDay, () => {
       { mission: "escort", zone: 5 },
       { mission: "patrol", zone: 5 },
     ]);
+  });
+});
+
+describe("seafaredOneDay burning fuel", () => {
+  it("should burn nothing when every task force holds its position off its port", () => {
+    expect(seafaredOneDay(QUIET_SEAS, AT_WAR).burned).toStrictEqual([0, 0]);
+  });
+
+  it("should burn the battle fleet's day of fuel when it makes way toward a strike", () => {
+    const seas: Seas = {
+      ...QUIET_SEAS,
+      divisions: [division({ nation: 0, province: 0 })],
+      invasions: [LANDING],
+    };
+
+    expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
+      hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      0,
+    ]);
+  });
+
+  it("should burn twice the day's fuel and no more when a task force makes way into a battle", () => {
+    const seas: Seas = {
+      divisions: [division({ nation: 0, province: 0 })],
+      invasions: [LANDING],
+      navies: [
+        {
+          ...NO_NAVY,
+          fleets: [force("main", "battleship", 5), ...NO_NAVY.fleets.slice(1)],
+        },
+        EASTERN_FLEET,
+      ],
+    };
+
+    expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
+      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+    ]);
+  });
+
+  it("should burn twice the day's fuel when a task force fights where it holds", () => {
+    const seas: Seas = {
+      divisions: [division({ nation: 0, province: 0 })],
+      invasions: [LANDING],
+      navies: [
+        {
+          ...NO_NAVY,
+          fleets: [force("main", "battleship", 6), ...NO_NAVY.fleets.slice(1)],
+        },
+        EASTERN_FLEET,
+      ],
+    };
+
+    expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
+      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+    ]);
+  });
+});
+
+describe("seafaredOneDay short of fuel", () => {
+  const striking: Seas = {
+    ...QUIET_SEAS,
+    divisions: [division({ nation: 0, province: 0 })],
+    invasions: [LANDING],
+  };
+
+  it("should keep the battle fleet in its zone when its nation holds no fuel and its engines make no way that day", () => {
+    const dry = { ...coastsOn(ISLES_OWNERS, ISLES_WAR, 1, []), fuel: [0, 0] };
+
+    expect(
+      itemAt(ordersOf(seafaredOneDay(striking, dry).navies, 0), 0, {
+        mission: "repair",
+        zone: UNASSIGNED,
+      })
+    ).toStrictEqual({ mission: "patrol", zone: 5 });
+  });
+
+  it("should sail the battle fleet when its nation holds no fuel but its engines make way on a quarter of the days and that day is one", () => {
+    const dry = { ...coastsOn(ISLES_OWNERS, ISLES_WAR, 4, []), fuel: [0, 0] };
+
+    expect(
+      itemAt(ordersOf(seafaredOneDay(striking, dry).navies, 0), 0, {
+        mission: "repair",
+        zone: UNASSIGNED,
+      })
+    ).toStrictEqual({ mission: "strike", zone: 6 });
+  });
+
+  it("should sail as if its tanks were empty when no stockpile is given for the nation", () => {
+    const unlisted = { ...coastsOn(ISLES_OWNERS, ISLES_WAR, 1, []), fuel: [] };
+
+    expect(
+      itemAt(ordersOf(seafaredOneDay(striking, unlisted).navies, 0), 0, {
+        mission: "repair",
+        zone: UNASSIGNED,
+      })
+    ).toStrictEqual({ mission: "patrol", zone: 5 });
   });
 });
 

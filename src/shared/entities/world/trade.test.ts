@@ -90,6 +90,21 @@ describe(marketCleared, () => {
     ).toStrictEqual([2]);
   });
 
+  it("should sell oil as it sells steel when a nation short of oil meets one that digs it", () => {
+    const well: Trader = {
+      ...miner("export-focus", 0),
+      extracted: { ...NO_RESOURCES, oil: 20 },
+    };
+    const refinery: Trader = {
+      ...buyer(0, 10),
+      need: { ...NO_RESOURCES, oil: 5 },
+    };
+
+    expect(
+      marketCleared([well, refinery], OPEN).map((deal) => deal.resource)
+    ).toStrictEqual(["oil"]);
+  });
+
   it("should buy from the largest seller first and the next after when one cannot cover the need", () => {
     expect(marketCleared(MARKET, OPEN)).toStrictEqual(MARKET_DEALS);
   });

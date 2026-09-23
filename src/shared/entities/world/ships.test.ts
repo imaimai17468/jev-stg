@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { ResourceNeed } from "./resources";
+import { NO_RESOURCES } from "./resources";
 import type { Ship, ShipyardOrder } from "./ships";
 import {
   hullOf,
@@ -11,17 +12,24 @@ import {
 } from "./ships";
 
 /** A destroyer that has lost half its hull points and a fifth of its cohesion. */
-const DAMAGED: Ship = { hp: 20, organisation: 28, shipClass: "destroyer" };
+const DAMAGED: Ship = {
+  hp: 20,
+  organisation: 28,
+  planes: 0,
+  shipClass: "destroyer",
+};
 
 describe(hullOf, () => {
   it("should read the battleship's cost, hull and weapons when asked for a battleship", () => {
     expect(hullOf("battleship")).toStrictEqual({
       cost: 3000,
+      deck: 0,
       depthCharges: 0,
+      fuel: 92,
       guns: 42,
       hp: 370,
       organisation: 50,
-      resources: { chromium: 1, steel: 1, tungsten: 0 },
+      resources: { ...NO_RESOURCES, chromium: 1, steel: 1 },
       role: "capital",
       torpedoes: 0,
       visibility: 20,
@@ -34,12 +42,17 @@ describe(orderOf, () => {
     {
       cost: 100,
       order: "convoy",
-      resources: { chromium: 0, steel: 2, tungsten: 0 },
+      resources: { ...NO_RESOURCES, steel: 2 },
     },
     {
       cost: 3000,
       order: "battleship",
-      resources: { chromium: 1, steel: 1, tungsten: 0 },
+      resources: { ...NO_RESOURCES, chromium: 1, steel: 1 },
+    },
+    {
+      cost: 2094,
+      order: "carrier",
+      resources: { ...NO_RESOURCES, chromium: 1, steel: 3 },
     },
   ])(
     "should cost $cost and take $resources a dockyard when the dockyards build a $order",
@@ -63,7 +76,17 @@ describe(launched, () => {
     expect(launched("cruiser")).toStrictEqual({
       hp: 110,
       organisation: 40,
+      planes: 0,
       shipClass: "cruiser",
+    });
+  });
+
+  it("should fill its hangars when a carrier leaves the dockyard", () => {
+    expect(launched("carrier")).toStrictEqual({
+      hp: 250,
+      organisation: 40,
+      planes: 20,
+      shipClass: "carrier",
     });
   });
 });

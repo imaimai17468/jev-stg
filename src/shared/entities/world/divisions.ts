@@ -122,6 +122,8 @@ export interface Backing {
   readonly modifiers: Modifiers;
   /** The share of what it needs the division gets, from 0 to 1. */
   readonly fill: number;
+  /** The share of its worth the enemy's air superiority overhead leaves it, from 0 to 1. */
+  readonly air: number;
 }
 
 /** What a division fighting with no supply at all is still worth. */
@@ -139,7 +141,8 @@ const worthIn = (division: Division, backing: Backing, role: Role): number =>
   fitnessOf(division) *
   TEMPLATES[division.kind][role] *
   (1 + backing.modifiers[role]) *
-  suppliedWorth(backing.fill);
+  suppliedWorth(backing.fill) *
+  backing.air;
 
 /**
  * The share of its attack a division keeps while it fights off a beach, after
