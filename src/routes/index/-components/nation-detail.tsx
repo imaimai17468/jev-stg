@@ -35,6 +35,20 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
       <PanelSection title="傀儡">
         <NationList empty="傀儡国はありません" names={summary.puppets} />
       </PanelSection>
+      <PanelSection
+        title={`研究（研究済み ${summary.advancement.researched}）`}
+      >
+        <StatRows layout="column" stats={summary.advancement.slots} />
+      </PanelSection>
+      <PanelSection title="国家方針">
+        <StatRows layout="column" stats={[summary.advancement.focus]} />
+      </PanelSection>
+      <PanelSection title="達成した国家方針">
+        <NationList
+          empty="まだありません"
+          names={summary.advancement.focusesDone}
+        />
+      </PanelSection>
       <PanelSection title="地形">
         <StatRows layout="column" stats={terrainOf(summary)} />
       </PanelSection>
