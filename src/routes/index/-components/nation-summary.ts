@@ -1,4 +1,6 @@
 import type { World } from "@/shared/entities/world";
+import type { NationEconomy } from "@/shared/entities/world/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Nation } from "@/shared/entities/world/nations";
@@ -22,6 +24,8 @@ export interface NationSummary {
   readonly terrain: readonly TerrainShare[];
   /** The nations it shares a land border with, by name. */
   readonly neighbours: readonly string[];
+  /** Its people, its industry, and what they have turned out so far. */
+  readonly economy: NationEconomy;
 }
 
 /** Stands in for a nation the world does not hold, which its id gives away. */
@@ -34,6 +38,7 @@ const UNKNOWN: Nation = {
 
 const EMPTY: NationSummary = {
   cells: 0,
+  economy: NO_ECONOMY,
   id: -1,
   name: "",
   neighbours: [],
@@ -54,7 +59,11 @@ const terrainShares = (
  * A nation the world does not hold comes back empty rather than absent, because
  * the panel that reads this is only rendered for a nation the map named.
  */
-export const summaryOf = (world: World, nation: number): NationSummary => {
+export const summaryOf = (
+  world: World,
+  economies: readonly NationEconomy[],
+  nation: number
+): NationSummary => {
   const named = itemAt(world.nations, nation, UNKNOWN);
   if (named.id < 0) {
     return EMPTY;
@@ -83,6 +92,7 @@ export const summaryOf = (world: World, nation: number): NationSummary => {
   }
   return {
     cells,
+    economy: itemAt(economies, nation, NO_ECONOMY),
     id: nation,
     name: named.name,
     neighbours: [...neighbours].map(
