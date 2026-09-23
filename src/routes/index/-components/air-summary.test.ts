@@ -17,21 +17,21 @@ const AIR_FORCE: AirForce = {
   progress: 12,
   wings: [
     {
-      aircraft: "fighter",
+      model: "fighter-1",
       base: 0,
       mission: "superiority",
       planes: 80,
       region: 0,
     },
     {
-      aircraft: "fighter",
+      model: "fighter-1",
       base: 0,
       mission: "standby",
       planes: 20,
       region: -1,
     },
     {
-      aircraft: "close-support",
+      model: "close-air-support-1",
       base: 0,
       mission: "close-support",
       planes: 30,
@@ -49,6 +49,11 @@ const HANGAR: Hangar = {
   airBases: Uint8Array.from([5, 2, 0]),
   airForce: AIR_FORCE,
   economy: { ...NO_ECONOMY, burned: 1234.4, fuel: 25_000 },
+  models: {
+    "close-support": "close-air-support-1",
+    fighter: "fighter-1",
+    "naval-bomber": "naval-bomber-1",
+  },
   nation: 0,
   owners: HELD_BY_TWO,
   superiority: {
@@ -86,6 +91,19 @@ describe(airSummaryOf, () => {
     ).toStrictEqual({
       label: "航空機の生産",
       value: "軍需工場の20%で雷撃機（100%）",
+    });
+  });
+
+  it("should read the progress against the nation's design when it builds a newer fighter", () => {
+    expect(
+      airSummaryOf({
+        ...HANGAR,
+        airForce: { ...AIR_FORCE, progress: 7 },
+        models: { ...HANGAR.models, fighter: "fighter-3" },
+      }).at(0)
+    ).toStrictEqual({
+      label: "航空機の生産",
+      value: "軍需工場の20%で戦闘機（25%）",
     });
   });
 });

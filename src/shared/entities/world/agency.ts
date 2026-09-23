@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
 import { itemAt } from "./lookup";
-import type { TechId } from "./research";
+import type { TechId } from "./techs";
 
 /** Every upgrade an intelligence agency can buy, in the order its screen lists them. */
 const AgencyUpgradeSchema = Schema.Literals([
@@ -164,7 +164,7 @@ const UPGRADES = {
     levels: [{ decryption: 25 }, { decryption: 15 }, { decryption: 10 }],
     name: "機械による解読",
     requires: ["cryptology-department"],
-    techs: ["computing-1"],
+    techs: ["mechanical-computing"],
   },
   "machine-encryption": {
     factories: 15,

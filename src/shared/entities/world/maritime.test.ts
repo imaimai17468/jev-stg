@@ -17,6 +17,7 @@ import {
   ISLES_PEACE,
   ISLES_WAR,
   ISLES_WORLD,
+  SHIPS_1936,
 } from "./sea-fixture";
 import { landmassesOf } from "./seas";
 import type { ShipClass } from "./ships";
@@ -24,7 +25,7 @@ import { hullOf, launched } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Deal } from "./trade";
 
-/** A patrolling task force of `role` in `zone` with one fresh ship of `shipClass`. */
+/** A patrolling task force of `role` in `zone` with one fresh 1936 ship of `shipClass`. */
 const force = (
   role: FleetRole,
   shipClass: ShipClass,
@@ -32,7 +33,7 @@ const force = (
 ): TaskForce => ({
   mission: "patrol",
   role,
-  ships: [launched(shipClass)],
+  ships: [launched(SHIPS_1936[shipClass])],
   zone,
 });
 
@@ -60,6 +61,7 @@ const coastsOn = (
   day: number,
   deals: readonly Deal[]
 ): Coasts => ({
+  armouries: [],
   day,
   deals,
   diplomacy,
@@ -489,7 +491,7 @@ describe("seafaredOneDay burning fuel", () => {
     };
 
     expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
-      hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      hullOf(SHIPS_1936.battleship).fuel * SHIP_FUEL_PER_DAY,
       0,
     ]);
   });
@@ -508,8 +510,8 @@ describe("seafaredOneDay burning fuel", () => {
     };
 
     expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
-      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
-      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf(SHIPS_1936.battleship).fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf(SHIPS_1936.battleship).fuel * SHIP_FUEL_PER_DAY,
     ]);
   });
 
@@ -527,8 +529,8 @@ describe("seafaredOneDay burning fuel", () => {
     };
 
     expect(seafaredOneDay(seas, AT_WAR).burned).toStrictEqual([
-      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
-      2 * hullOf("battleship").fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf(SHIPS_1936.battleship).fuel * SHIP_FUEL_PER_DAY,
+      2 * hullOf(SHIPS_1936.battleship).fuel * SHIP_FUEL_PER_DAY,
     ]);
   });
 });

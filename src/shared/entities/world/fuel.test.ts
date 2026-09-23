@@ -12,21 +12,29 @@ import {
 
 describe(refined, () => {
   it("should add 48 fuel for each unit of oil when the stockpile has room", () => {
-    expect(refined(100, 2)).toBe(196);
+    expect(refined(100, 2, 0)).toBe(196);
+  });
+
+  it("should add the share more fuel its refining adds for each unit of oil when the nation has refining technology", () => {
+    expect(refined(100, 2, 0.5)).toBe(244);
   });
 
   it("should stop at the capacity when the oil would overfill the stockpile", () => {
-    expect(refined(FUEL_CAPACITY - 10, 1)).toBe(FUEL_CAPACITY);
+    expect(refined(FUEL_CAPACITY - 10, 1, 0)).toBe(FUEL_CAPACITY);
   });
 
   it("should refine nothing when the oil falls below zero", () => {
-    expect(refined(100, -3)).toBe(100);
+    expect(refined(100, -3, 0)).toBe(100);
   });
 });
 
 describe(oilWanted, () => {
   it("should ask for the oil that refines into yesterday's burn when fuel was burned", () => {
-    expect(oilWanted(96)).toBe(2);
+    expect(oilWanted(96, 0)).toBe(2);
+  });
+
+  it("should ask for less oil by the share its refining adds when the nation has refining technology", () => {
+    expect(oilWanted(144, 0.5)).toBe(2);
   });
 });
 

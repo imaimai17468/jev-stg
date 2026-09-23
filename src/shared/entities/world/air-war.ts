@@ -12,11 +12,13 @@ import {
 import type { Flight } from "./air-combat";
 import { foughtInTheAir } from "./air-combat";
 import type { AirForce, AirMission, Wing } from "./air-force";
-import { flyingOf, WING_SIZE } from "./air-force";
-import type { Aircraft } from "./aircraft";
+import { aircraftOf, flyingOf, WING_SIZE } from "./air-force";
+import type { Aircraft, AirframeModel, AirframeModels } from "./aircraft";
 import { airframeOf } from "./aircraft";
 import type { Airspace } from "./airspace";
 import { provincesInRangeOf, regionOfProvince, withinRange } from "./airspace";
+import type { Armoury } from "./armoury";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
 import type { NationEconomy } from "./economy";
@@ -32,7 +34,7 @@ import { NO_NAVY } from "./navy";
 import { isLand, neighboursOf } from "./provinces";
 import type { ProvinceGraph } from "./provinces";
 import type { Ship, ShipRole } from "./ships";
-import { hullOf } from "./ships";
+import { classOf, hullOf, roleOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 import { atWar, enemiesOf } from "./wars";
 
@@ -43,6 +45,8 @@ export interface Hangars {
   readonly airBases: Uint8Array;
   readonly navies: readonly Navy[];
   readonly economies: readonly NationEconomy[];
+  /** What each nation's research arms it with, by nation id, whose newest designs fly from its carriers. */
+  readonly armouries: readonly Armoury[];
 }
 
 /** What a day in the air reads besides the hangars. */
@@ -61,11 +65,13 @@ export interface Airfields {
 }
 
 /** A day in the air, and the air power every nation flew in it. */
-export interface AirDay extends Hangars {
+export interface AirDay extends Omit<Hangars, "armouries"> {
   /** Each nation's air power over each region, by nation id and then region id. */
   readonly power: readonly Float32Array[];
   /** The close air support planes each nation flies over each region, by nation id and then region id. */
   readonly support: readonly Float32Array[];
+  /** The ground attack those planes carry between them, by nation id and then region id. */
+  readonly supportAttack: readonly Float32Array[];
 }
 
 /** The mission each kind of plane flies. */
@@ -290,7 +296,7 @@ const orderedWing = (
   );
   if (over !== UNASSIGNED) {
     sent[over] = valueAt(sent, over) + wing.planes;
-    return { ...wing, mission: MISSION_OF[wing.aircraft], region: over };
+    return { ...wing, mission: MISSION_OF[aircraftOf(wing)], region: over };
   }
   const refuge = roomiestAmong(basing, tasking.refuges);
   if (refuge === UNASSIGNED) {
@@ -369,7 +375,7 @@ const ordered = (
       if (moved.has(wing)) {
         return wing;
       }
-      return orderedWing(wing, airspace, taskings[wing.aircraft], basing);
+      return orderedWing(wing, airspace, taskings[aircraftOf(wing)], basing);
     }),
   };
 };
@@ -399,18 +405,24 @@ interface Sortie {
 const fuelDemandOf = (airForce: AirForce): number =>
   flyingOf(airForce).reduce(
     (total, wing) =>
-      total + wing.planes * airframeOf(wing.aircraft).fuel * PLANE_FUEL_PER_DAY,
+      total + wing.planes * airframeOf(wing.model).fuel * PLANE_FUEL_PER_DAY,
     0
   );
 
 /**
  * The fuel the planes aboard `navy`'s carriers at sea burn today, half of
- * them fighters and half naval bombers, which fly only while the nation is
- * `fighting` a war.
+ * them fighters and half naval bombers of the designs `models` has, which fly
+ * only while the nation is `fighting` a war.
  */
-const deckFuelDemandOf = (navy: Navy, fighting: boolean): number => {
+const deckFuelDemandOf = (
+  navy: Navy,
+  fighting: boolean,
+  models: AirframeModels
+): number => {
   const perPlane =
-    ((airframeOf("fighter").fuel + airframeOf("naval-bomber").fuel) / 2) *
+    ((airframeOf(models.fighter).fuel +
+      airframeOf(models["naval-bomber"]).fuel) /
+      2) *
     PLANE_FUEL_PER_DAY;
   let demand = 0;
   for (const force of navy.fleets) {
@@ -439,13 +451,13 @@ const wingSorties = (
     return [
       {
         flight: {
-          aircraft: wing.aircraft,
           efficiency:
             fuel *
             crowdingEfficiency(
               valueAt(stationed, wing.base),
               capacityAt(bases, wing.base)
             ),
+          model: wing.model,
           nation,
           planes: wing.planes,
         },
@@ -461,13 +473,15 @@ const wingSorties = (
  * The planes aboard `nation`'s carriers at sea as flights over the region
  * each one's zone lies in: half of each deck fighters and half naval
  * bombers, which is this game's own, since the wiki leaves a carrier's mix of
- * planes to its designer.
+ * planes to its designer, both of the designs `models` has, since a deck is
+ * counted in planes and not in designs.
  */
 const deckSorties = (
   navy: Navy,
   nation: number,
   airspace: Airspace,
-  fuel: number
+  fuel: number,
+  models: AirframeModels
 ): readonly Sortie[] =>
   [...navy.fleets.entries()].flatMap(([fleet, force]) => {
     if (force.zone === UNASSIGNED || force.mission === "repair") {
@@ -477,10 +491,10 @@ const deckSorties = (
       if (aboard.planes <= 0) {
         return [];
       }
-      const half = (aircraft: Aircraft, mission: AirMission): Sortie => ({
+      const half = (model: AirframeModel, mission: AirMission): Sortie => ({
         flight: {
-          aircraft,
           efficiency: fuel,
+          model,
           nation,
           planes: aboard.planes / 2,
         },
@@ -489,8 +503,8 @@ const deckSorties = (
         source: { fleet, kind: "deck", nation, ship },
       });
       return [
-        half("fighter", "superiority"),
-        half("naval-bomber", "naval-strike"),
+        half(models.fighter, "superiority"),
+        half(models["naval-bomber"], "naval-strike"),
       ];
     });
   });
@@ -518,11 +532,15 @@ const foughtOverEveryRegion = (
   });
 };
 
-/** The air power each nation flew over each region, by nation id and then region id. */
+/**
+ * What each nation flew over each region, by nation id and then region id:
+ * every flight's planes that fly, each counted for its `worth`.
+ */
 const powerOf = (
   sorties: readonly Sortie[],
   nations: number,
-  regions: number
+  regions: number,
+  worth: (flight: Flight) => number
 ): readonly Float32Array[] => {
   const power = Array.from(
     { length: nations },
@@ -530,7 +548,9 @@ const powerOf = (
   );
   for (const { flight, region } of sorties) {
     const flown = itemAt(power, flight.nation, new Float32Array(0));
-    flown[region] = valueAt(flown, region) + flight.planes * flight.efficiency;
+    flown[region] =
+      valueAt(flown, region) +
+      flight.planes * flight.efficiency * worth(flight);
   }
   return power;
 };
@@ -617,10 +637,8 @@ const FOUND_PER_DAY = 1 - (1 - FOUND_PER_HOUR) ** HOURS_PER_DAY;
 const STRIKE_HIT = 0.1;
 
 /** How strongly `ship` draws the planes striking its fleet. */
-const strikeWeightOf = (ship: Ship): number => {
-  const hull = hullOf(ship.shipClass);
-  return hull.hp * STRIKE_WEIGHT[hull.role];
-};
+const strikeWeightOf = (ship: Ship): number =>
+  hullOf(ship.design).hp * STRIKE_WEIGHT[roleOf(classOf(ship))];
 
 /** One task force of the navies, by nation and place. */
 interface Placed {
@@ -630,10 +648,10 @@ interface Placed {
 }
 
 /**
- * The navies after `bombers` of `nation`'s naval bombers have struck every
- * task force at sea in `region` of a nation it is at war with: the damage
- * spread over their ships by how strongly each draws the attack, and every
- * ship whose hull is gone sunk.
+ * The navies after `bombers` of `nation`'s naval bombers, carrying `attack`
+ * naval attack between them, have struck every task force at sea in `region`
+ * of a nation it is at war with: the damage spread over their ships by how
+ * strongly each draws the attack, and every ship whose hull is gone sunk.
  */
 const struckFromTheAir = (
   navies: readonly Navy[],
@@ -642,6 +660,7 @@ const struckFromTheAir = (
     readonly nation: number;
     readonly region: number;
     readonly bombers: number;
+    readonly attack: number;
   }
 ): readonly Navy[] => {
   const { airspace } = fields.world;
@@ -668,8 +687,7 @@ const struckFromTheAir = (
     Math.max(LEAST_STRIKERS, hull * STRIKERS_PER_HULL_POINT)
   );
   const damage =
-    strikers *
-    airframeOf("naval-bomber").navalAttack *
+    ((strikers * strike.attack) / strike.bombers) *
     STRIKE_HIT *
     SORTIES_PER_DAY *
     FOUND_PER_DAY;
@@ -689,21 +707,34 @@ const struckFromTheAir = (
   return struck;
 };
 
+/** Every plane counted as one. */
+const asPlanes = (): number => 1;
+
+/** A plane counted for its design's ground attack. */
+const asGroundAttack = (flight: Flight): number =>
+  airframeOf(flight.model).groundAttack;
+
+/** A plane counted for its design's naval attack. */
+const asNavalAttack = (flight: Flight): number =>
+  airframeOf(flight.model).navalAttack;
+
 /**
- * The planes each nation's wings on `mission` still send out over each
- * region, by nation id and then region id.
+ * What each nation's wings on `mission` still send out over each region, by
+ * nation id and then region id, every plane counted for its `worth`.
  */
 const sentOn = (
   sorties: readonly Sortie[],
   mission: AirMission,
-  size: { readonly nations: number; readonly regions: number }
+  size: { readonly nations: number; readonly regions: number },
+  worth: (flight: Flight) => number
 ): readonly Float32Array[] =>
   powerOf(
     sorties.filter(
       (sortie) => sortie.source.kind === "wing" && sortie.mission === mission
     ),
     size.nations,
-    size.regions
+    size.regions,
+    worth
   );
 
 /** One nation's air force and navy. */
@@ -720,7 +751,7 @@ interface Arms {
 const decksRefilled = (airForce: AirForce, navy: Navy, home: number): Arms => {
   const pool = new Float64Array(airForce.wings.length);
   for (const [index, wing] of airForce.wings.entries()) {
-    pool[index] = wing.planes * Number(wing.aircraft !== "close-support");
+    pool[index] = wing.planes * Number(aircraftOf(wing) !== "close-support");
   }
   const order = [...pool.keys()].toSorted(
     (one, other) => valueAt(pool, other) - valueAt(pool, one)
@@ -732,13 +763,13 @@ const decksRefilled = (airForce: AirForce, navy: Navy, home: number): Arms => {
     return {
       ...force,
       ships: force.ships.map((ship) => {
-        let room = hullOf(ship.shipClass).deck - ship.planes;
+        let room = hullOf(ship.design).deck - ship.planes;
         for (const index of order) {
           const taken = Math.min(room, valueAt(pool, index));
           pool[index] = valueAt(pool, index) - taken;
           room -= taken;
         }
-        return { ...ship, planes: hullOf(ship.shipClass).deck - room };
+        return { ...ship, planes: hullOf(ship.design).deck - room };
       }),
     };
   });
@@ -746,7 +777,7 @@ const decksRefilled = (airForce: AirForce, navy: Navy, home: number): Arms => {
     airForce: {
       ...airForce,
       wings: airForce.wings.flatMap((wing, index) => {
-        if (wing.aircraft === "close-support") {
+        if (aircraftOf(wing) === "close-support") {
           return [wing];
         }
         return withPlanes(wing, valueAt(pool, index));
@@ -838,12 +869,15 @@ export const airWarOneDay = (hangars: Hangars, fields: Airfields): AirDay => {
       moved.moved
     );
   });
+  const modelsOf = (nation: number): AirframeModels =>
+    itemAt(hangars.armouries, nation, OPENING_ARMOURY).planes;
   const demands = orderedForces.map(
     (airForce, nation) =>
       fuelDemandOf(airForce) +
       deckFuelDemandOf(
         itemAt(hangars.navies, nation, NO_NAVY),
-        enemiesOf(fields.diplomacy.wars, nation).length > 0
+        enemiesOf(fields.diplomacy.wars, nation).length > 0,
+        modelsOf(nation)
       )
   );
   const fuelShares = hangars.economies.map((economy, nation) =>
@@ -863,20 +897,31 @@ export const airWarOneDay = (hangars: Hangars, fields: Airfields): AirDay => {
         if (enemiesOf(fields.diplomacy.wars, nation).length === 0) {
           return [];
         }
-        return deckSorties(navy, nation, airspace, valueAt(fuelShares, nation));
+        return deckSorties(
+          navy,
+          nation,
+          airspace,
+          valueAt(fuelShares, nation),
+          modelsOf(nation)
+        );
       }),
     ],
     fields.diplomacy
   );
   const wounded = woundAirForces(orderedForces, sorties);
   let navies = woundDecks(hangars.navies, sorties);
-  for (const [nation, bombers] of sentOn(sorties, "naval-strike", {
-    nations,
-    regions,
-  }).entries()) {
+  const size = { nations, regions };
+  const attacks = sentOn(sorties, "naval-strike", size, asNavalAttack);
+  for (const [nation, bombers] of sentOn(
+    sorties,
+    "naval-strike",
+    size,
+    asPlanes
+  ).entries()) {
     for (const [region, planes] of bombers.entries()) {
       if (planes > 0) {
         navies = struckFromTheAir(navies, fields, {
+          attack: valueAt(itemAt(attacks, nation, bombers), region),
           bombers: planes,
           nation,
           region,
@@ -907,7 +952,8 @@ export const airWarOneDay = (hangars: Hangars, fields: Airfields): AirDay => {
     airForces: days.map((day) => day.airForce),
     economies: days.map((day) => day.economy),
     navies: days.map((day) => day.navy),
-    power: powerOf(sorties, nations, regions),
-    support: sentOn(sorties, "close-support", { nations, regions }),
+    power: powerOf(sorties, nations, regions, asPlanes),
+    support: sentOn(sorties, "close-support", size, asPlanes),
+    supportAttack: sentOn(sorties, "close-support", size, asGroundAttack),
   };
 };

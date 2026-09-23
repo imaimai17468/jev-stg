@@ -44,6 +44,7 @@ export const lawTermsOf = (law: TradeLaw): LawTerms => LAW_TERMS[law];
 /** What a nation gains under `law`. */
 export const lawBonusOf = (law: TradeLaw): Bonus => ({
   construction: LAW_TERMS[law].industry,
+  dockyards: LAW_TERMS[law].industry,
   production: LAW_TERMS[law].industry,
   research: LAW_TERMS[law].research,
 });

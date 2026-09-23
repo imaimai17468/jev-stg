@@ -5,6 +5,7 @@ import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import type { AirForce } from "./air-force";
 import { NO_AIR_FORCE } from "./air-force";
 import { airspaceOf } from "./airspace";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Order, Ruling } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Diplomacy } from "./diplomacy";
@@ -24,6 +25,7 @@ import { replacedAt } from "./lookup";
 import { NO_NATION } from "./nations";
 import { NO_NAVY, openingNavy } from "./navy";
 import type { Province } from "./provinces";
+import { START_RESEARCH } from "./research";
 import { NO_RESOURCES } from "./resources";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
@@ -66,13 +68,18 @@ const advancedTo = (advancement: Advancement): Simulation => ({
 const BUSY: Simulation = advancedTo({
   ...START_ADVANCEMENT,
   research: {
-    researched: [],
+    ...START_RESEARCH,
     studies: [
-      { bonus: 0, progress: 0, tech: "tools-1" },
-      { bonus: 0, progress: 0, tech: "construction-1" },
-      { bonus: 0, progress: 0, tech: "electronics-1" },
+      { ahead: 0, bonus: 0, progress: 0, saved: 0, tech: "fuel-storage" },
+      { ahead: 0, bonus: 0, progress: 0, saved: 0, tech: "construction-1" },
+      {
+        ahead: 0,
+        bonus: 0,
+        progress: 0,
+        saved: 0,
+        tech: "basic-machine-tools",
+      },
     ],
-    vouchers: [],
   },
 });
 
@@ -115,7 +122,7 @@ const ISLE_OWNERS = Int32Array.from([0, UNASSIGNED, 1]);
 const ISLE_SIMULATION: Simulation = {
   ...ROW_SIMULATION,
   diplomacy: openingDiplomacy(ISLE_OWNERS, 2, []),
-  navies: [openingNavy(4, 1), NO_NAVY],
+  navies: [openingNavy(4, 1, OPENING_ARMOURY.ships), NO_NAVY],
   owners: ISLE_OWNERS,
 };
 
@@ -397,11 +404,11 @@ describe(ruled, () => {
     const after = ruled(
       ROW_WORLD,
       ROW_SIMULATION,
-      byRules({ kind: "research", nation: 0, tech: "tools-1" })
+      byRules({ kind: "research", nation: 0, tech: "construction-1" })
     );
 
     expect(after.advancements[0]?.research.studies).toStrictEqual([
-      { bonus: 0, progress: 0, tech: "tools-1" },
+      { ahead: 0, bonus: 0, progress: 0, saved: 0, tech: "construction-1" },
     ]);
   });
 
@@ -410,7 +417,7 @@ describe(ruled, () => {
       ruled(
         ROW_WORLD,
         BUSY,
-        byRules({ kind: "research", nation: 0, tech: "artillery-1" })
+        byRules({ kind: "research", nation: 0, tech: "atomic-research" })
       )
     ).toBe(BUSY);
   });
@@ -420,7 +427,7 @@ describe(ruled, () => {
       ruled(
         ROW_WORLD,
         ROW_SIMULATION,
-        byRules({ kind: "research", nation: 0, tech: "tools-2" })
+        byRules({ kind: "research", nation: 0, tech: "construction-2" })
       )
     ).toBe(ROW_SIMULATION);
   });

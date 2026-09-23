@@ -1,13 +1,13 @@
-import type { Aircraft } from "./aircraft";
+import type { AirframeModel } from "./aircraft";
 import { airframeOf } from "./aircraft";
 import { valueAt } from "./grid";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
 
-/** A group of one nation's planes of one kind in the sky over one region. */
+/** A group of one nation's planes of one design in the sky over one region. */
 export interface Flight {
   readonly nation: number;
-  readonly aircraft: Aircraft;
+  readonly model: AirframeModel;
   readonly planes: number;
   /** The share of its planes that fly, from 0 to 1: its mission efficiency. */
   readonly efficiency: number;
@@ -39,13 +39,13 @@ const PLANES_PER_FIRE = 0.01;
 const LEAST_LOSS = 0.001;
 
 /**
- * The planes `attackers` of `attacker`'s kind bring down of `target`'s kind
- * in one air battle, after the wiki's formula.
+ * The planes `attackers` of `attacker`'s design bring down of `target`'s
+ * design in one air battle, after the wiki's formula.
  */
 export const destroyedIn = (
   attackers: number,
-  attacker: Aircraft,
-  target: Aircraft
+  attacker: AirframeModel,
+  target: AirframeModel
 ): number => {
   const shooter = airframeOf(attacker);
   const hunted = airframeOf(target);
@@ -72,24 +72,24 @@ export const destroyedIn = (
   );
 };
 
-/** The planes of one nation's one kind in a battle, flying as one. */
+/** The planes of one nation's one design in a battle, flying as one. */
 interface Group {
   readonly nation: number;
-  readonly aircraft: Aircraft;
+  readonly model: AirframeModel;
   /** The planes in it. */
   readonly planes: number;
   /** The planes it sends out, its planes cut by their mission efficiency. */
   readonly flying: number;
 }
 
-/** `flights` gathered into one group for each nation and kind, in the order each first appears. */
+/** `flights` gathered into one group for each nation and design, in the order each first appears. */
 const groupsOf = (flights: readonly Flight[]): readonly Group[] => {
   const groups = new Map<string, Group>();
   for (const flight of flights) {
-    const key = `${flight.nation}:${flight.aircraft}`;
+    const key = `${flight.nation}:${flight.model}`;
     const group = groups.get(key) ?? {
-      aircraft: flight.aircraft,
       flying: 0,
+      model: flight.model,
       nation: flight.nation,
       planes: 0,
     };
@@ -132,8 +132,8 @@ const lossesInOneBattle = (
         valueAt(losses, index) +
         destroyedIn(
           (attackers * other.planes) / enemyPlanes,
-          group.aircraft,
-          other.aircraft
+          group.model,
+          other.model
         );
     }
   }
@@ -142,7 +142,7 @@ const lossesInOneBattle = (
 
 /**
  * What is left of each of `flights` after a day of air battles over one
- * region. The planes of one nation and one kind fly as one group; every group
+ * region. The planes of one nation and one design fly as one group; every group
  * fires on every group of a nation it is at war with, all of them at once
  * before the losses come off; and a group's losses come off its flights by
  * their numbers.
@@ -167,8 +167,7 @@ export const foughtInTheAir = (
             shareLost,
             groups.findIndex(
               (group) =>
-                group.nation === flight.nation &&
-                group.aircraft === flight.aircraft
+                group.nation === flight.nation && group.model === flight.model
             )
           )),
     }));

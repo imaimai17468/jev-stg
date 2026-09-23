@@ -12,10 +12,16 @@ export interface AirCover {
   readonly enemy: readonly Float32Array[];
   /** The close air support planes each nation sends into a battle in each province, by nation id and then province id. */
   readonly support: readonly Float32Array[];
+  /** The ground attack those planes carry between them, by nation id and then province id. */
+  readonly supportAttack: readonly Float32Array[];
 }
 
 /** No planes over any province. */
-export const NO_AIR_COVER: AirCover = { enemy: [], support: [] };
+export const NO_AIR_COVER: AirCover = {
+  enemy: [],
+  support: [],
+  supportAttack: [],
+};
 
 /** A nation with nothing overhead. */
 const CLEAR = new Float32Array(0);
@@ -23,7 +29,7 @@ const CLEAR = new Float32Array(0);
 /**
  * What the cover gives `nation` over `province` in one of its readings: the
  * air superiority its enemies hold there, or the close air support planes it
- * sends into the battle there.
+ * sends into the battle there and the ground attack they carry.
  */
 export const coverOver = (
   cover: AirCover,
@@ -62,27 +68,42 @@ const battlesOf = (
   return battles;
 };
 
+/** The close air support each nation flies over each region, by nation id and then region id. */
+export type Flown = Pick<AirCover, "support" | "supportAttack">;
+
 /**
  * The close air support each nation sends into each of its battles today, by
- * nation id and then province id: the planes it flies over a region spread
- * evenly over the battles it fights in that region.
+ * nation id and then province id: the planes it flies over a region and
+ * their ground attack, each spread evenly over the battles it fights in that
+ * region.
  */
 export const supportOf = (
   field: Battlefield,
-  planes: readonly Float32Array[],
+  flown: Flown,
   provinces: number
-): readonly Float32Array[] =>
-  battlesOf(field, planes.length).map((battles, nation) => {
+): Flown => {
+  const battles = battlesOf(field, flown.support.length);
+  const shares = battles.map((fought) => {
     const perRegion = new Float64Array(field.airspace.regions.length);
-    for (const province of battles) {
+    for (const province of fought) {
       const region = regionOfProvince(field.airspace, province);
       perRegion[region] = valueAt(perRegion, region) + 1;
     }
-    const flown = itemAt(planes, nation, CLEAR);
-    const support = new Float32Array(provinces);
-    for (const province of battles) {
-      const region = regionOfProvince(field.airspace, province);
-      support[province] = valueAt(flown, region) / valueAt(perRegion, region);
-    }
-    return support;
+    return perRegion;
   });
+  const spread = (layer: readonly Float32Array[]): readonly Float32Array[] =>
+    battles.map((fought, nation) => {
+      const over = itemAt(layer, nation, CLEAR);
+      const perRegion = itemAt(shares, nation, new Float64Array(0));
+      const sent = new Float32Array(provinces);
+      for (const province of fought) {
+        const region = regionOfProvince(field.airspace, province);
+        sent[province] = valueAt(over, region) / valueAt(perRegion, region);
+      }
+      return sent;
+    });
+  return {
+    support: spread(flown.support),
+    supportAttack: spread(flown.supportAttack),
+  };
+};

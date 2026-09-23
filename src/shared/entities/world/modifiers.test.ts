@@ -18,6 +18,20 @@ describe(summed, () => {
     ).toStrictEqual({ ...NO_MODIFIERS, attack: 0.75, research: 0.125 });
   });
 
+  it("should add the dockyards, extraction and refining shares together when bonuses name them", () => {
+    expect(
+      summed([
+        { dockyards: 0.1, extraction: 0.2 },
+        { dockyards: 0.1, refining: 0.3 },
+      ])
+    ).toStrictEqual({
+      ...NO_MODIFIERS,
+      dockyards: 0.2,
+      extraction: 0.2,
+      refining: 0.3,
+    });
+  });
+
   it("should come to nothing when there are no bonuses", () => {
     expect(summed([])).toStrictEqual(NO_MODIFIERS);
   });

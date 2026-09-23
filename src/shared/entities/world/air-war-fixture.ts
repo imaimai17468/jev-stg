@@ -103,17 +103,18 @@ export const AIR_WAR: Diplomacy = {
 
 /** A wing waiting at its base, which `wing` fills in. */
 const GROUNDED: Wing = {
-  aircraft: "fighter",
   base: UNASSIGNED,
   mission: "standby",
+  model: "fighter-1",
   planes: 0,
   region: UNASSIGNED,
 };
 
 /** A wing waiting at its base, with whatever a test needs of it. */
-export const wing = (
-  patch: Pick<Wing, "aircraft" | "base" | "planes">
-): Wing => ({ ...GROUNDED, ...patch });
+export const wing = (patch: Pick<Wing, "model" | "base" | "planes">): Wing => ({
+  ...GROUNDED,
+  ...patch,
+});
 
 /** `standing` sent on a mission over a region. */
 export const flying = (

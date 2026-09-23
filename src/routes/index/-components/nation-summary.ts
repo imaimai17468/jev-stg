@@ -2,7 +2,7 @@ import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
-import { dateOf } from "@/shared/entities/world/clock";
+import { armouryOf } from "@/shared/entities/world/armoury";
 import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/commerce";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
@@ -27,7 +27,9 @@ import { NO_NAVY } from "@/shared/entities/world/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import {
+  armouriesOf,
   espialOf,
+  modifiersOfAll,
   skiesOf,
   stirredIn,
 } from "@/shared/entities/world/simulation";
@@ -95,7 +97,7 @@ export interface NationSummary {
 }
 
 const EMPTY: NationSummary = {
-  advancement: advancementSummaryOf(START_ADVANCEMENT, 0),
+  advancement: advancementSummaryOf(START_ADVANCEMENT),
   air: [],
   supply: [],
   cells: 0,
@@ -184,6 +186,9 @@ export const summaryOf = (
     return EMPTY;
   }
   const nameOf = (other: number) => itemAt(world.nations, other, named).name;
+  const armoury = armouryOf(
+    itemAt(simulation.advancements, nation, START_ADVANCEMENT).research
+  );
   const counts = new Map<Terrain, number>();
   const neighbours = new Set<number>();
   let provinces = 0;
@@ -211,13 +216,13 @@ export const summaryOf = (
       airBases: simulation.airBases,
       airForce: itemAt(simulation.airForces, nation, NO_AIR_FORCE),
       economy: itemAt(simulation.economies, nation, NO_ECONOMY),
+      models: armoury.planes,
       nation,
       owners,
       superiority: superiorityOf(skiesOf(simulation), nation),
     }),
     advancement: advancementSummaryOf(
-      itemAt(simulation.advancements, nation, START_ADVANCEMENT),
-      dateOf(simulation.clock).year
+      itemAt(simulation.advancements, nation, START_ADVANCEMENT)
     ),
     cells,
     divisions: simulation.divisions.filter(
@@ -231,7 +236,8 @@ export const summaryOf = (
     navy: navySummaryOf(
       itemAt(simulation.navies, nation, NO_NAVY),
       itemAt(simulation.economies, nation, NO_ECONOMY),
-      simulation.invasions.filter((crossing) => crossing.nation === nation)
+      simulation.invasions.filter((crossing) => crossing.nation === nation),
+      armoury.ships
     ),
     neighbours: [...neighbours].map(nameOf),
     intel: intelSummaryOf({
@@ -268,7 +274,16 @@ export const summaryOf = (
     terrain: terrainShares(counts),
     trade: tradeSummaryOf(
       itemAt(simulation.economies, nation, NO_ECONOMY),
-      itemAt(ledgersOf({ ...simulation, world }), nation, NO_LEDGER)
+      itemAt(
+        ledgersOf({
+          ...simulation,
+          armouries: armouriesOf(simulation),
+          modifiers: modifiersOfAll(simulation),
+          world,
+        }),
+        nation,
+        NO_LEDGER
+      )
     ),
   };
 };

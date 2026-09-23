@@ -1,8 +1,8 @@
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import type { Invasion } from "@/shared/entities/world/invasion";
 import type { Navy } from "@/shared/entities/world/navy";
-import type { ShipClass } from "@/shared/entities/world/ships";
-import { orderOf, SHIP_CLASSES } from "@/shared/entities/world/ships";
+import type { ShipClass, ShipDesigns } from "@/shared/entities/world/ships";
+import { classOf, orderOf, SHIP_CLASSES } from "@/shared/entities/world/ships";
 import { countLabel, percentLabel } from "./count-label";
 import { ORDER_NAMES } from "./naval-names";
 import type { Stat } from "./stat";
@@ -10,25 +10,27 @@ import type { Stat } from "./stat";
 /** How many of `navy`'s warships are of `shipClass`, in every task force. */
 const shipsOf = (navy: Navy, shipClass: ShipClass): number =>
   navy.fleets.flatMap((fleet) =>
-    fleet.ships.filter((ship) => ship.shipClass === shipClass)
+    fleet.ships.filter((ship) => classOf(ship) === shipClass)
   ).length;
 
 /**
  * What the nation panel says about one nation's navy: its dockyards and what
- * they are building, its warships by class, its convoys and how many of them
- * are running a lane, what share of what its cut-off ground and its trade over
- * the sea needed arrived, and the crossings it is preparing.
+ * they are building, of the designs `designs` lays down, its warships by
+ * class, its convoys and how many of them are running a lane, what share of
+ * what its cut-off ground and its trade over the sea needed arrived, and the
+ * crossings it is preparing.
  */
 export const navySummaryOf = (
   navy: Navy,
   economy: NationEconomy,
-  crossings: readonly Invasion[]
+  crossings: readonly Invasion[],
+  designs: ShipDesigns
 ): readonly Stat[] => [
   { label: "造船所", value: String(economy.dockyards) },
   {
     label: "建造中",
     value: `${ORDER_NAMES[navy.order]}（${percentLabel(
-      Math.min(1, navy.progress / orderOf(navy.order).cost)
+      Math.min(1, navy.progress / orderOf(navy.order, designs).cost)
     )}）`,
   },
   ...SHIP_CLASSES.map((shipClass) => ({

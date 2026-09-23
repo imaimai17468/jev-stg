@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { OPENING_ARMOURY } from "@/shared/entities/world/armoury";
 import type {
   Council,
   NationBrief,
@@ -33,10 +34,12 @@ const BRIEF: NationBrief = {
   militaryFactories: 5,
   nation: 1,
   operatives: 0,
+  planeModels: OPENING_ARMOURY.planes,
   planes: 300.4,
   population: 3_000_000.2,
   posted: false,
   rivals: [{ nation: 2, strength: exactly(20_000) }],
+  shipDesigns: OPENING_ARMOURY.ships,
   shortage: 0.126,
   skyLost: 0.334,
   spyTargets: [],
@@ -125,13 +128,14 @@ describe(evaluationFor, () => {
       evaluationFor(building).body.questions.n1_shipbuilding
     ).toStrictEqual({
       criteria: {
-        battleship: "戦艦（費用3000、制海権への重みが最も大きい）",
+        battleship: "戦艦（戦艦II、費用12960、制海権への重みが最も大きい）",
         carrier:
-          "空母（費用2094、艦載機20機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）",
+          "空母（空母II、費用8822、艦載機10機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）",
         convoy: "輸送船（費用100、海越しの補給・交易・上陸に使う）",
-        cruiser: "巡洋艦（費用1900、主力艦を守る護衛艦）",
-        destroyer: "駆逐艦（費用500、護衛艦で、潜水艦を爆雷で沈める）",
-        submarine: "潜水艦（費用350、敵の輸送船を沈める）",
+        cruiser: "巡洋艦（軽巡洋艦II、費用3302、主力艦を守る護衛艦）",
+        destroyer:
+          "駆逐艦（駆逐艦II、費用1185、護衛艦で、潜水艦を爆雷で沈める）",
+        submarine: "潜水艦（潜水艦II、費用451、敵の輸送船を沈める）",
       },
       instructions:
         "国1の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。",
@@ -152,15 +156,15 @@ describe(evaluationFor, () => {
     });
   });
 
-  it("should offer each plane with what one costs and does when the aircraft question is asked", () => {
+  it("should offer each plane with its model, what one costs and what it does when the aircraft question is asked", () => {
     expect(evaluationFor(COUNCIL).body.questions.n1_aircraft).toStrictEqual({
       criteria: {
         "close-support":
-          "近接航空支援機（1機の費用22、前線の敵師団の組織力を削る）",
+          "近接航空支援機（近接航空支援機I、1機の費用22、前線の敵師団の組織力を削る）",
         fighter:
-          "戦闘機（1機の費用24、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）",
+          "戦闘機（戦闘機I、1機の費用24、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）",
         "naval-bomber":
-          "雷撃機（1機の費用26、送られた海の敵艦を攻撃して沈める）",
+          "雷撃機（雷撃機I、1機の費用26、送られた海の敵艦を攻撃して沈める）",
       },
       instructions:
         "国1の航空機工場は次にどの機種を作りますか。戦闘機がいないと制空権を奪われ、近接航空支援機と雷撃機も撃ち落とされます。",
@@ -225,14 +229,22 @@ describe(evaluationFor, () => {
     });
   });
 
-  it("should offer each technology a free slot may start, with its year and what it adds, when a slot is free", () => {
+  it("should offer each technology a free slot may start, with its year, its research days and what it adds, when a slot is free", () => {
     const researching: Council = {
       ...COUNCIL,
       nations: [
         {
           ...BRIEF,
           freeSlots: 2,
-          techs: ["infantry-weapons-1", "tools-2"],
+          techs: [
+            "destroyer-3",
+            "fighter-2",
+            "infantry-equipment-2",
+            "improved-infantry-equipment-1",
+            "concentrated-industry-1",
+            "small-caliber-semi-armor-piercing-shell",
+            "basic-light-battery",
+          ],
         },
       ],
     };
@@ -240,11 +252,23 @@ describe(evaluationFor, () => {
     expect(evaluationFor(researching).body.questions.n1_research).toStrictEqual(
       {
         criteria: {
-          "infantry-weapons-1": "歩兵装備I（1936年の技術、攻撃+5%・防御+10%）",
-          "tools-2": "工作機械II（1937年の技術、装備の生産+10%）",
+          "basic-light-battery":
+            "基本小口径砲（1936年の技術、研究110日、それ自体の効果はなく、次の技術を開く）",
+          "concentrated-industry-1":
+            "集中工業I（1936年の技術、研究220日、装備の生産+15%・造船+10%）",
+          "destroyer-3":
+            "駆逐艦III（1940年の技術、研究220日、造船所が新しい型で造る）",
+          "fighter-2":
+            "戦闘機II（1940年の技術、研究220日、工場が新しい型の機体を作る）",
+          "improved-infantry-equipment-1":
+            "改良歩兵装備I（1938年の技術、研究165日、攻撃+5%）",
+          "infantry-equipment-2":
+            "歩兵装備II（1939年の技術、研究220日、師団が新しい世代の装備で戦う）",
+          "small-caliber-semi-armor-piercing-shell":
+            "半徹甲弾（小口径）（1936年の技術、研究55日、駆逐艦の軽攻撃+5%・巡洋艦の軽攻撃+5%・戦艦の軽攻撃+5%・空母の軽攻撃+5%）",
         },
         instructions:
-          "国1には空いている研究枠が2つあります。次に研究する技術として最も良いものはどれですか。今年より後の年の技術は、1年早いごとに研究にかかる日数が1倍ずつ増えます。",
+          "国1には空いている研究枠が2つあります。次に研究する技術として最も良いものはどれですか。選択肢は分野ごとに今始められるいちばん早い年の技術です。今年より後の年の技術は、研究の速さが「1＋2×早い年数」分の1に落ちます。",
         type: "choice",
       }
     );
@@ -266,7 +290,7 @@ describe(evaluationFor, () => {
         "army-effort": "陸軍拡張（組織力+5%）",
         industrialisation: "工業化（民需工場+3）",
         "total-mobilisation":
-          "総力動員（民需工場+2・軍需工場+2・装備の生産+5%）",
+          "総力動員（民需工場+2・軍需工場+2・装備の生産+5%・造船+5%）",
       },
       instructions:
         "国1が次に進める国家方針はどれですか。国家方針は70日かけて達成され、達成した日から効果が出ます。",

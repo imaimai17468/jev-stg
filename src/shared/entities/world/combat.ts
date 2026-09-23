@@ -1,6 +1,7 @@
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
-import { airframeOf } from "./aircraft";
+import type { Armoury } from "./armoury";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Backing, Division } from "./divisions";
 import {
   attackOf,
@@ -117,10 +118,14 @@ export interface Theatre {
   readonly wars: Wars;
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
+  /** What each nation's supply can do today. */
   readonly supply: SupplyNetwork;
+  /** What the planes overhead do to the divisions below them today. */
   readonly air: AirCover;
   /** What each nation brings to a battle from what it knows of the enemy. */
   readonly insight: Insight;
+  /** What each nation's research arms it with, by nation id. */
+  readonly armouries: readonly Armoury[];
 }
 
 /**
@@ -139,7 +144,8 @@ const ORGANISATION_PER_GROUND_ATTACK = 0.035;
 
 /**
  * The organisation the close air support of `nations` takes off each division
- * of an enemy `line` in `province` today.
+ * of an enemy `line` in `province` today, the planes that join carrying their
+ * share of the ground attack all of them flew in with.
  */
 const supportStrikeOn = (
   air: AirCover,
@@ -148,16 +154,17 @@ const supportStrikeOn = (
   line: readonly Division[]
 ): number => {
   let planes = 0;
+  let attack = 0;
   for (const nation of nations) {
     planes += coverOver(air, "support", nation, province);
+    attack += coverOver(air, "supportAttack", nation, province);
   }
   const joined = Math.min(
     planes,
     SUPPORT_PER_WIDTH * WIDTH_PER_DIVISION * line.length
   );
   return (
-    (joined *
-      airframeOf("close-support").groundAttack *
+    (((attack * joined) / Math.max(planes, Number.MIN_VALUE)) *
       ORGANISATION_PER_GROUND_ATTACK *
       STRIKES_PER_DAY) /
     line.length
@@ -218,6 +225,8 @@ export const foughtOneDay = (
     air: combatKeptUnder(
       coverOver(theatre.air, "enemy", division.nation, division.province)
     ),
+    equipment: itemAt(theatre.armouries, division.nation, OPENING_ARMOURY)
+      .infantry,
     fill: postOf(theatre.supply, division.nation, division.province).fill,
     insight: edgeAgainst(
       theatre.insight,

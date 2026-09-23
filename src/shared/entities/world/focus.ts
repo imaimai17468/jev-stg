@@ -85,7 +85,7 @@ const FOCUSES = {
     requires: ["army-effort"],
   },
   "equipment-effort": {
-    bonus: { production: 0.1 },
+    bonus: { dockyards: 0.1, production: 0.1 },
     branch: "army",
     excludes: [],
     grants: NO_GRANTS,
@@ -173,7 +173,7 @@ const FOCUSES = {
     requires: ["research-bureau"],
   },
   "total-mobilisation": {
-    bonus: { production: 0.05 },
+    bonus: { dockyards: 0.05, production: 0.05 },
     branch: "industry",
     excludes: [],
     grants: { ...NO_GRANTS, civilianFactories: 2, militaryFactories: 2 },

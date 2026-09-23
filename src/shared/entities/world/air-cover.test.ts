@@ -3,10 +3,14 @@ import type { AirCover, Battlefield } from "./air-cover";
 import { coverOver, NO_AIR_COVER, supportOf } from "./air-cover";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 
-/** Nation 0's enemies hold most of the sky over its second province, and it flies five planes of support there. */
+/**
+ * Nation 0's enemies hold most of the sky over its second province, and it
+ * flies five planes of support there carrying forty ground attack.
+ */
 const COVER: AirCover = {
   enemy: [Float32Array.from([0.25, 0.75])],
   support: [Float32Array.from([0, 5])],
+  supportAttack: [Float32Array.from([0, 40])],
 };
 
 /**
@@ -35,22 +39,38 @@ describe(coverOver, () => {
     expect(coverOver(COVER, "support", 0, 1)).toBe(5);
   });
 
+  it("should read the ground attack the nation's support carries into the province when it flies some", () => {
+    expect(coverOver(COVER, "supportAttack", 0, 1)).toBe(40);
+  });
+
   it("should read none when the nation has nothing overhead", () => {
     expect(coverOver(NO_AIR_COVER, "enemy", 0, 1)).toBe(0);
   });
 });
 
 describe(supportOf, () => {
-  it("should spread each nation's planes over a region evenly among the battles it fights there when divisions stand on enemy ground", () => {
+  it("should spread each nation's planes and their ground attack over a region evenly among the battles it fights there when divisions stand on enemy ground", () => {
     expect(
       supportOf(
         LINE_BATTLES,
-        [Float32Array.from([40, 0]), Float32Array.from([10, 0])],
+        {
+          support: [Float32Array.from([40, 0]), Float32Array.from([10, 0])],
+          supportAttack: [
+            Float32Array.from([320, 0]),
+            Float32Array.from([80, 0]),
+          ],
+        },
         5
       )
-    ).toStrictEqual([
-      Float32Array.from([0, 20, 20, 0, 0]),
-      Float32Array.from([0, 5, 5, 0, 0]),
-    ]);
+    ).toStrictEqual({
+      support: [
+        Float32Array.from([0, 20, 20, 0, 0]),
+        Float32Array.from([0, 5, 5, 0, 0]),
+      ],
+      supportAttack: [
+        Float32Array.from([0, 160, 160, 0, 0]),
+        Float32Array.from([0, 40, 40, 0, 0]),
+      ],
+    });
   });
 });

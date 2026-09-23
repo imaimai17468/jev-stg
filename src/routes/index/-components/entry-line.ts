@@ -14,8 +14,8 @@ import { focusOf } from "@/shared/entities/world/focus";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
-import { techOf } from "@/shared/entities/world/research";
 import type { Stance } from "@/shared/entities/world/stance";
+import { techOf } from "@/shared/entities/world/techs";
 import { destinationName, OPERATION_NAMES, projectName } from "./intel-names";
 import {
   AIRCRAFT_NAMES,

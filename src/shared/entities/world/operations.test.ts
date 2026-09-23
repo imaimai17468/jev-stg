@@ -145,6 +145,47 @@ describe(operationWanted, () => {
       wanted: Option.some("steal-military-blueprints"),
     },
     {
+      condition:
+        "the nation is at war and the army's blueprints have no use but the navy's do",
+      free: 3,
+      prospect: infiltratedTarget({
+        atWar: true,
+        usableBlueprints: new Set([
+          "steal-naval-blueprints",
+          "steal-aviation-blueprints",
+        ]),
+      }),
+      strength: 100,
+      wanted: Option.some("steal-naval-blueprints"),
+    },
+    {
+      condition:
+        "the nation is at war and only the air force's blueprints have a use",
+      free: 3,
+      prospect: infiltratedTarget({
+        atWar: true,
+        usableBlueprints: new Set(["steal-aviation-blueprints"]),
+      }),
+      strength: 100,
+      wanted: Option.some("steal-aviation-blueprints"),
+    },
+    {
+      condition:
+        "the nation is at war and neither the navy nor the air force is infiltrated, their infiltrations under way",
+      free: 3,
+      prospect: infiltratedTarget({
+        atWar: true,
+        infiltrated: new Set(["civilian", "army"]),
+        underway: new Set(["infiltrate-navy", "infiltrate-air"]),
+        usableBlueprints: new Set([
+          "steal-naval-blueprints",
+          "steal-aviation-blueprints",
+        ]),
+      }),
+      strength: 100,
+      wanted: Option.none(),
+    },
+    {
       condition: "everything is infiltrated and the nation is at peace",
       free: 3,
       prospect: infiltratedTarget({}),

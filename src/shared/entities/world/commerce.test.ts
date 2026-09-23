@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { airForceUnder, NO_AIR_FORCE } from "./air-force";
 import { airspaceOf } from "./airspace";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Stockpiles, Works } from "./commerce";
 import { commerceOneDay, ledgersOf, needOf, NO_LEDGER } from "./commerce";
 import { FULL_REACH, startCompliance } from "./compliance";
@@ -10,8 +11,9 @@ import { NO_ECONOMY } from "./economy";
 import type { World } from "./index";
 import { itemAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
-import { NO_NAVY, withOrder } from "./navy";
+import { fleetOf, NO_NAVY, withOrder } from "./navy";
 import { NO_RESOURCES } from "./resources";
+import { launched } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Deal } from "./trade";
 import { declared, noWars } from "./wars";
@@ -70,6 +72,7 @@ const ECONOMIES: readonly NationEconomy[] = [
 const WORKS: Works = {
   airBases: new Uint8Array(3),
   airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
+  armouries: [],
   compliance: startCompliance(OWNERS),
   diplomacy: openingDiplomacy(OWNERS, 2, []),
   economies: ECONOMIES,
@@ -97,9 +100,11 @@ const OVERLAND_DEAL: Deal = {
 /** The two nations' holdings with `deals` struck today. */
 const stockpiles = (deals: readonly Deal[]): Stockpiles => ({
   airForces: WORKS.airForces,
+  armouries: WORKS.armouries,
   compliance: WORKS.compliance,
   deals,
   economies: ECONOMIES,
+  modifiers: WORKS.modifiers,
   navies: WORKS.navies,
   owners: OWNERS,
   world: WORLD,
@@ -110,18 +115,22 @@ describe(needOf, () => {
     expect(
       needOf({
         airForce: NO_AIR_FORCE,
+        armoury: OPENING_ARMOURY,
         economy: { ...NO_ECONOMY, dockyards: 2, militaryFactories: 5 },
         navy: withOrder(NO_NAVY, "battleship"),
+        refining: 0,
       })
-    ).toStrictEqual({ ...NO_RESOURCES, chromium: 2, steel: 12, tungsten: 2.5 });
+    ).toStrictEqual({ ...NO_RESOURCES, chromium: 2, steel: 18, tungsten: 2.5 });
   });
 
   it("should take what the planes on the lines take from the factories on them and the oil to refine yesterday's fuel when the nation builds planes and burned fuel", () => {
     expect(
       needOf({
         airForce: airForceUnder(NO_AIR_FORCE, { aviation: "light" }),
+        armoury: OPENING_ARMOURY,
         economy: { ...NO_ECONOMY, burned: 96, militaryFactories: 10 },
         navy: NO_NAVY,
+        refining: 0,
       })
     ).toStrictEqual({
       aluminium: 6,
@@ -131,6 +140,18 @@ describe(needOf, () => {
       steel: 16,
       tungsten: 4,
     });
+  });
+
+  it("should ask for less oil by the share its refining adds when the nation has refining technology", () => {
+    expect(
+      needOf({
+        airForce: NO_AIR_FORCE,
+        armoury: OPENING_ARMOURY,
+        economy: { ...NO_ECONOMY, burned: 96 },
+        navy: NO_NAVY,
+        refining: 1,
+      })
+    ).toStrictEqual({ ...NO_RESOURCES, oil: 1 });
   });
 });
 
@@ -188,6 +209,27 @@ describe(commerceOneDay, () => {
       { ...NO_NAVY, traded: 0.5 },
     ]);
   });
+
+  it("should launch the design the nation's armoury lays down when its dockyards finish a warship", () => {
+    const building: Works = {
+      ...WORKS,
+      armouries: [
+        {
+          ...OPENING_ARMOURY,
+          ships: { ...OPENING_ARMOURY.ships, destroyer: "destroyer-1" },
+        },
+      ],
+      navies: [
+        { ...withOrder(NO_NAVY, "destroyer"), progress: 910 },
+        { ...NO_NAVY, traded: 0.5 },
+      ],
+    };
+
+    expect(
+      fleetOf(itemAt(commerceOneDay(building).navies, 0, NO_NAVY), "escort")
+        .ships
+    ).toStrictEqual([launched("destroyer-1")]);
+  });
 });
 
 /**
@@ -221,9 +263,9 @@ describe("commerceOneDay in the air", () => {
       progress: 3,
       wings: [
         {
-          aircraft: "fighter",
           base: 1,
           mission: "standby",
+          model: "fighter-1",
           planes: 1,
           region: UNASSIGNED,
         },
@@ -275,6 +317,25 @@ describe("commerceOneDay refining fuel", () => {
       fuel: 144,
     });
   });
+
+  it("should refine each unit of oil into the share more fuel its refining adds when the nation has refining technology", () => {
+    const refining: Works = {
+      ...WORKS,
+      modifiers: [{ ...NO_MODIFIERS, refining: 0.5 }, NO_MODIFIERS],
+      world: {
+        ...WORLD,
+        deposits: [
+          { ...NO_RESOURCES, oil: 3, steel: 20 },
+          NO_RESOURCES,
+          NO_RESOURCES,
+        ],
+      },
+    };
+
+    expect(itemAt(commerceOneDay(refining).economies, 0, NO_ECONOMY).fuel).toBe(
+      216
+    );
+  });
 });
 
 describe(ledgersOf, () => {
@@ -307,6 +368,19 @@ describe(ledgersOf, () => {
     expect(
       ledgersOf(stockpiles([])).map((ledger) => ledger.shortage)
     ).toStrictEqual([0, 1]);
+  });
+
+  it("should record what the nation digs raised by its extraction when it has extraction technology", () => {
+    expect(
+      itemAt(
+        ledgersOf({
+          ...stockpiles([]),
+          modifiers: [{ ...NO_MODIFIERS, extraction: 0.5 }, NO_MODIFIERS],
+        }),
+        0,
+        NO_LEDGER
+      ).extracted
+    ).toStrictEqual({ ...NO_RESOURCES, steel: 30 });
   });
 
   it("should weigh each side's loss by its lines when the factories on planes hold their materials and the rest go short", () => {

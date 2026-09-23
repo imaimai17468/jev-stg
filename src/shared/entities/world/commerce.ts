@@ -2,6 +2,8 @@ import { roomiestBase, stationedOf } from "./air-bases";
 import type { AirForce } from "./air-force";
 import { NO_AIR_FORCE, planesBuiltOneDay } from "./air-force";
 import { airframeOf, aviationShareOf } from "./aircraft";
+import type { Armoury } from "./armoury";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Compliance, Reach } from "./compliance";
 import { FULL_REACH } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
@@ -47,6 +49,8 @@ export interface Works {
   readonly airBases: Uint8Array;
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
+  /** What each nation's research arms it with, by nation id. */
+  readonly armouries: readonly Armoury[];
   /** How much of what each nation holds it can draw on, by nation id. */
   readonly reach: readonly Reach[];
   /** The zone off each nation's home port, or `UNASSIGNED`, by nation id. */
@@ -67,43 +71,63 @@ export interface Exchange {
   readonly deals: readonly Deal[];
 }
 
-/** What a nation builds with: its economy, and the orders its dockyards and air factories work on. */
+/**
+ * What a nation builds with: its economy, the orders its dockyards and air
+ * factories work on, the designs its research gives those orders, and the
+ * fuel its research gets out of a unit of oil.
+ */
 export interface Arsenal {
   readonly economy: NationEconomy;
   readonly navy: Navy;
   readonly airForce: AirForce;
+  readonly armoury: Armoury;
+  readonly refining: number;
 }
 
 /**
  * What a nation's industry takes a day: every military factory building
- * equipment its share, every one on planes what the planes it is building
- * take, every dockyard what the ships it is building take, and the oil to
+ * equipment its share, every one on planes what the design it is building
+ * takes, every dockyard what the design it is building takes, and the oil to
  * refine what its planes and ships burned yesterday.
  */
-export const needOf = ({ airForce, economy, navy }: Arsenal): ResourceNeed => {
+export const needOf = ({
+  airForce,
+  armoury,
+  economy,
+  navy,
+  refining,
+}: Arsenal): ResourceNeed => {
   const onPlanes =
     economy.militaryFactories * aviationShareOf(airForce.aviation);
   return plus(
     plus(
       scaled(MILITARY_FACTORY_NEED, economy.militaryFactories - onPlanes),
-      scaled(airframeOf(airForce.order).resources, onPlanes)
+      scaled(airframeOf(armoury.planes[airForce.order]).resources, onPlanes)
     ),
-    plus(scaled(orderOf(navy.order).resources, economy.dockyards), {
-      ...NO_RESOURCES,
-      oil: oilWanted(economy.burned),
-    })
+    plus(
+      scaled(orderOf(navy.order, armoury.ships).resources, economy.dockyards),
+      {
+        ...NO_RESOURCES,
+        oil: oilWanted(economy.burned, refining),
+      }
+    )
   );
 };
 
 /** What one nation builds with, read off `works` or the stockpiles. */
 const arsenalOf = (
-  sources: Pick<Works, "economies" | "navies" | "airForces">,
+  sources: Pick<
+    Works,
+    "economies" | "navies" | "airForces" | "armouries" | "modifiers"
+  >,
   economy: NationEconomy,
   nation: number
 ): Arsenal => ({
   airForce: itemAt(sources.airForces, nation, NO_AIR_FORCE),
+  armoury: itemAt(sources.armouries, nation, OPENING_ARMOURY),
   economy,
   navy: itemAt(sources.navies, nation, NO_NAVY),
+  refining: itemAt(sources.modifiers, nation, NO_MODIFIERS).refining,
 });
 
 /**
@@ -168,7 +192,12 @@ const heldAfter = (extracted: ResourceNeed, balance: Balance): ResourceNeed =>
  */
 export const commerceOneDay = (works: Works): Exchange => {
   const { diplomacy, world } = works;
-  const extracted = extractedBy(world, works.owners, works.compliance);
+  const extracted = extractedBy(
+    world,
+    works.owners,
+    works.compliance,
+    works.modifiers
+  );
   const traders = tradersOf(works, extracted);
   const deals = marketCleared(traders, {
     delivered: (exporter, importer) => {
@@ -217,17 +246,19 @@ export const commerceOneDay = (works: Works): Exchange => {
           nation,
           owners: works.owners,
           stationed: stationedOf(airForce.wings, works.airBases.length),
-        })
+        }),
+        itemAt(works.armouries, nation, OPENING_ARMOURY).planes
       ),
       economy: {
         ...producedOneDay(economy, footing),
         burned: 0,
-        fuel: refined(economy.fuel, held.oil),
+        fuel: refined(economy.fuel, held.oil, footing.modifiers.refining),
       },
       navy: builtOneDay(
         itemAt(works.navies, nation, NO_NAVY),
         outputOf(economy, footing, "ships"),
-        itemAt(works.homes, nation, UNASSIGNED)
+        itemAt(works.homes, nation, UNASSIGNED),
+        itemAt(works.armouries, nation, OPENING_ARMOURY).ships
       ),
     };
   });
@@ -248,6 +279,10 @@ export interface Stockpiles {
   readonly navies: readonly Navy[];
   readonly airForces: readonly AirForce[];
   readonly deals: readonly Deal[];
+  /** Each nation's modifiers, by nation id. */
+  readonly modifiers: readonly Modifiers[];
+  /** What each nation's research arms it with, by nation id. */
+  readonly armouries: readonly Armoury[];
 }
 
 /** What one nation's mines, factories and trade come to today. */
@@ -276,7 +311,8 @@ export const ledgersOf = (stockpiles: Stockpiles): readonly Ledger[] => {
   const extracted = extractedBy(
     stockpiles.world,
     stockpiles.owners,
-    stockpiles.compliance
+    stockpiles.compliance,
+    stockpiles.modifiers
   );
   const balances = balancesOf(stockpiles.deals, stockpiles.economies.length);
   return stockpiles.economies.map((economy, nation) => {

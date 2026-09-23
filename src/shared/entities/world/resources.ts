@@ -5,6 +5,8 @@ import { valueAt } from "./grid";
 import type { World } from "./index";
 import { holderSums } from "./industry";
 import { foldedWith, itemAt } from "./lookup";
+import type { Modifiers } from "./modifiers";
+import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince, Province } from "./provinces";
 import { landProvinces } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
@@ -199,12 +201,14 @@ export const depositsOf = (
 
 /**
  * What each nation digs out a day, by nation id: every province it holds, an
- * occupied one only as far as its compliance lets it work the mines.
+ * occupied one only as far as its compliance lets it work the mines, and all
+ * of it raised by the extraction its `modifiers` add.
  */
 export const extractedBy = (
   world: World,
   owners: Int32Array,
-  compliance: Compliance
+  compliance: Compliance,
+  modifiers: readonly Modifiers[]
 ): readonly ResourceNeed[] => {
   const summed = holderSums(world.provinces, owners, world.nations.length);
   const dug = (resource: Resource) =>
@@ -219,14 +223,19 @@ export const extractedBy = (
   const rubber = dug("rubber");
   const steel = dug("steel");
   const tungsten = dug("tungsten");
-  return world.nations.map((nation) => ({
-    aluminium: valueAt(aluminium, nation.id),
-    chromium: valueAt(chromium, nation.id),
-    oil: valueAt(oil, nation.id),
-    rubber: valueAt(rubber, nation.id),
-    steel: valueAt(steel, nation.id),
-    tungsten: valueAt(tungsten, nation.id),
-  }));
+  return world.nations.map((nation) =>
+    scaled(
+      {
+        aluminium: valueAt(aluminium, nation.id),
+        chromium: valueAt(chromium, nation.id),
+        oil: valueAt(oil, nation.id),
+        rubber: valueAt(rubber, nation.id),
+        steel: valueAt(steel, nation.id),
+        tungsten: valueAt(tungsten, nation.id),
+      },
+      1 + itemAt(modifiers, nation.id, NO_MODIFIERS).extraction
+    )
+  );
 };
 
 /**

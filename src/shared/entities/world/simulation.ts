@@ -17,7 +17,10 @@ import {
   touchedBetween,
 } from "./armistice";
 import type { Quiet } from "./armistice";
+import type { Armoury } from "./armoury";
+import { armouryOf, OPENING_ARMOURY } from "./armoury";
 import { armiesAfterOneDay } from "./army";
+import { daysFromCivil } from "./calendar";
 import type { Decision, Entry, Negotiation } from "./chronicle";
 import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
@@ -131,7 +134,8 @@ export const startSimulation = (world: World): Simulation => {
     airForces: economies.map((economy, nation) =>
       openingAirForce(
         economy.militaryFactories,
-        itemAt(world.nations, nation, NO_NATION).capital
+        itemAt(world.nations, nation, NO_NATION).capital,
+        OPENING_ARMOURY.planes
       )
     ),
     airPower: world.nations.map(
@@ -151,7 +155,11 @@ export const startSimulation = (world: World): Simulation => {
     gleaned: noGleaned(world.nations.length),
     invasions: [],
     navies: economies.map((economy, nation) =>
-      openingNavy(economy.dockyards, itemAt(homes, nation, UNASSIGNED))
+      openingNavy(
+        economy.dockyards,
+        itemAt(homes, nation, UNASSIGNED),
+        OPENING_ARMOURY.ships
+      )
     ),
     negotiations: [],
     networks: noNetworks(world.nations.length, world.provinces.length),
@@ -229,14 +237,14 @@ const advancedEverywhere = (
   diplomacy: Diplomacy,
   advancements: readonly Advancement[],
   economies: readonly NationEconomy[],
-  year: number
+  today: number
 ): Advanced => {
   const days = economies.map((economy, nation) => {
     const advancement = itemAt(advancements, nation, START_ADVANCEMENT);
     if (!standsAlone(diplomacy, nation)) {
       return { advancement, economy };
     }
-    return progressedOneDay(advancement, economy, year);
+    return progressedOneDay(advancement, economy, today);
   });
   return {
     advancements: days.map((day) => day.advancement),
@@ -245,10 +253,14 @@ const advancedEverywhere = (
 };
 
 /** Each nation's modifiers, by nation id. */
-const modifiersOfAll = (simulation: Simulation): readonly Modifiers[] =>
+export const modifiersOfAll = (simulation: Simulation): readonly Modifiers[] =>
   simulation.advancements.map((advancement, nation) =>
     modifiersOf(advancement, itemAt(simulation.economies, nation, NO_ECONOMY))
   );
+
+/** What each nation's research arms it with, by nation id. */
+export const armouriesOf = (simulation: Simulation): readonly Armoury[] =>
+  simulation.advancements.map((advancement) => armouryOf(advancement.research));
 
 /** Everything a supply network reads off `simulation`. */
 const linesOf = (world: World, simulation: Simulation): Lines => ({
@@ -422,6 +434,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const clock = nextClock(simulation.clock);
   const graph = graphOf(world.provinces);
   const modifiers = modifiersOfAll(simulation);
+  const armouries = armouriesOf(simulation);
   const intel = intelOf(espialOf(simulation, graph));
   const stirred = stirredIn(simulation);
   const musters = world.nations.map((nation) =>
@@ -439,6 +452,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const exchange = commerceOneDay({
     airBases: simulation.airBases,
     airForces: simulation.airForces,
+    armouries,
     compliance: simulation.compliance,
     diplomacy: simulation.diplomacy,
     economies: simulation.economies,
@@ -466,6 +480,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     {
       airBases: simulation.airBases,
       airForces: exchange.airForces,
+      armouries,
       economies: exchange.economies.map((economy, nation) =>
         upkept(economy, itemAt(fielded, nation, 0))
       ),
@@ -495,6 +510,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       navies: aloft.navies,
     },
     {
+      armouries,
       day: clock.days,
       deals: exchange.deals,
       diplomacy: simulation.diplomacy,
@@ -528,17 +544,18 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     {
       air: {
         enemy: below.enemy,
-        support: supportOf(
+        ...supportOf(
           {
             airspace: world.airspace,
             divisions: afloat.divisions,
             owners: simulation.owners,
             wars: simulation.diplomacy.wars,
           },
-          aloft.support,
+          aloft,
           provinces
         ),
       },
+      armouries,
       insight: insightOf(intel, simulation.services, simulation.networks),
       modifiers,
       stances: simulation.stances,
@@ -551,7 +568,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     simulation.diplomacy,
     simulation.advancements,
     armies.economies,
-    dateOf(clock).year
+    daysFromCivil(dateOf(clock))
   );
   const conducted = fromRealm(
     conductedOneDay(world, clock, {

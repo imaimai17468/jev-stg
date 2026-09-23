@@ -478,17 +478,42 @@ describe(plottedOneDay, () => {
     ]);
   });
 
-  it("should grant a voucher for the army's equipment when military blueprints are stolen", () => {
+  it("should grant two vouchers for infantry, the second a year ahead, when military blueprints are stolen", () => {
     const plotted = dayOf(finishing("steal-military-blueprints", FOUNDED));
 
     expect(
       itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
     ).toStrictEqual([
-      { branches: ["infantry", "artillery", "logistics"], share: 3 },
+      { ahead: 0, categories: ["infantry"], share: 3 },
+      { ahead: 1, categories: ["infantry"], share: 3 },
     ]);
   });
 
-  it("should raise the voucher for industry by the agency's blueprint stealing when industrial blueprints are stolen", () => {
+  it("should put the second naval voucher two years ahead when the draw falls in the third that does", () => {
+    const plotted = dayOf(finishing("steal-naval-blueprints", FOUNDED), {
+      random: drawing(0.3),
+    });
+
+    expect(
+      itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
+    ).toStrictEqual([
+      { ahead: 0, categories: ["naval"], share: 3 },
+      { ahead: 2, categories: ["naval"], share: 3 },
+    ]);
+  });
+
+  it("should grant two vouchers for air when aviation blueprints are stolen", () => {
+    const plotted = dayOf(finishing("steal-aviation-blueprints", FOUNDED));
+
+    expect(
+      itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
+    ).toStrictEqual([
+      { ahead: 0, categories: ["air"], share: 3 },
+      { ahead: 1, categories: ["air"], share: 3 },
+    ]);
+  });
+
+  it("should raise both vouchers for industry and electronics by the agency's blueprint stealing when industrial blueprints are stolen", () => {
     const plotted = dayOf(
       finishing(
         "steal-industrial-blueprints",
@@ -498,7 +523,10 @@ describe(plottedOneDay, () => {
 
     expect(
       itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
-    ).toStrictEqual([{ branches: ["industry", "construction"], share: 3.75 }]);
+    ).toStrictEqual([
+      { ahead: 0, categories: ["industry", "electronics"], share: 3.75 },
+      { ahead: 1, categories: ["industry", "electronics"], share: 3.75 },
+    ]);
   });
 
   it("should put three tenths of the target's strength into its cipher when a cipher is captured", () => {
@@ -589,7 +617,7 @@ describe(plottedOneDay, () => {
     const plotted = dayOf(spy, {
       advancement: {
         ...START_ADVANCEMENT,
-        research: { ...START_RESEARCH, researched: ["computing-1"] },
+        research: { ...START_RESEARCH, researched: ["mechanical-computing"] },
       },
       network: CAPITAL_NETWORK,
     });
@@ -624,7 +652,7 @@ describe(plottedOneDay, () => {
           ...START_ADVANCEMENT,
           research: {
             ...START_RESEARCH,
-            vouchers: [{ branches: ["industry", "construction"], share: 3 }],
+            vouchers: [{ ahead: 0, categories: ["industry"], share: 3 }],
           },
         },
         network: CAPITAL_NETWORK,
@@ -658,7 +686,7 @@ describe(plottedOneDay, () => {
       ...START_ADVANCEMENT,
       research: {
         ...START_RESEARCH,
-        vouchers: [{ branches: ["industry"], share: 1 }],
+        vouchers: [{ ahead: 0, categories: ["industry"], share: 1 }],
       },
     };
 

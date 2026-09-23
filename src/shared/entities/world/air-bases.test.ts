@@ -28,9 +28,9 @@ const basing = (
 
 /** A wing of fighters waiting at `base` with `planes` in it. */
 const fighters = (planes: number, base: number): Wing => ({
-  aircraft: "fighter",
   base,
   mission: "standby",
+  model: "fighter-1",
   planes,
   region: UNASSIGNED,
 });

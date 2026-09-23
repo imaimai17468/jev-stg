@@ -4,9 +4,9 @@ import type { ConscriptionLaw, IndustryPlan } from "./economy";
 import type { FocusId } from "./focus";
 import type { Operation } from "./operations";
 import type { Settlement } from "./peace";
-import type { TechId } from "./research";
 import type { ShipyardOrder } from "./ships";
 import type { Stance } from "./stance";
+import type { TechId } from "./techs";
 import type { TradeLaw } from "./trade";
 
 /** One thing a government decided. */

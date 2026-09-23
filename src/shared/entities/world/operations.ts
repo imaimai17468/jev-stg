@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
 import type { IntelKind } from "./intel";
-import type { TechBranch } from "./research";
+import type { TechCategory } from "./techs";
 import type { UnrestKind } from "./unrest";
 
 /** Every operation an agency runs, in the order the rules weigh them. */
@@ -15,6 +15,8 @@ const OperationSchema = Schema.Literals([
   "strengthen-resistance",
   "capture-cipher",
   "steal-military-blueprints",
+  "steal-naval-blueprints",
+  "steal-aviation-blueprints",
   "steal-industrial-blueprints",
 ]);
 
@@ -43,6 +45,12 @@ const TERMS = {
   "rescue-operative": { days: 35, network: 30, operatives: 1, risk: 0.1 },
   "resistance-contacts": { days: 60, network: 40, operatives: 2, risk: 0.1 },
   "sabotage-industry": { days: 90, network: 35, operatives: 3, risk: 0.2 },
+  "steal-aviation-blueprints": {
+    days: 120,
+    network: 50,
+    operatives: 3,
+    risk: 0.2,
+  },
   "steal-industrial-blueprints": {
     days: 120,
     network: 35,
@@ -50,6 +58,12 @@ const TERMS = {
     risk: 0.2,
   },
   "steal-military-blueprints": {
+    days: 120,
+    network: 50,
+    operatives: 3,
+    risk: 0.2,
+  },
+  "steal-naval-blueprints": {
     days: 120,
     network: 50,
     operatives: 3,
@@ -64,6 +78,8 @@ export const operationTermsOf = (operation: Operation): OperationTerms =>
 /** The operations that steal a blueprint. */
 const BlueprintTheftSchema = Schema.Literals([
   "steal-military-blueprints",
+  "steal-naval-blueprints",
+  "steal-aviation-blueprints",
   "steal-industrial-blueprints",
 ]);
 
@@ -72,14 +88,17 @@ export type BlueprintTheft = typeof BlueprintTheftSchema.Type;
 export const BLUEPRINT_THEFTS = BlueprintTheftSchema.literals;
 
 /**
- * The research branches each stolen blueprint speeds up. Hearts of Iron IV's
- * military and industrial blueprints; this world has no naval or aviation
- * technologies for the other two to reach.
+ * The research categories each stolen blueprint speeds up, after Hearts of
+ * Iron IV: the military one infantry, support, artillery and armour, of which
+ * this world researches infantry alone; the naval and aviation ones their
+ * own; and the industrial one electronics and industry.
  */
-export const BLUEPRINT_BRANCHES = {
-  "steal-industrial-blueprints": ["industry", "construction"],
-  "steal-military-blueprints": ["infantry", "artillery", "logistics"],
-} satisfies Readonly<Record<BlueprintTheft, readonly TechBranch[]>>;
+export const BLUEPRINT_CATEGORIES = {
+  "steal-aviation-blueprints": ["air"],
+  "steal-industrial-blueprints": ["industry", "electronics"],
+  "steal-military-blueprints": ["infantry"],
+  "steal-naval-blueprints": ["naval"],
+} satisfies Readonly<Record<BlueprintTheft, readonly TechCategory[]>>;
 
 /** What a nation's operatives in a target find there, which decides the operations open to them. */
 export interface Prospect {
@@ -99,9 +118,9 @@ export interface Prospect {
   readonly occupies: boolean;
   /** The resistance work the nation already has running against the target. */
   readonly unrest: ReadonlySet<UnrestKind>;
-  /** Whether the nation is at war, which puts the army's blueprints before industry's. */
+  /** Whether the nation is at war, which puts the forces' blueprints before industry's. */
   readonly atWar: boolean;
-  /** The blueprints whose bonus the nation's research would use now: none waiting unused for their branches, and a technology left in them. */
+  /** The blueprints whose bonuses the nation's research would use now: none waiting unused for their categories, and a technology left in them for each. */
   readonly usableBlueprints: ReadonlySet<BlueprintTheft>;
   /** The operations the nation already has under way in the target, which it does not start again. */
   readonly underway: ReadonlySet<Operation>;
@@ -123,6 +142,10 @@ const OPEN = {
     prospect.occupies && !prospect.unrest.has("contacts"),
   "sabotage-industry": (prospect: Prospect) =>
     prospect.unrest.has("contacts") && !prospect.unrest.has("sabotage"),
+  "steal-aviation-blueprints": (prospect: Prospect) =>
+    prospect.infiltrated.has("air") &&
+    prospect.atWar &&
+    prospect.usableBlueprints.has("steal-aviation-blueprints"),
   "steal-industrial-blueprints": (prospect: Prospect) =>
     prospect.infiltrated.has("civilian") &&
     !prospect.atWar &&
@@ -131,6 +154,10 @@ const OPEN = {
     prospect.infiltrated.has("army") &&
     prospect.atWar &&
     prospect.usableBlueprints.has("steal-military-blueprints"),
+  "steal-naval-blueprints": (prospect: Prospect) =>
+    prospect.infiltrated.has("navy") &&
+    prospect.atWar &&
+    prospect.usableBlueprints.has("steal-naval-blueprints"),
   "strengthen-resistance": (prospect: Prospect) =>
     prospect.unrest.has("contacts") && !prospect.unrest.has("strengthened"),
 } satisfies Readonly<Record<Operation, (prospect: Prospect) => boolean>>;
@@ -156,9 +183,9 @@ export interface Crew {
  * comes before the resistance and cipher work that take two, and ends once
  * it is running, so it holds the third operative back only until it starts;
  * the blueprints, which a nation can steal again and again, come last, so
- * they take the operatives only when nothing else is open; the army's
- * blueprints are stolen at war and industry's at peace. The order and the waiting are this game's
- * own.
+ * they take the operatives only when nothing else is open; the army's, the
+ * navy's and the air force's blueprints are stolen at war and industry's at
+ * peace. The order and the waiting are this game's own.
  */
 export const operationWanted = (
   prospect: Prospect,

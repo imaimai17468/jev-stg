@@ -14,6 +14,8 @@ import {
   flying,
   wing,
 } from "./air-war-fixture";
+import type { Armoury } from "./armoury";
+import { OPENING_ARMOURY } from "./armoury";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Invasion } from "./invasion";
@@ -34,6 +36,7 @@ const FULL_TANKS: NationEconomy = { ...NO_ECONOMY, fuel: 10_000 };
 const HANGARS: Hangars = {
   airBases: ONE_LEVEL_EACH,
   airForces: [NO_AIR_FORCE, NO_AIR_FORCE, NO_AIR_FORCE],
+  armouries: [OPENING_ARMOURY, OPENING_ARMOURY, OPENING_ARMOURY],
   economies: [FULL_TANKS, FULL_TANKS, FULL_TANKS],
   navies: [NO_NAVY, NO_NAVY, NO_NAVY],
 };
@@ -96,14 +99,18 @@ const navyAt = (
 });
 
 /** A carrier with `planes` aboard. */
-const carrier = (planes: number): Ship => ({ ...launched("carrier"), planes });
+const carrier = (planes: number): Ship => ({
+  ...launched("carrier-2"),
+  planes,
+});
 
-/** The flight a wing of `aircraft` fully fuelled and uncrowded sends up for `nation`. */
-const flightOf = (
-  nationId: number,
-  aircraft: Wing["aircraft"],
-  planes: number
-) => ({ aircraft, efficiency: 1, nation: nationId, planes });
+/** The flight a wing of `model` fully fuelled and uncrowded sends up for `nation`. */
+const flightOf = (nationId: number, model: Wing["model"], planes: number) => ({
+  efficiency: 1,
+  model,
+  nation: nationId,
+  planes,
+});
 
 /** The wings of `nation` after `day`. */
 const wingsOf = (day: AirDay, nationId: number) =>
@@ -139,7 +146,7 @@ describe(airWarOneDay, () => {
       {
         ...hangarsWith({
           airForce: airForceOf([
-            wing({ aircraft: "fighter", base: 2, planes: 50 }),
+            wing({ base: 2, model: "fighter-1", planes: 50 }),
           ]),
           nation: 0,
         }),
@@ -149,7 +156,7 @@ describe(airWarOneDay, () => {
     );
 
     expect(wingsOf(day, 0)).toStrictEqual([
-      wing({ aircraft: "fighter", base: 1, planes: 50 }),
+      wing({ base: 1, model: "fighter-1", planes: 50 }),
     ]);
   });
 
@@ -158,7 +165,7 @@ describe(airWarOneDay, () => {
       {
         ...hangarsWith({
           airForce: airForceOf([
-            wing({ aircraft: "fighter", base: 2, planes: 50 }),
+            wing({ base: 2, model: "fighter-1", planes: 50 }),
           ]),
           nation: 0,
         }),
@@ -174,8 +181,8 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 2, planes: 100 }),
-          wing({ aircraft: "fighter", base: 2, planes: 100 }),
+          wing({ base: 2, model: "fighter-1", planes: 100 }),
+          wing({ base: 2, model: "fighter-1", planes: 100 }),
         ]),
         nation: 0,
       }),
@@ -183,8 +190,8 @@ describe(airWarOneDay, () => {
     );
 
     expect(wingsOf(day, 0)).toStrictEqual([
-      wing({ aircraft: "fighter", base: 0, planes: 100 }),
-      wing({ aircraft: "fighter", base: 1, planes: 100 }),
+      wing({ base: 0, model: "fighter-1", planes: 100 }),
+      wing({ base: 1, model: "fighter-1", planes: 100 }),
     ]);
   });
 
@@ -192,7 +199,7 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 2, planes: 50 }),
+          wing({ base: 2, model: "fighter-1", planes: 50 }),
         ]),
         nation: 0,
       }),
@@ -200,7 +207,7 @@ describe(airWarOneDay, () => {
     );
 
     expect(wingsOf(day, 0)).toStrictEqual([
-      wing({ aircraft: "fighter", base: 0, planes: 50 }),
+      wing({ base: 0, model: "fighter-1", planes: 50 }),
     ]);
   });
 
@@ -208,7 +215,7 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          flying(wing({ aircraft: "fighter", base: 0, planes: 50 }), {
+          flying(wing({ base: 0, model: "fighter-1", planes: 50 }), {
             mission: "superiority",
             region: 1,
           }),
@@ -219,7 +226,7 @@ describe(airWarOneDay, () => {
     );
 
     expect(wingsOf(day, 0)).toStrictEqual([
-      wing({ aircraft: "fighter", base: 0, planes: 50 }),
+      wing({ base: 0, model: "fighter-1", planes: 50 }),
     ]);
   });
 
@@ -235,12 +242,12 @@ describe(airWarOneDay, () => {
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 0, planes: 50 }),
+          wing({ base: 0, model: "fighter-1", planes: 50 }),
         ]),
         nation: 0,
       }),
       nation: 0,
-      ordered: flying(wing({ aircraft: "fighter", base: 0, planes: 50 }), {
+      ordered: flying(wing({ base: 0, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 1,
       }),
@@ -257,12 +264,12 @@ describe(airWarOneDay, () => {
       },
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 1, planes: 50 }),
+          wing({ base: 1, model: "fighter-1", planes: 50 }),
         ]),
         nation: 0,
       }),
       nation: 0,
-      ordered: flying(wing({ aircraft: "fighter", base: 1, planes: 50 }), {
+      ordered: flying(wing({ base: 1, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 2,
       }),
@@ -272,13 +279,13 @@ describe(airWarOneDay, () => {
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 3, planes: 50 }),
+          wing({ base: 3, model: "fighter-1", planes: 50 }),
         ]),
         nation: 1,
-        navy: navyAt(5, [launched("destroyer")]),
+        navy: navyAt(5, [launched("destroyer-2")]),
       }),
       nation: 1,
-      ordered: flying(wing({ aircraft: "fighter", base: 3, planes: 50 }), {
+      ordered: flying(wing({ base: 3, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 4,
       }),
@@ -301,12 +308,12 @@ describe(airWarOneDay, () => {
       },
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 3, planes: 50 }),
+          wing({ base: 3, model: "fighter-1", planes: 50 }),
         ]),
         nation: 1,
       }),
       nation: 1,
-      ordered: flying(wing({ aircraft: "fighter", base: 3, planes: 50 }), {
+      ordered: flying(wing({ base: 3, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 4,
       }),
@@ -316,13 +323,13 @@ describe(airWarOneDay, () => {
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 3, planes: 50 }),
+          wing({ base: 3, model: "fighter-1", planes: 50 }),
         ]),
         nation: 1,
-        navy: navyAt(5, [launched("destroyer")], "repair"),
+        navy: navyAt(5, [launched("destroyer-2")], "repair"),
       }),
       nation: 1,
-      ordered: flying(wing({ aircraft: "fighter", base: 3, planes: 50 }), {
+      ordered: flying(wing({ base: 3, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 2,
       }),
@@ -332,13 +339,13 @@ describe(airWarOneDay, () => {
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 3, planes: 50 }),
+          wing({ base: 3, model: "fighter-1", planes: 50 }),
         ]),
         nation: 1,
         navy: navyAt(5, []),
       }),
       nation: 1,
-      ordered: flying(wing({ aircraft: "fighter", base: 3, planes: 50 }), {
+      ordered: flying(wing({ base: 3, model: "fighter-1", planes: 50 }), {
         mission: "superiority",
         region: 2,
       }),
@@ -348,13 +355,13 @@ describe(airWarOneDay, () => {
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "close-support", base: 0, planes: 50 }),
+          wing({ base: 0, model: "close-air-support-1", planes: 50 }),
         ]),
         nation: 0,
       }),
       nation: 0,
       ordered: flying(
-        wing({ aircraft: "close-support", base: 0, planes: 50 }),
+        wing({ base: 0, model: "close-air-support-1", planes: 50 }),
         { mission: "close-support", region: 1 }
       ),
     },
@@ -364,14 +371,14 @@ describe(airWarOneDay, () => {
       hangars: hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 3, planes: 50 }),
+            wing({ base: 3, model: "naval-bomber-1", planes: 50 }),
           ]),
           nation: 1,
         },
-        { nation: 0, navy: navyAt(5, [launched("battleship")]) }
+        { nation: 0, navy: navyAt(5, [launched("battleship-2")]) }
       ),
       nation: 1,
-      ordered: flying(wing({ aircraft: "naval-bomber", base: 3, planes: 50 }), {
+      ordered: flying(wing({ base: 3, model: "naval-bomber-1", planes: 50 }), {
         mission: "naval-strike",
         region: 4,
       }),
@@ -383,14 +390,14 @@ describe(airWarOneDay, () => {
       hangars: hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 2, planes: 50 }),
+            wing({ base: 2, model: "naval-bomber-1", planes: 50 }),
           ]),
           nation: 1,
         },
-        { nation: 0, navy: navyAt(5, [launched("battleship")]) }
+        { nation: 0, navy: navyAt(5, [launched("battleship-2")]) }
       ),
       nation: 1,
-      ordered: wing({ aircraft: "naval-bomber", base: 3, planes: 50 }),
+      ordered: wing({ base: 3, model: "naval-bomber-1", planes: 50 }),
     },
     {
       condition:
@@ -399,26 +406,26 @@ describe(airWarOneDay, () => {
       hangars: hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
+            wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
           ]),
           nation: 0,
         },
-        { nation: 1, navy: navyAt(5, [launched("battleship")]) }
+        { nation: 1, navy: navyAt(5, [launched("battleship-2")]) }
       ),
       nation: 0,
-      ordered: wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
+      ordered: wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
     },
     {
       condition: "a naval bomber's enemy has no warship at sea anywhere",
       fields: AT_WAR,
       hangars: hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
+          wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
         ]),
         nation: 0,
       }),
       nation: 0,
-      ordered: wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
+      ordered: wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
     },
   ])(
     "should give the wing its orders when $condition",
@@ -433,8 +440,8 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "close-support", base: 1, planes: 100 }),
-          wing({ aircraft: "close-support", base: 1, planes: 100 }),
+          wing({ base: 1, model: "close-air-support-1", planes: 100 }),
+          wing({ base: 1, model: "close-air-support-1", planes: 100 }),
         ]),
         nation: 0,
       }),
@@ -449,12 +456,12 @@ describe(airWarOneDay, () => {
       hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 2, planes: 150 }),
-            wing({ aircraft: "naval-bomber", base: 2, planes: 150 }),
+            wing({ base: 2, model: "naval-bomber-1", planes: 150 }),
+            wing({ base: 2, model: "naval-bomber-1", planes: 150 }),
           ]),
           nation: 1,
         },
-        { nation: 0, navy: navyAt(5, [launched("battleship")]) }
+        { nation: 0, navy: navyAt(5, [launched("battleship-2")]) }
       ),
       {
         ...AT_WAR,
@@ -463,8 +470,8 @@ describe(airWarOneDay, () => {
     );
 
     expect(wingsOf(day, 1)).toStrictEqual([
-      wing({ aircraft: "naval-bomber", base: 3, planes: 150 }),
-      wing({ aircraft: "naval-bomber", base: 4, planes: 150 }),
+      wing({ base: 3, model: "naval-bomber-1", planes: 150 }),
+      wing({ base: 4, model: "naval-bomber-1", planes: 150 }),
     ]);
   });
 
@@ -482,7 +489,7 @@ describe(airWarOneDay, () => {
       const day = airWarOneDay(
         hangarsWith({
           airForce: airForceOf([
-            wing({ aircraft: "fighter", base: 0, planes: 50 }),
+            wing({ base: 0, model: "fighter-1", planes: 50 }),
           ]),
           economy: { ...NO_ECONOMY, fuel },
           nation: 0,
@@ -500,7 +507,7 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "fighter", base: 0, planes: 50 }),
+          wing({ base: 0, model: "fighter-1", planes: 50 }),
         ]),
         economy,
         nation: 0,
@@ -515,9 +522,9 @@ describe(airWarOneDay, () => {
   });
 
   it("should take the planes the air battle brought down off the wing when two enemies meet over one region", () => {
-    const fighters = wing({ aircraft: "fighter", base: 1, planes: 50 });
+    const fighters = wing({ base: 1, model: "fighter-1", planes: 50 });
     const [left] = foughtInTheAir(
-      [flightOf(0, "fighter", 50), flightOf(1, "fighter", 50)],
+      [flightOf(0, "fighter-1", 50), flightOf(1, "fighter-1", 50)],
       AIR_WAR.wars
     );
 
@@ -526,7 +533,7 @@ describe(airWarOneDay, () => {
         { airForce: airForceOf([fighters]), nation: 0 },
         {
           airForce: airForceOf([
-            wing({ aircraft: "fighter", base: 2, planes: 50 }),
+            wing({ base: 2, model: "fighter-1", planes: 50 }),
           ]),
           nation: 1,
         }
@@ -553,7 +560,7 @@ describe(airWarOneDay, () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "close-support", base: 0, planes: 0.4 }),
+          wing({ base: 0, model: "close-air-support-1", planes: 0.4 }),
         ]),
         nation: 0,
       }),
@@ -566,19 +573,19 @@ describe(airWarOneDay, () => {
   it("should take the planes the air battle brought down off the carrier's deck when enemy fighters meet them at sea", () => {
     const after = foughtInTheAir(
       [
-        flightOf(1, "fighter", 50),
-        flightOf(0, "fighter", 10),
-        flightOf(0, "naval-bomber", 10),
+        flightOf(1, "fighter-1", 50),
+        flightOf(0, "fighter-1", 10),
+        flightOf(0, "naval-bomber-1", 10),
       ],
       AIR_WAR.wars
     );
 
     const day = airWarOneDay(
       hangarsWith(
-        { nation: 0, navy: navyAt(5, [carrier(20), launched("destroyer")]) },
+        { nation: 0, navy: navyAt(5, [carrier(20), launched("destroyer-2")]) },
         {
           airForce: airForceOf([
-            wing({ aircraft: "fighter", base: 3, planes: 50 }),
+            wing({ base: 3, model: "fighter-1", planes: 50 }),
           ]),
           nation: 1,
         }
@@ -598,7 +605,56 @@ describe(airWarOneDay, () => {
         ...carrier(20),
         planes: (after[1]?.planes ?? 0) + (after[2]?.planes ?? 0),
       },
-      launched("destroyer"),
+      launched("destroyer-2"),
+    ]);
+  });
+
+  it("should fly the nation's newest designs off the carrier's deck when its research has them", () => {
+    const newest: Armoury = {
+      ...OPENING_ARMOURY,
+      planes: {
+        ...OPENING_ARMOURY.planes,
+        fighter: "fighter-3",
+        "naval-bomber": "naval-bomber-3",
+      },
+    };
+    const after = foughtInTheAir(
+      [
+        flightOf(1, "fighter-1", 50),
+        flightOf(0, "fighter-3", 10),
+        flightOf(0, "naval-bomber-3", 10),
+      ],
+      AIR_WAR.wars
+    );
+
+    const day = airWarOneDay(
+      {
+        ...hangarsWith(
+          { nation: 0, navy: navyAt(5, [carrier(20)]) },
+          {
+            airForce: airForceOf([
+              wing({ base: 3, model: "fighter-1", planes: 50 }),
+            ]),
+            nation: 1,
+          }
+        ),
+        armouries: [newest, OPENING_ARMOURY, OPENING_ARMOURY],
+      },
+      {
+        ...AT_WAR,
+        flown: replacedAt(
+          CLEAR_SKIES,
+          0,
+          Float32Array.from([0, 0, 0, 0, 20, 0])
+        ),
+      }
+    );
+
+    expect(mainFleetOf(day, 0)?.ships).toStrictEqual([
+      {
+        ...carrier(20),
+        planes: (after[1]?.planes ?? 0) + (after[2]?.planes ?? 0),
+      },
     ]);
   });
 
@@ -668,7 +724,7 @@ describe(airWarOneDay, () => {
   });
 
   it("should leave the enemy's ships to the battle at sea when only a carrier's naval bombers fly over them", () => {
-    const enemy = navyAt(5, [launched("battleship")]);
+    const enemy = navyAt(5, [launched("battleship-2")]);
 
     const day = airWarOneDay(
       hangarsWith(
@@ -686,17 +742,17 @@ describe(airWarOneDay, () => {
       hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 3, planes: 100 }),
+            wing({ base: 3, model: "naval-bomber-1", planes: 100 }),
           ]),
           nation: 1,
         },
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 4, planes: 100 }),
+            wing({ base: 4, model: "naval-bomber-1", planes: 100 }),
           ]),
           nation: 2,
         },
-        { nation: 0, navy: navyAt(5, [{ ...launched("destroyer"), hp: 1 }]) }
+        { nation: 0, navy: navyAt(5, [{ ...launched("destroyer-2"), hp: 1 }]) }
       ),
       {
         ...AT_WAR,
@@ -714,7 +770,7 @@ describe(airWarOneDay, () => {
   const ESCORT: TaskForce = {
     mission: "patrol",
     role: "escort",
-    ships: [launched("destroyer")],
+    ships: [launched("destroyer-2")],
     zone: 6,
   };
 
@@ -726,36 +782,39 @@ describe(airWarOneDay, () => {
   }>([
     {
       after: [
-        struck(launched("destroyer"), 31.006, 20.01),
-        struck(launched("cruiser"), 85.266, 0),
+        struck(launched("destroyer-2"), 32.505, 22.508),
+        struck(launched("light-cruiser-2"), 113.767, 0),
       ],
       bombers: 100,
       condition:
         "twenty of them strike, the damage spread by how strongly each ship draws them",
-      ships: [launched("destroyer"), launched("cruiser")],
+      ships: [launched("destroyer-2"), launched("light-cruiser-2")],
     },
     {
       after: [
-        struck(launched("destroyer"), 35.503, 27.505),
-        struck(launched("cruiser"), 97.633, 19.389),
+        struck(launched("destroyer-2"), 36.252, 28.754),
+        struck(launched("light-cruiser-2"), 126.884, 18.139),
       ],
       bombers: 10,
       condition: "fewer than twenty bombers fly",
-      ships: [launched("destroyer"), launched("cruiser")],
+      ships: [launched("destroyer-2"), launched("light-cruiser-2")],
     },
     {
       after: Array.from({ length: 5 }, () =>
-        struck(launched("battleship"), 338.802, 0)
+        struck(launched("battleship-2"), 453.262, 0)
       ),
       bombers: 200,
       condition: "a twentieth of the fleet's hull is more than twenty",
-      ships: Array.from({ length: 5 }, () => launched("battleship")),
+      ships: Array.from({ length: 5 }, () => launched("battleship-2")),
     },
     {
-      after: [struck(launched("cruiser"), 85.266, 0)],
+      after: [struck(launched("light-cruiser-2"), 113.767, 0)],
       bombers: 100,
       condition: "a ship's hull is gone under them",
-      ships: [{ ...launched("destroyer"), hp: 1 }, launched("cruiser")],
+      ships: [
+        { ...launched("destroyer-2"), hp: 1 },
+        launched("light-cruiser-2"),
+      ],
     },
   ])(
     "should strike the enemy's task force in the region when $condition",
@@ -766,7 +825,7 @@ describe(airWarOneDay, () => {
         hangarsWith(
           {
             airForce: airForceOf([
-              wing({ aircraft: "naval-bomber", base: 3, planes: bombers }),
+              wing({ base: 3, model: "naval-bomber-1", planes: bombers }),
             ]),
             nation: 1,
           },
@@ -786,20 +845,51 @@ describe(airWarOneDay, () => {
     }
   );
 
-  it("should leave an enemy task force alone when it is making for port to repair in the struck region", () => {
-    const repairing: TaskForce = {
-      mission: "repair",
-      role: "escort",
-      ships: [launched("cruiser")],
-      zone: 5,
-    };
-    const navy = navyAt(5, [launched("destroyer")]);
+  it("should strike with the naval attack its bombers carry when they fly two designs", () => {
+    const navy = navyAt(5, [
+      launched("destroyer-2"),
+      launched("light-cruiser-2"),
+    ]);
 
     const day = airWarOneDay(
       hangarsWith(
         {
           airForce: airForceOf([
-            wing({ aircraft: "naval-bomber", base: 3, planes: 100 }),
+            wing({ base: 3, model: "naval-bomber-1", planes: 50 }),
+            wing({ base: 3, model: "naval-bomber-3", planes: 50 }),
+          ]),
+          nation: 1,
+        },
+        { nation: 0, navy }
+      ),
+      AT_WAR
+    );
+
+    expect(
+      mainFleetOf(day, 0)?.ships.map((ship) => ({
+        hp: rounded(ship.hp),
+        organisation: rounded(ship.organisation),
+      }))
+    ).toStrictEqual([
+      { hp: 30.007, organisation: 18.344 },
+      { hp: 105.023, organisation: 0 },
+    ]);
+  });
+
+  it("should leave an enemy task force alone when it is making for port to repair in the struck region", () => {
+    const repairing: TaskForce = {
+      mission: "repair",
+      role: "escort",
+      ships: [launched("light-cruiser-2")],
+      zone: 5,
+    };
+    const navy = navyAt(5, [launched("destroyer-2")]);
+
+    const day = airWarOneDay(
+      hangarsWith(
+        {
+          airForce: airForceOf([
+            wing({ base: 3, model: "naval-bomber-1", planes: 100 }),
           ]),
           nation: 1,
         },
@@ -823,54 +913,54 @@ describe(airWarOneDay, () => {
   }>([
     {
       after: {
-        deck: 20,
+        deck: 10,
         wings: [
-          wing({ aircraft: "fighter", base: 0, planes: 85 }),
-          wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
-          wing({ aircraft: "close-support", base: 0, planes: 30 }),
+          wing({ base: 0, model: "fighter-1", planes: 95 }),
+          wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
+          wing({ base: 0, model: "close-air-support-1", planes: 30 }),
         ],
       },
       condition: "the fullest wing has more than the deck has room for",
       mission: "repair",
       wings: [
-        wing({ aircraft: "fighter", base: 0, planes: 100 }),
-        wing({ aircraft: "naval-bomber", base: 0, planes: 50 }),
-        wing({ aircraft: "close-support", base: 0, planes: 30 }),
+        wing({ base: 0, model: "fighter-1", planes: 100 }),
+        wing({ base: 0, model: "naval-bomber-1", planes: 50 }),
+        wing({ base: 0, model: "close-air-support-1", planes: 30 }),
       ],
       zone: 5,
     },
     {
       after: {
-        deck: 15,
-        wings: [wing({ aircraft: "close-support", base: 0, planes: 30 })],
+        deck: 10,
+        wings: [wing({ base: 0, model: "close-air-support-1", planes: 30 })],
       },
       condition: "the fighters and naval bombers all fit aboard",
       mission: "repair",
       wings: [
-        wing({ aircraft: "fighter", base: 0, planes: 6 }),
-        wing({ aircraft: "naval-bomber", base: 0, planes: 4 }),
-        wing({ aircraft: "close-support", base: 0, planes: 30 }),
+        wing({ base: 0, model: "fighter-1", planes: 3 }),
+        wing({ base: 0, model: "naval-bomber-1", planes: 2 }),
+        wing({ base: 0, model: "close-air-support-1", planes: 30 }),
       ],
       zone: 5,
     },
     {
       after: {
         deck: 5,
-        wings: [wing({ aircraft: "fighter", base: 0, planes: 100 })],
+        wings: [wing({ base: 0, model: "fighter-1", planes: 100 })],
       },
       condition: "the carrier is at its home port on patrol",
       mission: "patrol",
-      wings: [wing({ aircraft: "fighter", base: 0, planes: 100 })],
+      wings: [wing({ base: 0, model: "fighter-1", planes: 100 })],
       zone: 5,
     },
     {
       after: {
         deck: 5,
-        wings: [wing({ aircraft: "fighter", base: 0, planes: 100 })],
+        wings: [wing({ base: 0, model: "fighter-1", planes: 100 })],
       },
       condition: "the carrier is repairing away from its home port",
       mission: "repair",
-      wings: [wing({ aircraft: "fighter", base: 0, planes: 100 })],
+      wings: [wing({ base: 0, model: "fighter-1", planes: 100 })],
       zone: 6,
     },
   ])(
@@ -908,8 +998,8 @@ describe(airWarOneDay, () => {
       construction: 2000,
       muster: 0,
       wings: [
-        wing({ aircraft: "fighter", base: 0, planes: 190 }),
-        wing({ aircraft: "fighter", base: 1, planes: 190 }),
+        wing({ base: 0, model: "fighter-1", planes: 190 }),
+        wing({ base: 1, model: "fighter-1", planes: 190 }),
       ],
     },
     {
@@ -919,8 +1009,8 @@ describe(airWarOneDay, () => {
       construction: 1000,
       muster: 0,
       wings: [
-        wing({ aircraft: "fighter", base: 0, planes: 190 }),
-        wing({ aircraft: "fighter", base: 1, planes: 190 }),
+        wing({ base: 0, model: "fighter-1", planes: 190 }),
+        wing({ base: 1, model: "fighter-1", planes: 190 }),
       ],
     },
     {
@@ -930,7 +1020,7 @@ describe(airWarOneDay, () => {
         "its one base is built all the way and its muster stands on it",
       construction: 2000,
       muster: 0,
-      wings: [wing({ aircraft: "fighter", base: 0, planes: 1900 })],
+      wings: [wing({ base: 0, model: "fighter-1", planes: 1900 })],
     },
     {
       after: { bases: [0, 0, 1, 1, 1, 0, 0], construction: 2000 },
@@ -971,25 +1061,35 @@ describe(airWarOneDay, () => {
     }
   );
 
-  it("should report the air power and the close air support each nation flew over each region when a day ends", () => {
+  it("should report the air power, the close air support and the ground attack it carries each nation flew over each region when a day ends", () => {
     const day = airWarOneDay(
       hangarsWith({
         airForce: airForceOf([
-          wing({ aircraft: "close-support", base: 1, planes: 50 }),
+          wing({ base: 1, model: "close-air-support-1", planes: 50 }),
+          wing({ base: 1, model: "close-air-support-2", planes: 30 }),
         ]),
         nation: 0,
       }),
       AT_WAR
     );
 
-    expect({ power: day.power, support: day.support }).toStrictEqual({
+    expect({
+      power: day.power,
+      support: day.support,
+      supportAttack: day.supportAttack,
+    }).toStrictEqual({
       power: [
-        Float32Array.from([0, 50, 0, 0, 0, 0]),
+        Float32Array.from([0, 50, 30, 0, 0, 0]),
         new Float32Array(6),
         new Float32Array(6),
       ],
       support: [
-        Float32Array.from([0, 50, 0, 0, 0, 0]),
+        Float32Array.from([0, 50, 30, 0, 0, 0]),
+        new Float32Array(6),
+        new Float32Array(6),
+      ],
+      supportAttack: [
+        Float32Array.from([0, 50 * 8, 30 * 13, 0, 0, 0]),
         new Float32Array(6),
         new Float32Array(6),
       ],

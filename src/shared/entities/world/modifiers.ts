@@ -6,10 +6,13 @@ export const MODIFIERS: readonly Modifier[] = [
   "organisation",
   "recovery",
   "production",
+  "dockyards",
   "construction",
   "research",
   "manpower",
   "supply",
+  "extraction",
+  "refining",
 ];
 
 /**
@@ -25,6 +28,8 @@ export interface Modifiers {
   readonly recovery: number;
   /** The equipment a military factory turns out. */
   readonly production: number;
+  /** What a dockyard puts into a ship. */
+  readonly dockyards: number;
   /** What a civilian factory puts into construction. */
   readonly construction: number;
   /** The research-days a slot puts in. */
@@ -33,6 +38,10 @@ export interface Modifiers {
   readonly manpower: number;
   /** The divisions a province can keep supplied. */
   readonly supply: number;
+  /** The resources a province's deposits give up. */
+  readonly extraction: number;
+  /** The fuel a unit of oil refines into. */
+  readonly refining: number;
 }
 
 /** Something a technology or a national focus makes a nation better at. */
@@ -46,10 +55,13 @@ export const NO_MODIFIERS: Modifiers = {
   attack: 0,
   construction: 0,
   defence: 0,
+  dockyards: 0,
+  extraction: 0,
   manpower: 0,
   organisation: 0,
   production: 0,
   recovery: 0,
+  refining: 0,
   research: 0,
   supply: 0,
 };
@@ -63,10 +75,13 @@ const added = (total: Modifiers, bonus: Bonus): Modifiers => ({
   attack: total.attack + shareOf(bonus, "attack"),
   construction: total.construction + shareOf(bonus, "construction"),
   defence: total.defence + shareOf(bonus, "defence"),
+  dockyards: total.dockyards + shareOf(bonus, "dockyards"),
+  extraction: total.extraction + shareOf(bonus, "extraction"),
   manpower: total.manpower + shareOf(bonus, "manpower"),
   organisation: total.organisation + shareOf(bonus, "organisation"),
   production: total.production + shareOf(bonus, "production"),
   recovery: total.recovery + shareOf(bonus, "recovery"),
+  refining: total.refining + shareOf(bonus, "refining"),
   research: total.research + shareOf(bonus, "research"),
   supply: total.supply + shareOf(bonus, "supply"),
 });

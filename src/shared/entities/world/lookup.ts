@@ -9,6 +9,16 @@
 export const itemAt = <T>(items: readonly T[], index: number, fallback: T): T =>
   items[index] ?? fallback;
 
+/** The last of `items` that `keep` holds for, or `fallback` where it holds for none. */
+export const lastWhere = <T>(
+  items: readonly T[],
+  keep: (item: T) => boolean,
+  fallback: T
+): T => {
+  const kept = items.filter(keep);
+  return itemAt(kept, kept.length - 1, fallback);
+};
+
 /** The list with `item` in place of the one at `index`. */
 export const replacedAt = <T>(
   items: readonly T[],

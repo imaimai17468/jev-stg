@@ -302,17 +302,19 @@ const splitBuilt = (
 };
 
 /**
- * The share of their full output the nation's military factories and
- * dockyards reach today: their technologies and focuses, the workers the
- * conscription law leaves them, the factories occupied ground lets it work,
- * and the `supplied` share the resources they go without leave them.
+ * The share of their full output the nation's military factories or
+ * dockyards reach today: the `modifier` their technologies, focuses and trade
+ * law add, the workers the conscription law leaves them, the factories
+ * occupied ground lets it work, and the `supplied` share the resources they
+ * go without leave them.
  */
 const armsOutput = (
   economy: NationEconomy,
   footing: Footing,
-  supplied: number
+  supplied: number,
+  modifier: number
 ): number =>
-  (1 + footing.modifiers.production) *
+  (1 + modifier) *
   outputUnder(economy.conscription) *
   footing.reach.factories *
   supplied;
@@ -326,22 +328,28 @@ const AIRCRAFT_PER_FACTORY = 3.5;
 /** A kind of line that puts its day into something built piece by piece. */
 export type ProductionLine = "aircraft" | "ships";
 
-/** How many of a kind of line a nation has, what each puts in a day, and the share its resources leave it. */
+/**
+ * How many of a kind of line a nation has, what each puts in a day, the share
+ * its resources leave it, and the modifier that speeds it up.
+ */
 interface Lines {
   readonly lines: number;
   readonly perLine: number;
   readonly supplied: number;
+  readonly modifier: number;
 }
 
 /** The military factories on planes, and the dockyards. */
 const LINES = {
   aircraft: (economy: NationEconomy, footing: Footing): Lines => ({
     lines: economy.militaryFactories * footing.aviation,
+    modifier: footing.modifiers.production,
     perLine: AIRCRAFT_PER_FACTORY,
     supplied: footing.airSupplied,
   }),
   ships: (economy: NationEconomy, footing: Footing): Lines => ({
     lines: economy.dockyards,
+    modifier: footing.modifiers.dockyards,
     perLine: SHIPBUILDING_PER_DOCKYARD,
     supplied: footing.supplied,
   }),
@@ -355,8 +363,8 @@ export const outputOf = (
   footing: Footing,
   line: ProductionLine
 ): number => {
-  const { lines, perLine, supplied } = LINES[line](economy, footing);
-  return lines * perLine * armsOutput(economy, footing, supplied);
+  const { lines, modifier, perLine, supplied } = LINES[line](economy, footing);
+  return lines * perLine * armsOutput(economy, footing, supplied, modifier);
 };
 
 /**
@@ -405,7 +413,12 @@ export const producedOneDay = (
       economy.militaryFactories *
         (1 - footing.aviation) *
         EQUIPMENT_PER_FACTORY *
-        armsOutput(economy, footing, footing.supplied),
+        armsOutput(
+          economy,
+          footing,
+          footing.supplied,
+          footing.modifiers.production
+        ),
     manpower: freeManpower(economy, population, footing),
     militaryFactories: economy.militaryFactories + built.military,
     population,

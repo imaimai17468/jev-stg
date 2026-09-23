@@ -55,19 +55,34 @@ const MARKET_DEALS: readonly Deal[] = [
 describe(lawBonusOf, () => {
   it.each<{ law: TradeLaw; bonus: Bonus }>([
     {
-      bonus: { construction: 0.15, production: 0.15, research: 0.1 },
+      bonus: {
+        construction: 0.15,
+        dockyards: 0.15,
+        production: 0.15,
+        research: 0.1,
+      },
       law: "free-trade",
     },
     {
-      bonus: { construction: 0.1, production: 0.1, research: 0.05 },
+      bonus: {
+        construction: 0.1,
+        dockyards: 0.1,
+        production: 0.1,
+        research: 0.05,
+      },
       law: "export-focus",
     },
     {
-      bonus: { construction: 0.05, production: 0.05, research: 0.01 },
+      bonus: {
+        construction: 0.05,
+        dockyards: 0.05,
+        production: 0.05,
+        research: 0.01,
+      },
       law: "limited-exports",
     },
     {
-      bonus: { construction: 0, production: 0, research: 0 },
+      bonus: { construction: 0, dockyards: 0, production: 0, research: 0 },
       law: "closed-economy",
     },
   ])(

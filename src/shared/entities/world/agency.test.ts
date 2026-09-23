@@ -82,7 +82,9 @@ describe(agencyOptions, () => {
 
   it("should offer machine decryption when the department is bought and computing is researched", () => {
     expect(
-      agencyOptions(foundedWith(["cryptology-department"]), ["computing-1"])
+      agencyOptions(foundedWith(["cryptology-department"]), [
+        "mechanical-computing",
+      ])
     ).toStrictEqual([
       ...UNGATED,
       "radio-interception",

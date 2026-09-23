@@ -1,5 +1,6 @@
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
+import type { Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
 import {
@@ -19,9 +20,7 @@ import { combatWidth } from "./frontage";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
-import type { Insight } from "./insight";
 import { itemAt } from "./lookup";
-import type { Modifiers } from "./modifiers";
 import { musteringAt } from "./muster";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces, provinceTerrain } from "./provinces";
@@ -134,21 +133,12 @@ const occupied = (
 };
 
 /**
- * What the armies are ordered by: who is at war, how boldly each attacks, and
- * how well each fights.
+ * What the armies are ordered by: everything a battle reads but who holds
+ * what, which the armies carry, and how boldly each nation attacks.
  */
-export interface Command {
-  readonly wars: Wars;
+export interface Command extends Omit<Theatre, "owners"> {
   /** Each nation's stance, by nation id. */
   readonly stances: readonly Stance[];
-  /** Each nation's modifiers, by nation id. */
-  readonly modifiers: readonly Modifiers[];
-  /** What each nation's supply can do today. */
-  readonly supply: SupplyNetwork;
-  /** What the planes overhead do to the divisions below them today. */
-  readonly air: AirCover;
-  /** What each nation brings to a battle from what it knows of the enemy. */
-  readonly insight: Insight;
 }
 
 /** A day of fighting everywhere, and the provinces nobody marches out of. */
@@ -177,6 +167,7 @@ const foughtEverywhere = (
     const battle = foughtOneDay(
       {
         air: command.air,
+        armouries: command.armouries,
         insight: command.insight,
         modifiers: command.modifiers,
         owners: before.owners,

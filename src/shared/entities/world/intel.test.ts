@@ -37,7 +37,7 @@ const fleetIn = (zone: number, ships: number): Navy => ({
     {
       mission: "patrol",
       role: "main",
-      ships: Array.from({ length: ships }, () => launched("destroyer")),
+      ships: Array.from({ length: ships }, () => launched("destroyer-2")),
       zone,
     },
   ],

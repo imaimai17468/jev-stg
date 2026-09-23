@@ -4,7 +4,11 @@ import { BY_RULES, chronicled } from "./chronicle";
 
 const DECLARATION: Decision = { kind: "declare", nation: 0, target: 1 };
 
-const RESEARCH: Decision = { kind: "research", nation: 0, tech: "tools-1" };
+const RESEARCH: Decision = {
+  kind: "research",
+  nation: 0,
+  tech: "basic-machine-tools",
+};
 
 const FOCUS: Decision = { focus: "army-effort", kind: "focus", nation: 0 };
 

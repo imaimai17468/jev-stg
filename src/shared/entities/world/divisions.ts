@@ -1,4 +1,6 @@
+import { Schema } from "effect";
 import type { NationEconomy } from "./economy";
+import { lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import type { Terrain } from "./terrain";
 
@@ -117,9 +119,67 @@ export const strengthOf = (divisions: readonly Division[]): number =>
 const fitnessOf = (division: Division): number =>
   division.strength / TEMPLATES[division.kind].manpower;
 
-/** What a division fights with beyond its own men: its nation's modifiers and its supply. */
+/** What a division does in a battle: attack, or hold the ground it stands on. */
+type Role = "attack" | "defence";
+
+/** Every generation of infantry equipment, named by the technology that unlocks it, the oldest first. */
+const InfantryEquipmentSchema = Schema.Literals([
+  "basic-infantry-equipment",
+  "infantry-equipment-1",
+  "infantry-equipment-2",
+  "infantry-equipment-3",
+]);
+
+export type InfantryEquipment = typeof InfantryEquipmentSchema.Type;
+
+export const INFANTRY_EQUIPMENT = InfantryEquipmentSchema.literals;
+
+/** What one generation of infantry equipment puts into a battle. */
+interface Weapons {
+  readonly softAttack: number;
+  readonly defence: number;
+}
+
+/** Hearts of Iron IV's infantry equipment, from the 1918 kit to the 1942 one. */
+const WEAPONS = {
+  "basic-infantry-equipment": { defence: 20, softAttack: 3 },
+  "infantry-equipment-1": { defence: 22, softAttack: 6 },
+  "infantry-equipment-2": { defence: 28, softAttack: 9 },
+  "infantry-equipment-3": { defence: 34, softAttack: 12 },
+} satisfies Readonly<Record<InfantryEquipment, Weapons>>;
+
+/** The equipment the template's attack and defence are set against. */
+const TEMPLATE_WEAPONS = WEAPONS["infantry-equipment-1"];
+
+/** The share of the template's worth in `role` that `equipment` gives a division. */
+const equipmentShare = (equipment: InfantryEquipment, role: Role): number => {
+  const weapons = WEAPONS[equipment];
+  if (role === "attack") {
+    return weapons.softAttack / TEMPLATE_WEAPONS.softAttack;
+  }
+  return weapons.defence / TEMPLATE_WEAPONS.defence;
+};
+
+/**
+ * The newest infantry equipment among `researched`, which every division of
+ * the nation fights with, and the 1918 kit where none is.
+ */
+export const infantryEquipmentOf = (
+  researched: ReadonlySet<string>
+): InfantryEquipment =>
+  lastWhere(
+    INFANTRY_EQUIPMENT,
+    (equipment) => researched.has(equipment),
+    "basic-infantry-equipment"
+  );
+
+/**
+ * What a division fights with beyond its own men: its nation's modifiers and
+ * equipment, and its supply.
+ */
 export interface Backing {
   readonly modifiers: Modifiers;
+  readonly equipment: InfantryEquipment;
   /** The share of what it needs the division gets, from 0 to 1. */
   readonly fill: number;
   /** The share of its worth the enemy's air superiority overhead leaves it, from 0 to 1. */
@@ -135,13 +195,11 @@ const UNSUPPLIED_WORTH = 0.3;
 const suppliedWorth = (fill: number): number =>
   UNSUPPLIED_WORTH + (1 - UNSUPPLIED_WORTH) * fill;
 
-/** What a division does in a battle: attack, or hold the ground it stands on. */
-type Role = "attack" | "defence";
-
 /** What a division is worth in a day of battle in `role`. */
 const worthIn = (division: Division, backing: Backing, role: Role): number =>
   fitnessOf(division) *
   TEMPLATES[division.kind][role] *
+  equipmentShare(backing.equipment, role) *
   (1 + backing.modifiers[role]) *
   suppliedWorth(backing.fill) *
   backing.air *

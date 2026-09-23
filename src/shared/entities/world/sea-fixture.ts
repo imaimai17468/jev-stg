@@ -4,6 +4,7 @@ import { openingDiplomacy } from "./diplomacy";
 import type { World } from "./index";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
+import type { ShipDesigns } from "./ships";
 import { UNASSIGNED } from "./spread";
 import { declared, noWars } from "./wars";
 
@@ -91,4 +92,13 @@ export const ISLES_PEACE: Diplomacy = openingDiplomacy(ISLES_OWNERS, 2, []);
 export const ISLES_WAR: Diplomacy = {
   ...ISLES_PEACE,
   wars: declared(noWars(2), { one: 0, other: 1 }),
+};
+
+/** The designs a nation's dockyards lay down at the 1936 start. */
+export const SHIPS_1936: ShipDesigns = {
+  battleship: "battleship-2",
+  carrier: "carrier-2",
+  cruiser: "light-cruiser-2",
+  destroyer: "destroyer-2",
+  submarine: "submarine-2",
 };
