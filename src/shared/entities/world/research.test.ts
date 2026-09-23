@@ -413,8 +413,20 @@ describe(researchedOneDay, () => {
     });
   });
 
+  it("should research at a third of the speed when a one-year bonus leaves the technology a year of its two ahead of time", () => {
+    const research: Research = {
+      ...START_RESEARCH,
+      studies: [{ ...studyOf("fighter-2"), ahead: 1 }],
+    };
+
+    expect(researchedOneDay(research, 1, 0, JANUARY_1938)).toStrictEqual({
+      ...START_RESEARCH,
+      studies: [{ ...studyOf("fighter-2"), ahead: 1, progress: 1 / 3 }],
+    });
+  });
+
   it.each([
-    { ahead: 1, progress: 1 / 2 },
+    { ahead: 1, progress: 1 },
     { ahead: 2, progress: 1 },
     { ahead: 3, progress: 1 },
   ])(

@@ -100,15 +100,13 @@ const yearsAhead = (tech: TechId, today: number): number =>
 /**
  * The research-days a slot puts into `study` on day `today` at a research
  * speed of `speed`: its research bonus on top, all of it cut by the
- * ahead-of-time penalty its bonus leaves.
+ * ahead-of-time penalty for the years early its bonus leaves.
  */
 const paceOf = (study: Study, speed: number, today: number): number =>
   (1 + speed + study.bonus) /
   (1 +
-    Math.max(
-      0,
-      AHEAD_OF_TIME_PER_YEAR * yearsAhead(study.tech, today) - study.ahead
-    ));
+    AHEAD_OF_TIME_PER_YEAR *
+      Math.max(0, yearsAhead(study.tech, today) - study.ahead));
 
 /** The technologies `research` has finished or has on a slot. */
 const touched = (research: Research): ReadonlySet<TechId> =>
