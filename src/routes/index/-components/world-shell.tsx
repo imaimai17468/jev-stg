@@ -12,5 +12,8 @@ export const WorldShell = () => {
   if (!ready) {
     return <WorldPending />;
   }
-  return <WorldStage seed={seed ?? DEFAULT_SEED} />;
+  const chosen = seed ?? DEFAULT_SEED;
+  // Keyed on the seed so a new world starts on its own first day rather than
+  // inheriting the calendar and the economies the previous one had reached.
+  return <WorldStage key={chosen} seed={chosen} />;
 };
