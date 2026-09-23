@@ -261,6 +261,10 @@ const drawWing = (pen: CanvasRenderingContext2D, counter: Counter): void => {
   pen.fillStyle = LABEL_INK;
 };
 
+const keepWheelOnMap = (event: Event) => {
+  event.preventDefault();
+};
+
 const measure = (element: HTMLCanvasElement): Surface => ({
   height: element.clientHeight,
   width: element.clientWidth,
@@ -337,8 +341,13 @@ const WorldMapSurface = ({
       setSurface(measure(element));
     });
     observer.observe(element);
+    // A trackpad pinch arrives as a wheel event, and the browser zooms the whole
+    // page unless the event is cancelled. React listens for wheel passively,
+    // where cancelling is ignored, so the canvas holds a listener of its own.
+    element.addEventListener("wheel", keepWheelOnMap, { passive: false });
     return () => {
       observer.disconnect();
+      element.removeEventListener("wheel", keepWheelOnMap);
     };
   }, [attached]);
 
