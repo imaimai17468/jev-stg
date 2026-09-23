@@ -1,4 +1,5 @@
 import type { Compliance } from "@/shared/entities/world/compliance";
+import type { Networks } from "@/shared/entities/world/networks";
 import type { ResourceNeed } from "@/shared/entities/world/resources";
 import { totalOf } from "@/shared/entities/world/resources";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
@@ -10,6 +11,7 @@ export type MapMode =
   | "compliance"
   | "naval"
   | "air"
+  | "intel"
   | "resources";
 
 /** Every map mode, in the order the controls offer them. */
@@ -19,6 +21,7 @@ export const MAP_MODES: readonly MapMode[] = [
   "compliance",
   "naval",
   "air",
+  "intel",
   "resources",
 ];
 
@@ -38,6 +41,11 @@ export type Tint =
       readonly power: readonly Float32Array[];
       /** The region each province lies in, by province id. */
       readonly regionOf: Int32Array;
+    }
+  | {
+      readonly mode: "intel";
+      /** How strong each nation's network is in each province, by nation id and then province id. */
+      readonly networks: Networks;
     }
   | {
       readonly mode: "resources";
@@ -74,6 +82,7 @@ export interface Readings {
   readonly waters: readonly Float32Array[];
   readonly air: AirTint;
   readonly resources: ResourceTint;
+  readonly networks: Networks;
 }
 
 const POLITICAL: Tint = { mode: "political" };
@@ -99,6 +108,9 @@ export const tintFor = (mode: MapMode, readings: Readings): Tint => {
   }
   if (mode === "resources") {
     return readings.resources;
+  }
+  if (mode === "intel") {
+    return { mode, networks: readings.networks };
   }
   return POLITICAL;
 };

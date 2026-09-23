@@ -13,6 +13,7 @@ import type { Division } from "@/shared/entities/world/divisions";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { Navy } from "@/shared/entities/world/navy";
 import { watersOf } from "@/shared/entities/world/navy";
+import type { Networks } from "@/shared/entities/world/networks";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Skies } from "@/shared/entities/world/skies";
 import { skiesBelow } from "@/shared/entities/world/skies";
@@ -48,6 +49,8 @@ interface WorldMapProps {
   readonly airForces: readonly AirForce[];
   /** The air power every nation flew today, and who is fighting whom under it. */
   readonly skies: Skies;
+  /** How strong each nation's intelligence network is in each province, by nation id and then province id. */
+  readonly networks: Networks;
   /** What the provinces are coloured by. */
   readonly mode: MapMode;
   /** The nation drawn brighter than the rest, where one is picked. */
@@ -298,6 +301,7 @@ const WorldMapSurface = ({
   highlighted,
   mode,
   navies,
+  networks,
   onSelectNation,
   onTogglePause,
   owners,
@@ -358,8 +362,15 @@ const WorldMapSurface = ({
 
   const tint = useMemo(
     () =>
-      tintFor(mode, { air, compliance, network: supply, resources, waters }),
-    [mode, supply, compliance, waters, air, resources]
+      tintFor(mode, {
+        air,
+        compliance,
+        network: supply,
+        networks,
+        resources,
+        waters,
+      }),
+    [mode, supply, compliance, waters, air, resources, networks]
   );
 
   // One bitmap per world, painted at cell resolution and scaled by the canvas,

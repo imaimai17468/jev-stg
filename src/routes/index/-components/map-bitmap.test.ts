@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { startCompliance } from "@/shared/entities/world/compliance";
+import type { Colour } from "@/shared/entities/world/nations";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { paintWorld } from "./map-bitmap";
 import { airTintOf } from "./map-mode";
@@ -10,6 +11,7 @@ import {
   HATCH_SHADE,
   MAP_COLOURS,
   NAVAL_LAND_SHADE,
+  NETWORK_COLOURS,
   RESOURCE_COLOURS,
   SUPPLY_COLOURS,
 } from "./map-palette";
@@ -46,6 +48,52 @@ const channelsAt = (
   pixels[cell * 4 + 2] ?? 0,
   pixels[cell * 4 + 3] ?? 0,
 ];
+
+/** The channels of a cell painted `colour` at full opacity. */
+const opaque = (colour: Colour): readonly number[] => [
+  colour.red,
+  colour.green,
+  colour.blue,
+  255,
+];
+
+/**
+ * The intelligence map over the fixture with nation 1 holding province 1, and
+ * each of `strengths` the network nation 0, 1 and 2 have there.
+ */
+const intelOver = (
+  strengths: readonly number[],
+  picked: Option.Option<number>
+): readonly number[] =>
+  channelsAt(
+    paintWorld(FIXTURE_WORLD, HELD_BY_TWO, picked, {
+      mode: "intel",
+      networks: strengths.map((strength) =>
+        Float32Array.from([0, strength, 0])
+      ),
+    }),
+    2
+  );
+
+describe("paintWorld on the intelligence map", () => {
+  it("should paint a province by the strongest foreign network there when nobody is picked", () => {
+    expect(intelOver([30, 0, 70], NO_HIGHLIGHT)).toStrictEqual(
+      opaque(NETWORK_COLOURS.strong)
+    );
+  });
+
+  it("should paint a province by the picked nation's own network there when a nation is picked", () => {
+    expect(intelOver([30, 0, 70], Option.some(0))).toStrictEqual(
+      opaque(NETWORK_COLOURS.counts)
+    );
+  });
+
+  it("should leave out the holder's own network when nobody is picked", () => {
+    expect(intelOver([0, 70, 0], NO_HIGHLIGHT)).toStrictEqual(
+      opaque(NETWORK_COLOURS.none)
+    );
+  });
+});
 
 describe(paintWorld, () => {
   it("should fill a cell with its owner's colour when nothing beside it differs", () => {

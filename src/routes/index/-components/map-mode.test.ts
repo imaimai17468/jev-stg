@@ -22,6 +22,7 @@ const READINGS: Readings = {
   air: airTintOf([Float32Array.from([2])], Int32Array.from([0, 0])),
   compliance: startCompliance(new Int32Array(0)),
   network: NETWORK,
+  networks: [Float32Array.from([12, 0])],
   resources: resourceTintOf(DEPOSITS),
   waters: [Float32Array.from([1])],
 };
@@ -54,6 +55,13 @@ describe(tintFor, () => {
 
   it("should hand back the resource tint the readings carry when the map shows resources", () => {
     expect(tintFor("resources", READINGS)).toBe(READINGS.resources);
+  });
+
+  it("should carry every nation's intelligence network when the map shows intelligence", () => {
+    expect(tintFor("intel", READINGS)).toStrictEqual({
+      mode: "intel",
+      networks: READINGS.networks,
+    });
   });
 
   it("should hand back the same political tint whatever the network when the map shows who holds what", () => {

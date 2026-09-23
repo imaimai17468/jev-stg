@@ -5,12 +5,16 @@ import type { MapMode } from "./map-mode";
 import {
   COMPLIANCE_COLOURS,
   COMPLIANCE_HATCH,
+  NETWORK_COLOURS,
+  NETWORK_HATCH,
   RESOURCE_COLOURS,
   SEA_HOLD_HATCH,
   SEA_HOLD_SWATCHES,
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
 } from "./map-palette";
+import type { NetworkLevel } from "./network-level";
+import { NETWORK_LEVELS } from "./network-level";
 import type { ResourceLevel } from "./resource-level";
 import { RESOURCE_LEVELS } from "./resource-level";
 import type { SeaHoldLevel } from "./sea-hold";
@@ -53,6 +57,13 @@ const AIR_HOLD_LABELS = {
   empty: "誰も飛んでいない空",
   held: "1国が制空権を握る空（その国の色）",
 } satisfies Record<SeaHoldLevel, string>;
+
+const NETWORK_LABELS = {
+  building: "諜報網 10未満（まだ効かない）",
+  counts: "諜報網 10〜50",
+  none: "諜報網なし",
+  strong: "諜報網 50以上",
+} satisfies Record<NetworkLevel, string>;
 
 const RESOURCE_LABELS = {
   aluminium: "アルミ",
@@ -108,6 +119,12 @@ const LEGENDS = {
     SEA_HOLD_SWATCHES,
     SEA_HOLD_HATCH,
     SEA_HOLD_LABELS
+  ),
+  intel: legendOf(
+    NETWORK_LEVELS,
+    NETWORK_COLOURS,
+    NETWORK_HATCH,
+    NETWORK_LABELS
   ),
   political: [],
   resources: legendOf(

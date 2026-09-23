@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { legendFor } from "./legend-entries";
-import { MAP_COLOURS } from "./map-palette";
+import { MAP_COLOURS, NETWORK_COLOURS } from "./map-palette";
 
 describe(legendFor, () => {
   it("should list who holds each sky, striped where it is fought for, when the map shows air superiority", () => {
@@ -22,6 +22,35 @@ describe(legendFor, () => {
         hatch: 0,
         key: "empty",
         label: "誰も飛んでいない空",
+      },
+    ]);
+  });
+
+  it("should list each network level from none to strong, striped where it does not count yet, when the map shows intelligence", () => {
+    expect(legendFor("intel")).toStrictEqual([
+      {
+        colour: NETWORK_COLOURS.none,
+        hatch: 0,
+        key: "none",
+        label: "諜報網なし",
+      },
+      {
+        colour: NETWORK_COLOURS.building,
+        hatch: 4,
+        key: "building",
+        label: "諜報網 10未満（まだ効かない）",
+      },
+      {
+        colour: NETWORK_COLOURS.counts,
+        hatch: 0,
+        key: "counts",
+        label: "諜報網 10〜50",
+      },
+      {
+        colour: NETWORK_COLOURS.strong,
+        hatch: 0,
+        key: "strong",
+        label: "諜報網 50以上",
       },
     ]);
   });
