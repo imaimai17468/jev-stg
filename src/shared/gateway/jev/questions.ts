@@ -27,7 +27,11 @@ import {
   AHEAD_OF_TIME_PER_YEAR,
   techOf,
 } from "@/shared/entities/world/research";
+import type { ShipyardOrder } from "@/shared/entities/world/ships";
+import { orderOf, SHIPYARD_ORDERS } from "@/shared/entities/world/ships";
 import type { Stance } from "@/shared/entities/world/stance";
+import type { TradeLaw } from "@/shared/entities/world/trade";
+import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
 
 /** One `choice` question as `/v1/evaluate` takes it. */
 interface ChoiceQuestion {
@@ -99,6 +103,49 @@ const STANCE_LABELS = {
   offensive: "攻勢（守備の1.1倍の兵力で攻める）",
 } satisfies Readonly<Record<Stance, string>>;
 
+const PERCENT = 100;
+
+const TRADE_LAW_NAMES = {
+  "closed-economy": "閉鎖経済",
+  "export-focus": "輸出重視",
+  "free-trade": "自由貿易",
+  "limited-exports": "輸出制限",
+} satisfies Readonly<Record<TradeLaw, string>>;
+
+const percentOf = (share: number): string => `${Math.round(share * PERCENT)}%`;
+
+/** What a trade law does, in words, read off the law's own terms. */
+const tradeLawLabel = (law: TradeLaw): string => {
+  const terms = lawTermsOf(law);
+  if (terms.exported === 0) {
+    return `${TRADE_LAW_NAMES[law]}（資源を売らない。上乗せなし）`;
+  }
+  return `${TRADE_LAW_NAMES[law]}（掘った資源の${percentOf(terms.exported)}まで売る。工場・造船・建設+${percentOf(terms.industry)}、研究+${percentOf(terms.research)}）`;
+};
+
+const TRADE_LAW_LABELS = Object.fromEntries(
+  TRADE_LAWS.map((law) => [law, tradeLawLabel(law)])
+);
+
+/** What each order builds, in words, around the cost its dockyards pay. */
+const ORDER_WORDS = {
+  battleship: (cost: number) =>
+    `戦艦（費用${cost}、制海権への重みが最も大きい）`,
+  convoy: (cost: number) =>
+    `輸送船（費用${cost}、海越しの補給・交易・上陸に使う）`,
+  cruiser: (cost: number) => `巡洋艦（費用${cost}、主力艦を守る護衛艦）`,
+  destroyer: (cost: number) =>
+    `駆逐艦（費用${cost}、護衛艦で、潜水艦を爆雷で沈める）`,
+  submarine: (cost: number) => `潜水艦（費用${cost}、敵の輸送船を沈める）`,
+} satisfies Readonly<Record<ShipyardOrder, (cost: number) => string>>;
+
+const ORDER_LABELS = Object.fromEntries(
+  SHIPYARD_ORDERS.map((order) => [
+    order,
+    ORDER_WORDS[order](orderOf(order).cost),
+  ])
+);
+
 const TERMS_LABELS = {
   annex: "全土を併合する",
   cede: "占領した土地だけを取って講和する",
@@ -128,8 +175,6 @@ const GRANTS: readonly (keyof Grants)[] = [
   "militaryFactories",
   "researchSlots",
 ];
-
-const PERCENT = 100;
 
 /** What a technology or a focus makes the nation better at, in words. */
 const bonusWords = (bonus: Bonus): readonly string[] =>
@@ -187,18 +232,23 @@ const stateOf = (brief: NationBrief) => ({
   人口: Math.round(brief.population),
   人的資源: Math.round(brief.manpower),
   国: `国${brief.nation}`,
-  工場: { 民需: brief.civilianFactories, 軍需: brief.militaryFactories },
-  戦争中: brief.atWar,
-  敵に対する兵力比: ratioTo(brief.strength, brief.enemyStrength),
-  敵の兵力: Math.round(brief.enemyStrength),
-  自陣営の兵力: Math.round(brief.strength),
-  装備: Math.round(brief.equipment),
-  補給が足りない師団の割合: Math.round(brief.undersupplied * 100) / 100,
-  隣国: brief.rivals.map((rival) => ({
+  宣戦できる国: brief.rivals.map((rival) => ({
     こちらとの兵力比: ratioTo(brief.strength, rival.strength),
     国: `国${rival.nation}`,
     相手陣営の兵力: Math.round(rival.strength),
   })),
+  工場: { 民需: brief.civilianFactories, 軍需: brief.militaryFactories },
+  戦争中: brief.atWar,
+  敵に対する兵力比: ratioTo(brief.strength, brief.enemyStrength),
+  敵の兵力: Math.round(brief.enemyStrength),
+  敵の艦隊の強さ: Math.round(brief.enemyFleet),
+  自陣営の兵力: Math.round(brief.strength),
+  艦隊の強さ: Math.round(brief.fleet),
+  装備: Math.round(brief.equipment),
+  補給が足りない師団の割合: Math.round(brief.undersupplied * 100) / 100,
+  資源不足で落ちた軍需生産の割合: Math.round(brief.shortage * 100) / 100,
+  輸送船: Math.round(brief.convoys),
+  造船所: brief.dockyards,
 });
 
 /** The questions one government is asked this month. */
@@ -237,10 +287,26 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
           `国${rival.nation}に宣戦する（相手陣営の兵力 ${men(rival.strength)}）`,
         ]),
       ]),
-      instructions: `${name}は今月、隣国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。`,
+      instructions: `${name}は今月、陸で接する国か、艦隊で海を渡れる国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。`,
       key: keyOf(nation, "war"),
       nation,
       question: "war",
+    });
+  }
+  asked.push({
+    criteria: TRADE_LAW_LABELS,
+    instructions: `${name}はどの交易法を取りますか。売る割合が大きいほど工場と研究に上乗せが付きます。資源の足りない国に買われると、資源8単位ごとに相手の民需工場を1つ受け取って建設に使え、そのぶん手元の資源は減ります。`,
+    key: keyOf(nation, "trade"),
+    nation,
+    question: "trade",
+  });
+  if (brief.dockyards > 0) {
+    asked.push({
+      criteria: ORDER_LABELS,
+      instructions: `${name}の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。`,
+      key: keyOf(nation, "shipbuilding"),
+      nation,
+      question: "shipbuilding",
     });
   }
   if (brief.techs.length > 0) {
