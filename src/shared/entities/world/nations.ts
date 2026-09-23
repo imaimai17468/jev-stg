@@ -1,8 +1,13 @@
 import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
+import type { World } from "./index";
 import { nationNames } from "./names";
 import type { Province } from "./provinces";
-import { landProvinces } from "./provinces";
+import {
+  adjacencyOf,
+  landFlags,
+  landProvinces,
+  overTheProvinces,
+} from "./provinces";
 import type { Random } from "./random";
 import { spreadFrom, UNASSIGNED } from "./spread";
 
@@ -22,6 +27,14 @@ export interface Nation {
   readonly capital: number;
 }
 
+/** Stands in for a nation the world does not hold, which its id gives away. */
+export const NO_NATION: Nation = {
+  capital: 0,
+  colour: { blue: 0, green: 0, red: 0 },
+  id: -1,
+  name: "",
+};
+
 /**
  * How far apart two consecutive nations sit on the hue wheel. The stride is
  * coprime with a full turn, so nations created one after another land on
@@ -29,8 +42,6 @@ export interface Nation {
  */
 const HUE_STRIDE = 137;
 const CHANNEL_MAX = 255;
-
-const NO_NEIGHBOURS: readonly number[] = [];
 
 /** One channel of an HSL colour, by the standard piecewise definition. */
 const channel = (
@@ -124,15 +135,6 @@ export const pickCapitals = (
   return chosen.map((province) => province.id);
 };
 
-/** The province graph as `spreadFrom` walks it. */
-const overTheProvinces =
-  (adjacency: readonly (readonly number[])[]) =>
-  (from: number, visit: (neighbour: number) => void): void => {
-    for (const neighbour of itemAt(adjacency, from, NO_NEIGHBOURS)) {
-      visit(neighbour);
-    }
-  };
-
 /** The nation holding the province nearest to `province`, if any holds one. */
 const nearestOwner = (
   provinces: readonly Province[],
@@ -169,17 +171,15 @@ export const growOwners = (
   capitals: readonly number[]
 ): Int32Array => {
   const owners = new Int32Array(provinces.length).fill(UNASSIGNED);
-  const landFlags = Uint8Array.from(provinces, (province) =>
-    Number(province.kind === "land")
-  );
-  const adjacency = provinces.map((province) => province.neighbours);
+  const land = landFlags(provinces);
+  const adjacency = adjacencyOf(provinces);
   for (const [nation, province] of capitals.entries()) {
     owners[province] = nation;
   }
   spreadFrom(
     owners,
     overTheProvinces(adjacency),
-    (province) => valueAt(landFlags, province) === 1,
+    (province) => valueAt(land, province) === 1,
     capitals
   );
   for (const province of landProvinces(provinces)) {
@@ -190,6 +190,16 @@ export const growOwners = (
   }
   return owners;
 };
+
+/** Who holds each province when a world opens, by province id. */
+export const initialOwners = (
+  provinces: readonly Province[],
+  nations: readonly Nation[]
+): Int32Array =>
+  growOwners(
+    provinces,
+    nations.map((nation) => nation.capital)
+  );
 
 /** The nations of a world, named and coloured, one per capital. */
 export const buildNations = (
@@ -203,4 +213,46 @@ export const buildNations = (
     id,
     name,
   }));
+};
+
+/** Two nations whose land touches, the lower id first. */
+export interface NationPair {
+  readonly one: number;
+  readonly other: number;
+}
+
+/**
+ * Every pair of nations that share a land border, each pair once.
+ *
+ * Who can march into whom is decided here rather than by distance on the map,
+ * because two capitals a short way apart with an ocean between them share no
+ * front at all.
+ */
+export const neighbouringNations = (
+  world: World,
+  owners: Int32Array
+): readonly NationPair[] => {
+  const nations = world.nations.length;
+  const seen = new Set<number>();
+  const pairs: NationPair[] = [];
+  for (const province of landProvinces(world.provinces)) {
+    const owner = valueAt(owners, province.id);
+    for (const beside of province.neighbours) {
+      const other = valueAt(owners, beside);
+      if (other === UNASSIGNED || owner === UNASSIGNED || other === owner) {
+        continue;
+      }
+      const pair = {
+        one: Math.min(owner, other),
+        other: Math.max(owner, other),
+      };
+      const key = pair.one * nations + pair.other;
+      if (seen.has(key)) {
+        continue;
+      }
+      seen.add(key);
+      pairs.push(pair);
+    }
+  }
+  return pairs;
 };

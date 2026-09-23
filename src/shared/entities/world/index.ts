@@ -2,7 +2,7 @@ import type { Grid } from "./grid";
 import { cellCount, valueAt } from "./grid";
 import { sinkSmallIslands } from "./landmass";
 import type { Nation } from "./nations";
-import { buildNations, growOwners, pickCapitals } from "./nations";
+import { buildNations, pickCapitals } from "./nations";
 import type { Province } from "./provinces";
 import { buildProvinces } from "./provinces";
 import type { Random } from "./random";
@@ -54,15 +54,13 @@ interface Lattice {
 
 export const NATION_COUNT = 14;
 
-/** A generated world: the ground, how it is divided, and who holds it. */
+/** A generated world: the ground, how it is divided, and who lives where. */
 export interface World {
   readonly seed: number;
   readonly grid: Grid;
   /** The province each cell belongs to, by cell index. */
   readonly cellProvince: Int32Array;
   readonly provinces: readonly Province[];
-  /** The nation holding each province, by province id, `UNASSIGNED` at sea. */
-  readonly owners: Int32Array;
   readonly nations: readonly Nation[];
 }
 
@@ -161,7 +159,6 @@ export const generateWorld = (seed: number): World => {
     cellProvince: regions,
     grid,
     nations: buildNations(capitals, random),
-    owners: growOwners(provinces, capitals),
     provinces,
     seed,
   };
