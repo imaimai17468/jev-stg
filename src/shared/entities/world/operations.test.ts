@@ -16,6 +16,10 @@ const OPEN_TARGET: Prospect = {
   room: false,
   underway: new Set(),
   unrest: new Set(),
+  usableBlueprints: new Set([
+    "steal-military-blueprints",
+    "steal-industrial-blueprints",
+  ]),
 };
 
 const EVERY_KIND: ReadonlySet<IntelKind> = new Set([
@@ -194,6 +198,21 @@ describe("operationWanted with blueprints open", () => {
       )
     ).toStrictEqual(Option.some("capture-cipher"));
   });
+});
+
+describe("operationWanted with a blueprint's bonus unusable", () => {
+  it.each<{ atWar: boolean }>([{ atWar: true }, { atWar: false }])(
+    "should steal no blueprints when the research has no use for their bonus and at war is $atWar",
+    ({ atWar }) => {
+      expect(
+        operationWanted(
+          infiltratedTarget({ atWar, usableBlueprints: new Set() }),
+          { fielded: 3, free: 3 },
+          100
+        )
+      ).toStrictEqual(Option.none());
+    }
+  );
 });
 
 describe("operationWanted with operatives away on missions", () => {

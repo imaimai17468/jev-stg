@@ -611,6 +611,66 @@ describe(plottedOneDay, () => {
     ]);
   });
 
+  it("should steal no industrial blueprints when a bonus for industry is still waiting unused", () => {
+    const plotted = dayOf(
+      service({
+        agency: CODEBREAKERS,
+        infiltrated: ALL_INFILTRATED,
+        operatives: 3,
+        target: 1,
+      }),
+      {
+        advancement: {
+          ...START_ADVANCEMENT,
+          research: {
+            ...START_RESEARCH,
+            vouchers: [{ branches: ["industry", "construction"], share: 3 }],
+          },
+        },
+        network: CAPITAL_NETWORK,
+      }
+    );
+
+    expect(spyAfter(plotted).missions).toStrictEqual([]);
+  });
+
+  it("should steal no second industrial blueprint when one is already under way against another nation", () => {
+    const plotted = dayOf(
+      service({
+        agency: CODEBREAKERS,
+        infiltrated: ALL_INFILTRATED,
+        missions: [
+          { ...mission("steal-industrial-blueprints", 60), target: 0 },
+        ],
+        operatives: 6,
+        target: 1,
+      }),
+      { network: CAPITAL_NETWORK }
+    );
+
+    expect(
+      spyAfter(plotted).missions.map((started) => started.operation)
+    ).toStrictEqual(["steal-industrial-blueprints"]);
+  });
+
+  it("should grant no second bonus when a blueprint lands while a bonus for industry already waits unused", () => {
+    const exhausted: Advancement = {
+      ...START_ADVANCEMENT,
+      research: {
+        ...START_RESEARCH,
+        vouchers: [{ branches: ["industry"], share: 1 }],
+      },
+    };
+
+    const plotted = dayOf(finishing("steal-industrial-blueprints", FOUNDED), {
+      advancement: exhausted,
+    });
+
+    expect(itemAt(plotted.advancements, 0, START_ADVANCEMENT)).toStrictEqual(
+      exhausted
+    );
+  });
+
   it("should recruit an operative into the empty slot when it has waited thirty days", () => {
     expect(
       recruitingAfter(service({ agency: FOUNDED, waited: 29 }))
