@@ -6,7 +6,7 @@ interface HudTopBarProps {
 }
 
 export const HudTopBar = ({ headline }: HudTopBarProps) => (
-  <header className="absolute inset-x-0 top-0 flex h-12 items-center gap-6 border-b border-border bg-card px-4">
+  <header className="flex h-12 shrink-0 items-center gap-6 border-b border-border bg-card px-4">
     <h1 className="text-sm font-medium">{headline.title}</h1>
     <StatRows layout="row" stats={headline.stats} />
   </header>

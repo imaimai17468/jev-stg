@@ -15,7 +15,7 @@ const VOICE_LABELS = {
 } satisfies Readonly<Record<CouncilVoice, string>>;
 
 export const HudDecisionFeed = ({ lines, voice }: HudDecisionFeedProps) => (
-  <aside className="absolute top-12 right-0 bottom-16 flex w-72 flex-col gap-3 overflow-y-auto border-l border-border bg-card p-4">
+  <aside className="flex w-72 shrink-0 flex-col gap-3 overflow-y-auto border-l border-border bg-card p-4">
     <PanelSection title="各国の判断">
       <p className="text-xs text-muted-foreground">{VOICE_LABELS[voice]}</p>
     </PanelSection>

@@ -544,21 +544,23 @@ const WorldMapSurface = ({
   };
 
   return (
-    <canvas
-      aria-label={`シード ${world.seed} の世界地図。クリックで国を選択、矢印キーで移動、プラスとマイナスで拡大縮小、スペースで一時停止`}
-      className="size-full cursor-grab touch-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring active:cursor-grabbing"
-      onKeyDown={steer}
-      onPointerCancel={endDrag}
-      onPointerDown={startDrag}
-      onPointerMove={continueDrag}
-      onPointerUp={(event) => {
-        pick(event);
-        endDrag();
-      }}
-      onWheel={zoom}
-      ref={attach}
-      tabIndex={0}
-    />
+    <div className="relative min-w-0 flex-1">
+      <canvas
+        aria-label={`シード ${world.seed} の世界地図。クリックで国を選択、矢印キーで移動、プラスとマイナスで拡大縮小、スペースで一時停止`}
+        className="absolute inset-0 size-full cursor-grab touch-none focus-visible:outline-2 focus-visible:-outline-offset-2 focus-visible:outline-ring active:cursor-grabbing"
+        onKeyDown={steer}
+        onPointerCancel={endDrag}
+        onPointerDown={startDrag}
+        onPointerMove={continueDrag}
+        onPointerUp={(event) => {
+          pick(event);
+          endDrag();
+        }}
+        onWheel={zoom}
+        ref={attach}
+        tabIndex={0}
+      />
+    </div>
   );
 };
 

@@ -98,27 +98,29 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   }, []);
 
   return (
-    <main className="relative h-dvh w-full overflow-hidden bg-background">
-      <WorldMap
-        airForces={simulation.airForces}
-        compliance={simulation.compliance}
-        divisions={simulation.divisions}
-        highlighted={selected}
-        mode={mode}
-        navies={simulation.navies}
-        networks={simulation.networks}
-        onSelectNation={setSelected}
-        onTogglePause={flipPause}
-        owners={simulation.owners}
-        skies={skies}
-        supply={supply}
-        world={world}
-      />
+    <main className="flex h-dvh w-full flex-col overflow-hidden bg-background">
       <HudTopBar
         headline={headlineOf(world, simulation.diplomacy, selection)}
       />
-      <HudNationPanel selection={selection} />
-      <HudDecisionFeed lines={lines} voice={voice} />
+      <div className="flex min-h-0 flex-1">
+        <HudNationPanel selection={selection} />
+        <WorldMap
+          airForces={simulation.airForces}
+          compliance={simulation.compliance}
+          divisions={simulation.divisions}
+          highlighted={selected}
+          mode={mode}
+          navies={simulation.navies}
+          networks={simulation.networks}
+          onSelectNation={setSelected}
+          onTogglePause={flipPause}
+          owners={simulation.owners}
+          skies={skies}
+          supply={supply}
+          world={world}
+        />
+        <HudDecisionFeed lines={lines} voice={voice} />
+      </div>
       <HudClockBar
         clock={clock}
         mode={mode}

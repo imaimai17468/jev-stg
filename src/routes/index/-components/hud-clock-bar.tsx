@@ -38,7 +38,7 @@ export const HudClockBar = ({
   onChooseSpeed,
   onTogglePause,
 }: HudClockBarProps) => (
-  <footer className="absolute inset-x-0 bottom-0 flex h-16 items-center justify-end gap-4 border-t border-border bg-card px-4">
+  <footer className="flex h-16 shrink-0 items-center justify-end gap-4 border-t border-border bg-card px-4">
     <div className="mr-auto flex items-center gap-4">
       <fieldset className="flex items-center gap-2">
         <legend className="sr-only">地図の表示</legend>
