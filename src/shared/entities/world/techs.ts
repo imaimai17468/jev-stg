@@ -184,7 +184,7 @@ export interface Tech {
   readonly upgrades: readonly ShipUpgrade[];
 }
 
-/** The ship classes each shell, torpedo and fire-control upgrade names, as this world has them. */
+/** One `share` upgrade to `weapon` for every class in `classes`. */
 const upgradesFor = (
   classes: readonly ShipClass[],
   weapon: ShipWeapon,
