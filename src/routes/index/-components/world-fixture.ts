@@ -1,7 +1,11 @@
 import type { World } from "@/shared/entities/world";
+import { START_CLOCK } from "@/shared/entities/world/clock";
+import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Nation } from "@/shared/entities/world/nations";
 import type { Province } from "@/shared/entities/world/provinces";
+import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import { noWars } from "@/shared/entities/world/wars";
 
 const nation = (id: number, red: number): Nation => ({
   capital: id,
@@ -21,24 +25,42 @@ const land = (id: number, x: number, cells: number): Province => ({
 });
 
 /**
- * Six columns over two rows: two land provinces held by one nation each, and a
- * sea zone beyond them, which is every case the painter branches on.
+ * Six columns over two rows: two land provinces and a sea zone beyond them,
+ * which is every case the painter branches on.
  */
-export const fixtureWorld = (owners: readonly number[]): World => ({
+export const FIXTURE_WORLD: World = {
   cellProvince: Int32Array.from([0, 0, 1, 1, 2, 2, 0, 0, 1, 1, 2, 2]),
   grid: { height: 2, width: 6 },
   nations: [nation(0, 200), nation(1, 100)],
-  owners: Int32Array.from(owners),
   provinces: [
     land(0, 0.5, 4),
     land(1, 2.5, 4),
     { cells: 4, id: 2, kind: "sea", neighbours: [], x: 4.5, y: 0.5 },
   ],
   seed: 1,
+};
+
+/** Both land provinces held by the same nation. */
+export const HELD_BY_ONE = Int32Array.from([0, 0, UNASSIGNED]);
+
+/** The two land provinces held by different nations. */
+export const HELD_BY_TWO = Int32Array.from([0, 1, UNASSIGNED]);
+
+/** No land held at all, which is what a painter draws as unowned. */
+export const HELD_BY_NOBODY = Int32Array.from([
+  UNASSIGNED,
+  UNASSIGNED,
+  UNASSIGNED,
+]);
+
+/** A simulation over the fixture world, with whatever a test needs changed. */
+export const fixtureSimulation = (
+  patch: Partial<Simulation> = {}
+): Simulation => ({
+  clock: START_CLOCK,
+  divisions: [],
+  economies: [NO_ECONOMY, NO_ECONOMY],
+  owners: HELD_BY_TWO,
+  wars: noWars(2),
+  ...patch,
 });
-
-/** The world with both land provinces held by the same nation. */
-export const ONE_NATION = fixtureWorld([0, 0, UNASSIGNED]);
-
-/** The world with the two land provinces held by different nations. */
-export const TWO_NATIONS = fixtureWorld([0, 1, UNASSIGNED]);

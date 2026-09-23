@@ -25,7 +25,7 @@ interface WorldStageProps {
   readonly seed: number;
 }
 
-const NO_NATION = Option.none<number>();
+const NO_SELECTION = Option.none<number>();
 const NO_SUMMARY = Option.none<NationSummary>();
 
 const noCleanup = () => {
@@ -37,7 +37,7 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   // a second render must not repeat it.
   const world = useMemo(() => generateWorld(seed), [seed]);
   const [simulation, setSimulation] = useState(() => startSimulation(world));
-  const [selected, setSelected] = useState(NO_NATION);
+  const [selected, setSelected] = useState(NO_SELECTION);
   const { clock } = simulation;
 
   useEffect(() => {
@@ -49,18 +49,17 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
       return noCleanup;
     }
     return afterMilliseconds(dayDuration(clock), () => {
-      setSimulation(ranOneDay);
+      setSimulation((current) => ranOneDay(world, current));
     });
-  }, [clock]);
+  }, [clock, world]);
 
   const selection = useMemo(
     () =>
       Option.match(selected, {
         onNone: () => NO_SUMMARY,
-        onSome: (nation) =>
-          Option.some(summaryOf(world, simulation.economies, nation)),
+        onSome: (nation) => Option.some(summaryOf(world, simulation, nation)),
       }),
-    [selected, world, simulation.economies]
+    [selected, world, simulation]
   );
 
   const chooseSpeed = useCallback((speed: Speed) => {
@@ -76,9 +75,11 @@ export const WorldStage = ({ seed }: WorldStageProps) => {
   return (
     <main className="relative h-dvh w-full overflow-hidden bg-background">
       <WorldMap
+        divisions={simulation.divisions}
         highlighted={selected}
         onSelectNation={setSelected}
         onTogglePause={flipPause}
+        owners={simulation.owners}
         world={world}
       />
       <HudTopBar headline={headlineOf(world, selection)} />

@@ -4,6 +4,7 @@ import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour, Nation } from "@/shared/entities/world/nations";
+import type { Province } from "@/shared/entities/world/provinces";
 import { MAP_COLOURS, TERRAIN_SHADE } from "./map-palette";
 
 /** Stands in for the nation an unowned land province would name. */
@@ -33,29 +34,30 @@ const shaded = (colour: Colour, factor: number): Colour => ({
 });
 
 /**
- * The colour of every province, by province id.
+ * The colour one province is painted, given the nation holding it.
  *
- * Built once so the pass over the grid below is a table lookup per cell rather
- * than a walk through the province and the nation that holds it.
+ * The painter builds a table of these once per repaint, so the pass over the
+ * grid is a lookup per cell rather than a walk through the province and its
+ * nation.
  */
-const provinceColours = (
-  world: World,
-  highlighted: Option.Option<number>
-): readonly Colour[] =>
-  world.provinces.map((province) => {
-    if (province.kind === "sea") {
-      return MAP_COLOURS.sea;
-    }
-    const nation = valueAt(world.owners, province.id);
-    // An unowned province carries `UNASSIGNED`, and a negative index has to miss
-    // rather than reach the last nation the way `Array.prototype.at` would.
-    const owner = itemAt(world.nations, nation, UNOWNED_NATION);
-    // The comparison is on nation ids rather than through a sentinel, because
-    // the id an unowned province carries is itself negative and any sentinel
-    // would have to dodge it.
-    const lift = LIFT_FOR[`${Option.contains(highlighted, nation)}`];
-    return shaded(owner.colour, TERRAIN_SHADE[province.terrain] * lift);
-  });
+const provinceColour = (
+  nations: readonly Nation[],
+  holder: number,
+  highlighted: Option.Option<number>,
+  province: Province
+): Colour => {
+  if (province.kind === "sea") {
+    return MAP_COLOURS.sea;
+  }
+  // An unowned province carries `UNASSIGNED`, and a negative index has to miss
+  // rather than reach the last nation the way `Array.prototype.at` would.
+  const owner = itemAt(nations, holder, UNOWNED_NATION);
+  // The comparison is on nation ids rather than through a sentinel, because the
+  // id an unowned province carries is itself negative and any sentinel would
+  // have to dodge it.
+  const lift = LIFT_FOR[`${Option.contains(highlighted, holder)}`];
+  return shaded(owner.colour, TERRAIN_SHADE[province.terrain] * lift);
+};
 
 /** The cells a border check compares against, so each border is drawn once. */
 const rightAndBelow = (grid: Grid, cell: number): readonly number[] => {
@@ -70,8 +72,8 @@ const rightAndBelow = (grid: Grid, cell: number): readonly number[] => {
 };
 
 /** Which nation holds the province a cell belongs to, negative at sea. */
-const ownerOfCell = (world: World, cell: number): number =>
-  valueAt(world.owners, valueAt(world.cellProvince, cell));
+const ownerOfCell = (world: World, owners: Int32Array, cell: number): number =>
+  valueAt(owners, valueAt(world.cellProvince, cell));
 
 /**
  * What one cell is painted: its province's colour, or a border where the
@@ -79,6 +81,7 @@ const ownerOfCell = (world: World, cell: number): number =>
  */
 const cellColour = (
   world: World,
+  owners: Int32Array,
   colours: readonly Colour[],
   cell: number
 ): Colour => {
@@ -90,9 +93,9 @@ const cellColour = (
   if (differing.length === 0) {
     return fill;
   }
-  const owner = ownerOfCell(world, cell);
+  const owner = ownerOfCell(world, owners, cell);
   const crossesNation = differing.some(
-    (neighbour) => ownerOfCell(world, neighbour) !== owner
+    (neighbour) => ownerOfCell(world, owners, neighbour) !== owner
   );
   if (crossesNation) {
     return MAP_COLOURS.nationBorder;
@@ -108,12 +111,20 @@ const cellColour = (
  */
 export const paintWorld = (
   world: World,
+  owners: Int32Array,
   highlighted: Option.Option<number>
 ): Uint8ClampedArray<ArrayBuffer> => {
-  const colours = provinceColours(world, highlighted);
+  const colours = world.provinces.map((province) =>
+    provinceColour(
+      world.nations,
+      valueAt(owners, province.id),
+      highlighted,
+      province
+    )
+  );
   const pixels = new Uint8ClampedArray(world.cellProvince.length * CHANNELS);
   for (const [cell] of world.cellProvince.entries()) {
-    const colour = cellColour(world, colours, cell);
+    const colour = cellColour(world, owners, colours, cell);
     const at = cell * CHANNELS;
     pixels[at] = colour.red;
     pixels[at + 1] = colour.green;

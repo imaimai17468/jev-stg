@@ -5,7 +5,9 @@ import type { NationSummary } from "./nation-summary";
 
 const SUMMARY: NationSummary = {
   cells: 6943,
+  divisions: 0,
   economy: { ...NO_ECONOMY, population: 125_166_336 },
+  enemies: [],
   id: 0,
   name: "国0",
   neighbours: ["国1"],

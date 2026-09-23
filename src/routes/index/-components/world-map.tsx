@@ -7,6 +7,8 @@ import type {
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
+import type { Division } from "@/shared/entities/world/divisions";
+import { divisionMarks } from "./division-marks";
 import { drawMap } from "./draw-map";
 import { paintWorld } from "./map-bitmap";
 import { nationLabels } from "./nation-labels";
@@ -16,6 +18,9 @@ import { clamped, fitViewport, pannedBy, zoomedAt } from "./viewport";
 
 interface WorldMapProps {
   readonly world: World;
+  /** Who holds each province now, by province id. */
+  readonly owners: Int32Array;
+  readonly divisions: readonly Division[];
   /** The nation drawn brighter than the rest, where one is picked. */
   readonly highlighted: Option.Option<number>;
   readonly onSelectNation: (nation: Option.Option<number>) => void;
@@ -61,6 +66,18 @@ const slackFor = (pointerType: string): number => {
 };
 
 const LABEL_FONT = "600 13px system-ui, sans-serif";
+/** How big an army counter is drawn, in screen pixels. */
+const COUNTER_WIDTH = 24;
+const COUNTER_HEIGHT = 14;
+/** The nation's colour down the counter's left edge, which says whose it is. */
+const COUNTER_STRIPE = 4;
+/**
+ * Dark rather than the nation's colour, because a counter filled with the
+ * colour of the land under it disappears into that land.
+ */
+const COUNTER_FILL = "rgba(12, 14, 20, 0.88)";
+const COUNTER_FONT = "600 10px system-ui, sans-serif";
+const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
 const LABEL_OUTLINE = "rgba(0, 0, 0, 0.65)";
 const LABEL_OUTLINE_WIDTH = 3;
@@ -99,9 +116,11 @@ const zoomForKey = (key: string): number => {
 };
 
 const WorldMapSurface = ({
+  divisions,
   highlighted,
   onSelectNation,
   onTogglePause,
+  owners,
   world,
 }: WorldMapProps) => {
   const canvas = useRef(NO_CANVAS);
@@ -148,7 +167,7 @@ const WorldMapSurface = ({
     }
     target.value.putImageData(
       new ImageData(
-        paintWorld(world, highlighted),
+        paintWorld(world, owners, highlighted),
         world.grid.width,
         world.grid.height
       ),
@@ -156,9 +175,15 @@ const WorldMapSurface = ({
       0
     );
     return Option.some(offscreen);
-  }, [world, highlighted]);
+  }, [world, owners, highlighted]);
 
-  const labels = useMemo(() => nationLabels(world), [world]);
+  const overlay = useMemo(
+    () => ({
+      labels: nationLabels(world, owners),
+      marks: divisionMarks(world, divisions),
+    }),
+    [world, owners, divisions]
+  );
 
   const viewOf = useCallback(
     (chosen: Option.Option<Viewport>): Viewport =>
@@ -207,6 +232,19 @@ const WorldMapSurface = ({
         clear: (clearWidth, clearHeight) => {
           pen.clearRect(0, 0, clearWidth, clearHeight);
         },
+        counter: (value, x, y, colour) => {
+          const left = x - COUNTER_WIDTH / 2;
+          const top = y - COUNTER_HEIGHT / 2;
+          pen.fillStyle = COUNTER_FILL;
+          pen.fillRect(left, top, COUNTER_WIDTH, COUNTER_HEIGHT);
+          pen.fillStyle = `rgb(${colour.red} ${colour.green} ${colour.blue})`;
+          pen.fillRect(left, top, COUNTER_STRIPE, COUNTER_HEIGHT);
+          pen.fillStyle = COUNTER_INK;
+          pen.font = COUNTER_FONT;
+          pen.fillText(value, x + COUNTER_STRIPE / 2, y);
+          pen.font = LABEL_FONT;
+          pen.fillStyle = LABEL_INK;
+        },
         text: (value, x, y) => {
           pen.strokeText(value, x, y);
           pen.fillText(value, x, y);
@@ -220,9 +258,9 @@ const WorldMapSurface = ({
       world,
       view,
       surface,
-      labels
+      overlay
     );
-  }, [painted, labels, surface, view, world]);
+  }, [painted, overlay, surface, view, world]);
 
   const startDrag = (event: PointerEvent<HTMLCanvasElement>) => {
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -265,7 +303,13 @@ const WorldMapSurface = ({
     }
     const box = event.currentTarget.getBoundingClientRect();
     onSelectNation(
-      nationAt(world, view, event.clientX - box.left, event.clientY - box.top)
+      nationAt(
+        world,
+        owners,
+        view,
+        event.clientX - box.left,
+        event.clientY - box.top
+      )
     );
   };
 

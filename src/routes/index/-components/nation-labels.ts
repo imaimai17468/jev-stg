@@ -18,12 +18,15 @@ export interface NationLabel {
  * whose territory straddles one, and weighting by cells at least keeps it over
  * the larger half.
  */
-export const nationLabels = (world: World): readonly NationLabel[] => {
+export const nationLabels = (
+  world: World,
+  owners: Int32Array
+): readonly NationLabel[] => {
   const sumX = new Float64Array(world.nations.length);
   const sumY = new Float64Array(world.nations.length);
   const weights = new Float64Array(world.nations.length);
   for (const province of world.provinces) {
-    const owner = valueAt(world.owners, province.id);
+    const owner = valueAt(owners, province.id);
     if (province.kind !== "land") {
       continue;
     }
