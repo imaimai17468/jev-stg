@@ -2,7 +2,7 @@ import { dateLabel } from "@/shared/entities/world/calendar";
 import type { Clock, Speed } from "@/shared/entities/world/clock";
 import { dateOf, SPEEDS } from "@/shared/entities/world/clock";
 import { Button } from "@/shared/ui/button";
-import { SpeedButton } from "./speed-button";
+import { ChoiceButton } from "./choice-button";
 
 interface HudClockBarProps {
   readonly clock: Clock;
@@ -27,12 +27,14 @@ export const HudClockBar = ({
     </Button>
     <div className="flex items-center gap-2">
       {SPEEDS.map((speed) => (
-        <SpeedButton
+        <ChoiceButton
           active={!clock.paused && speed === clock.speed}
           key={speed}
           onChoose={onChooseSpeed}
-          speed={speed}
-        />
+          value={speed}
+        >
+          {speed}
+        </ChoiceButton>
       ))}
     </div>
   </footer>
