@@ -4,23 +4,26 @@ import { generateWorld, NATION_COUNT } from "./index";
 import { initialOwners } from "./nations";
 import { UNASSIGNED } from "./spread";
 
+/**
+ * Drawn once for the whole file, because one draw takes seconds and a test that
+ * draws twice runs into the per-test timeout.
+ */
+const WORLD = generateWorld(31);
+
 describe(generateWorld, () => {
   it("should give every cell a province when the world is drawn", () => {
-    const world = generateWorld(31);
-
     expect(
-      [...world.cellProvince].some((province) => province < 0)
+      [...WORLD.cellProvince].some((province) => province < 0)
     ).toBeFalsy();
   });
 
   it("should raise one nation per capital when the world is drawn", () => {
-    expect(generateWorld(31).nations).toHaveLength(NATION_COUNT);
+    expect(WORLD.nations).toHaveLength(NATION_COUNT);
   });
 
   it("should leave no land unheld when the world is spread into owners", () => {
-    const world = generateWorld(31);
-    const owners = initialOwners(world.provinces, world.nations);
-    const unheld = world.provinces.filter(
+    const owners = initialOwners(WORLD.provinces, WORLD.nations);
+    const unheld = WORLD.provinces.filter(
       (province) =>
         province.kind === "land" && owners.at(province.id) === UNASSIGNED
     );
@@ -41,12 +44,10 @@ describe(generateWorld, () => {
   });
 
   it("should draw the same nations when the seed is the same", () => {
-    expect(generateWorld(31).nations).toStrictEqual(generateWorld(31).nations);
+    expect(generateWorld(31).nations).toStrictEqual(WORLD.nations);
   });
 
   it("should divide the world's own provinces into its strategic regions when the world is drawn", () => {
-    const world = generateWorld(31);
-
-    expect(world.airspace).toStrictEqual(airspaceOf(world.provinces, 31));
+    expect(WORLD.airspace).toStrictEqual(airspaceOf(WORLD.provinces, 31));
   });
 });
