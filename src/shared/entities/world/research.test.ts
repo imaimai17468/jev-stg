@@ -12,10 +12,12 @@ import {
   shipUpgradesOf,
   START_RESEARCH,
   studyStarted,
+  techStandingsOf,
   vouchersGranted,
 } from "./research";
 import type { TechId } from "./techs";
 import { techOf } from "./techs";
+import type { TreeStanding } from "./tree-standing";
 
 const NAVAL_VOUCHER: Voucher = { ahead: 1, categories: ["naval"], share: 0.5 };
 
@@ -101,6 +103,30 @@ describe("the opening research", () => {
       vouchers: [],
     });
   });
+});
+
+/** The world's opening research with machine tools done and concentrated industry on a slot. */
+const CONCENTRATING = studyStarted(
+  {
+    ...START_RESEARCH,
+    researched: [...START_RESEARCH.researched, "basic-machine-tools"],
+  },
+  "concentrated-industry-1"
+);
+
+describe(techStandingsOf, () => {
+  it.each<{ tech: TechId; standing: TreeStanding }>([
+    { standing: "done", tech: "basic-machine-tools" },
+    { standing: "underway", tech: "concentrated-industry-1" },
+    { standing: "excluded", tech: "dispersed-industry-1" },
+    { standing: "open", tech: "construction-1" },
+    { standing: "locked", tech: "destroyer-4" },
+  ])(
+    "should place $tech as $standing when machine tools are done and concentrated industry is on a slot",
+    ({ standing, tech }) => {
+      expect(techStandingsOf(CONCENTRATING)(tech)).toBe(standing);
+    }
+  );
 });
 
 describe(availableTechs, () => {

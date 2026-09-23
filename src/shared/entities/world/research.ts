@@ -3,6 +3,7 @@ import { itemAt } from "./lookup";
 import type { Bonus } from "./modifiers";
 import type { ShipUpgrade, TechCategory, TechId } from "./techs";
 import { categoryOf, TECH_IDS, TECH_LINES, techOf } from "./techs";
+import type { TreeStanding } from "./tree-standing";
 
 /** The days a technology of cost 1 takes, after Hearts of Iron IV's `BASE_TECH_COST`. */
 const BASE_TECH_COST = 110;
@@ -137,20 +138,36 @@ const ledTo = (tech: TechId, leading: (from: TechId) => boolean): boolean => {
 };
 
 /**
- * The technologies a slot may start on: every one not already researched or
- * on a slot, that one researched technology leads to, and that nothing
- * researched or on a slot rules out. They come in the tree's order.
+ * Where each technology stands for a nation with `research`: researched, on a
+ * slot, ruled out by one researched or on a slot, open once one of the
+ * technologies leading to it is researched or it is a root, and otherwise
+ * locked.
  */
-export const availableTechs = (research: Research): readonly TechId[] => {
-  const taken = touched(research);
-  const ruledOut = ruledOutBy(taken);
+export const techStandingsOf = (research: Research) => {
   const finished = new Set(research.researched);
-  return TECH_IDS.filter(
-    (tech) =>
-      !taken.has(tech) &&
-      !ruledOut.has(tech) &&
-      ledTo(tech, (from) => finished.has(from))
-  );
+  const studying = new Set(research.studies.map((study) => study.tech));
+  const ruledOut = ruledOutBy(touched(research));
+  return (tech: TechId): TreeStanding => {
+    if (finished.has(tech)) {
+      return "done";
+    }
+    if (studying.has(tech)) {
+      return "underway";
+    }
+    if (ruledOut.has(tech)) {
+      return "excluded";
+    }
+    if (ledTo(tech, (from) => finished.has(from))) {
+      return "open";
+    }
+    return "locked";
+  };
+};
+
+/** The technologies a slot may start on, every open one, in the tree's order. */
+export const availableTechs = (research: Research): readonly TechId[] => {
+  const standingOf = techStandingsOf(research);
+  return TECH_IDS.filter((tech) => standingOf(tech) === "open");
 };
 
 /**
