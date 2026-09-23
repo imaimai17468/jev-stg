@@ -12,6 +12,7 @@ import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
+import { supplyOf } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { AdvancementSummary } from "./advancement-summary";
 import { summaryOf } from "./nation-summary";
@@ -87,7 +88,9 @@ const UNADVANCED: AdvancementSummary = {
 
 describe(summaryOf, () => {
   it("should gather a nation's ground, terrain and borders when it holds some", () => {
-    expect(summaryOf(WORLD, SIMULATION, 0)).toStrictEqual({
+    expect(
+      summaryOf(WORLD, SIMULATION, supplyOf(WORLD, SIMULATION), 0)
+    ).toStrictEqual({
       advancement: UNADVANCED,
       cells: 7,
       divisions: 1,
@@ -100,6 +103,12 @@ describe(summaryOf, () => {
       provinces: 3,
       puppets: [],
       standing: { kind: "independent" },
+      supply: [
+        { label: "補給が足りない師団", value: "0 / 1" },
+        { label: "補給が届かない師団", value: "0" },
+        { label: "装備の維持費", value: "2 / 日" },
+        { label: "維持費の充足", value: "100%" },
+      ],
       terrain: [
         { provinces: 2, terrain: "plains" },
         { provinces: 1, terrain: "hills" },
@@ -108,7 +117,9 @@ describe(summaryOf, () => {
   });
 
   it("should read nothing when the world holds no nation with that id", () => {
-    expect(summaryOf(WORLD, SIMULATION, 9)).toStrictEqual({
+    expect(
+      summaryOf(WORLD, SIMULATION, supplyOf(WORLD, SIMULATION), 9)
+    ).toStrictEqual({
       advancement: UNADVANCED,
       cells: 0,
       divisions: 0,
@@ -121,6 +132,7 @@ describe(summaryOf, () => {
       provinces: 0,
       puppets: [],
       standing: { kind: "independent" },
+      supply: [],
       terrain: [],
     });
   });
@@ -134,7 +146,12 @@ describe(summaryOf, () => {
       },
     };
 
-    const summary = summaryOf(WORLD, simulation, 1);
+    const summary = summaryOf(
+      WORLD,
+      simulation,
+      supplyOf(WORLD, simulation),
+      1
+    );
 
     expect({
       faction: summary.faction,
@@ -154,7 +171,9 @@ describe(summaryOf, () => {
       },
     };
 
-    expect(summaryOf(WORLD, simulation, 0).puppets).toStrictEqual(["国1"]);
+    expect(
+      summaryOf(WORLD, simulation, supplyOf(WORLD, simulation), 0).puppets
+    ).toStrictEqual(["国1"]);
   });
 
   it("should name the annexer when the nation has been annexed", () => {
@@ -166,7 +185,9 @@ describe(summaryOf, () => {
       },
     };
 
-    expect(summaryOf(WORLD, simulation, 1).standing).toStrictEqual({
+    expect(
+      summaryOf(WORLD, simulation, supplyOf(WORLD, simulation), 1).standing
+    ).toStrictEqual({
       by: "国0",
       kind: "annexed",
     });

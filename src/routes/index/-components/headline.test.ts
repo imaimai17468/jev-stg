@@ -7,6 +7,7 @@ import {
 } from "@/shared/entities/world/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { supplyOf } from "@/shared/entities/world/simulation";
 import { headlineOf } from "./headline";
 import { summaryOf } from "./nation-summary";
 import { FIXTURE_WORLD, fixtureSimulation, HELD_BY_TWO } from "./world-fixture";
@@ -47,7 +48,12 @@ describe(headlineOf, () => {
 
   it("should read the picked nation's economy when one is picked", () => {
     const selection = Option.some(
-      summaryOf(FIXTURE_WORLD, fixtureSimulation({ economies: ECONOMIES }), 1)
+      summaryOf(
+        FIXTURE_WORLD,
+        fixtureSimulation({ economies: ECONOMIES }),
+        supplyOf(FIXTURE_WORLD, fixtureSimulation({ economies: ECONOMIES })),
+        1
+      )
     );
 
     expect(

@@ -8,9 +8,13 @@ import type {
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { World } from "@/shared/entities/world";
 import type { Division } from "@/shared/entities/world/divisions";
+import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { divisionMarks } from "./division-marks";
 import { drawMap } from "./draw-map";
 import { paintWorld } from "./map-bitmap";
+import type { MapMode } from "./map-mode";
+import { tintFor } from "./map-mode";
+import { CRATES } from "./map-palette";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
 import type { Surface, Viewport } from "./viewport";
@@ -21,6 +25,10 @@ interface WorldMapProps {
   /** Who holds each province now, by province id. */
   readonly owners: Int32Array;
   readonly divisions: readonly Division[];
+  /** What every nation's supply can do today. */
+  readonly supply: SupplyNetwork;
+  /** What the provinces are coloured by. */
+  readonly mode: MapMode;
   /** The nation drawn brighter than the rest, where one is picked. */
   readonly highlighted: Option.Option<number>;
   readonly onSelectNation: (nation: Option.Option<number>) => void;
@@ -77,6 +85,32 @@ const COUNTER_STRIPE = 4;
  */
 const COUNTER_FILL = "rgba(12, 14, 20, 0.88)";
 const COUNTER_FONT = "600 10px system-ui, sans-serif";
+/** The crate beside a counter whose divisions are short of supply, in screen pixels. */
+const CRATE_SIZE = 8;
+const CRATE_GAP = 2;
+const CRATE_LINE = 1.5;
+
+const noCrate = () => {
+  // The divisions get all the supply they need, so no crate is drawn.
+};
+
+/** Draws a crate filled or outlined, which is what tells short from starved. */
+const FILL_CRATE = {
+  false: (pen: CanvasRenderingContext2D, left: number, top: number) => {
+    pen.strokeRect(
+      left + CRATE_LINE / 2,
+      top + CRATE_LINE / 2,
+      CRATE_SIZE - CRATE_LINE,
+      CRATE_SIZE - CRATE_LINE
+    );
+  },
+  true: (pen: CanvasRenderingContext2D, left: number, top: number) => {
+    pen.fillRect(left, top, CRATE_SIZE, CRATE_SIZE);
+  },
+} satisfies Record<
+  `${boolean}`,
+  (pen: CanvasRenderingContext2D, left: number, top: number) => void
+>;
 const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
 const LABEL_INK = "rgba(255, 255, 255, 0.88)";
 const LABEL_OUTLINE = "rgba(0, 0, 0, 0.65)";
@@ -118,9 +152,11 @@ const zoomForKey = (key: string): number => {
 const WorldMapSurface = ({
   divisions,
   highlighted,
+  mode,
   onSelectNation,
   onTogglePause,
   owners,
+  supply,
   world,
 }: WorldMapProps) => {
   const canvas = useRef(NO_CANVAS);
@@ -157,6 +193,8 @@ const WorldMapSurface = ({
     };
   }, [attached]);
 
+  const tint = useMemo(() => tintFor(mode, supply), [mode, supply]);
+
   // One bitmap per world, painted at cell resolution and scaled by the canvas,
   // so a pan or a zoom repaints nothing.
   const painted = useMemo(() => {
@@ -167,7 +205,7 @@ const WorldMapSurface = ({
     }
     target.value.putImageData(
       new ImageData(
-        paintWorld(world, owners, highlighted),
+        paintWorld(world, owners, highlighted, tint),
         world.grid.width,
         world.grid.height
       ),
@@ -175,14 +213,14 @@ const WorldMapSurface = ({
       0
     );
     return Option.some(offscreen);
-  }, [world, owners, highlighted]);
+  }, [world, owners, highlighted, tint]);
 
   const overlay = useMemo(
     () => ({
       labels: nationLabels(world, owners),
-      marks: divisionMarks(world, divisions),
+      marks: divisionMarks(world, divisions, supply),
     }),
-    [world, owners, divisions]
+    [world, owners, divisions, supply]
   );
 
   const viewOf = useCallback(
@@ -232,7 +270,7 @@ const WorldMapSurface = ({
         clear: (clearWidth, clearHeight) => {
           pen.clearRect(0, 0, clearWidth, clearHeight);
         },
-        counter: (value, x, y, colour) => {
+        counter: (value, x, y, colour, crate) => {
           const left = x - COUNTER_WIDTH / 2;
           const top = y - COUNTER_HEIGHT / 2;
           pen.fillStyle = COUNTER_FILL;
@@ -242,6 +280,27 @@ const WorldMapSurface = ({
           pen.fillStyle = COUNTER_INK;
           pen.font = COUNTER_FONT;
           pen.fillText(value, x + COUNTER_STRIPE / 2, y);
+          Option.match(CRATES[crate], {
+            onNone: noCrate,
+            onSome: (drawn) => {
+              const crateLeft = left + COUNTER_WIDTH + CRATE_GAP;
+              const crateTop = y - CRATE_SIZE / 2;
+              const ink = `rgb(${drawn.colour.red} ${drawn.colour.green} ${drawn.colour.blue})`;
+              pen.fillStyle = COUNTER_FILL;
+              pen.fillRect(
+                crateLeft - 1,
+                crateTop - 1,
+                CRATE_SIZE + 2,
+                CRATE_SIZE + 2
+              );
+              pen.fillStyle = ink;
+              pen.strokeStyle = ink;
+              pen.lineWidth = CRATE_LINE;
+              FILL_CRATE[`${drawn.filled}`](pen, crateLeft, crateTop);
+              pen.lineWidth = LABEL_OUTLINE_WIDTH;
+              pen.strokeStyle = LABEL_OUTLINE;
+            },
+          });
           pen.font = LABEL_FONT;
           pen.fillStyle = LABEL_INK;
         },
@@ -376,7 +435,7 @@ const WorldMapSurface = ({
 };
 
 /**
- * The map redraws only when the world or the picked nation changes, so the
- * calendar ticking beside it costs nothing here.
+ * The map redraws only when the world, the picked nation, the mode or what it
+ * shows changes, so the calendar ticking beside it costs nothing here.
  */
 export const WorldMap = memo(WorldMapSurface);

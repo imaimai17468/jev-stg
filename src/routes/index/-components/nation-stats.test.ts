@@ -27,6 +27,7 @@ const SUMMARY: NationSummary = {
   provinces: 61,
   puppets: [],
   standing: { kind: "independent" },
+  supply: [],
   terrain: [
     { provinces: 32, terrain: "plains" },
     { provinces: 14, terrain: "tundra" },

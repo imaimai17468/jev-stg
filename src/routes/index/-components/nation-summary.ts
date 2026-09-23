@@ -17,10 +17,13 @@ import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
+import type { Stat } from "./stat";
+import { supplySummaryOf } from "./supply-summary";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {
@@ -62,10 +65,12 @@ export interface NationSummary {
   /** The nations that answer to it, by name. */
   readonly puppets: readonly string[];
   readonly advancement: AdvancementSummary;
+  readonly supply: readonly Stat[];
 }
 
 const EMPTY: NationSummary = {
   advancement: advancementSummaryOf(START_ADVANCEMENT, 0),
+  supply: [],
   cells: 0,
   divisions: 0,
   economy: NO_ECONOMY,
@@ -139,6 +144,7 @@ const allegianceOf = (
 export const summaryOf = (
   world: World,
   simulation: Simulation,
+  supply: SupplyNetwork,
   nation: number
 ): NationSummary => {
   const { diplomacy, owners } = simulation;
@@ -185,6 +191,12 @@ export const summaryOf = (
     name: named.name,
     neighbours: [...neighbours].map(nameOf),
     provinces,
+    supply: supplySummaryOf(
+      supply,
+      simulation.divisions,
+      itemAt(simulation.economies, nation, NO_ECONOMY),
+      nation
+    ),
     terrain: terrainShares(counts),
   };
 };

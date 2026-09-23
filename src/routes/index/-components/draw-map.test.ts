@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { SupplyState } from "@/shared/entities/world/supply";
 import { drawMap } from "./draw-map";
 import type { MapPen } from "./draw-map";
 import type { NationLabel } from "./nation-labels";
@@ -10,6 +11,8 @@ interface Drawn {
   readonly texts: readonly string[];
   /** Each counter as its number and the point it was centred on. */
   readonly counters: readonly (readonly number[])[];
+  /** Each counter's supply, in the order they were drawn. */
+  readonly crates: readonly SupplyState[];
 }
 
 interface Recorder {
@@ -22,14 +25,16 @@ const recorder = (): Recorder => {
   const worlds: number[][] = [];
   const texts: string[] = [];
   const counters: number[][] = [];
+  const crates: SupplyState[] = [];
   return {
-    drawn: { cleared, counters, texts, worlds },
+    drawn: { cleared, counters, crates, texts, worlds },
     pen: {
       clear: (width, height) => {
         cleared.push([width, height]);
       },
-      counter: (value, x, y) => {
+      counter: (value, x, y, _colour, supply) => {
         counters.push([Number(value), x, y]);
+        crates.push(supply);
       },
       text: (value) => {
         texts.push(value);
@@ -103,6 +108,7 @@ describe(drawMap, () => {
           colour: { blue: 0, green: 0, red: 0 },
           count: 7,
           province: 0,
+          supply: "supplied",
           x: 3,
           y: 5,
         },
@@ -110,5 +116,25 @@ describe(drawMap, () => {
     });
 
     expect(drawn.counters).toStrictEqual([[7, 4, 8]]);
+  });
+
+  it("should hand the counter its divisions' supply when they are short of it", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      labels: [],
+      marks: [
+        {
+          colour: { blue: 0, green: 0, red: 0 },
+          count: 3,
+          province: 0,
+          supply: "short",
+          x: 3,
+          y: 5,
+        },
+      ],
+    });
+
+    expect(drawn.crates).toStrictEqual(["short"]);
   });
 });
