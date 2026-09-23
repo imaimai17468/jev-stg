@@ -1,10 +1,12 @@
 import { airframeOf } from "./aircraft";
+import type { Armoury } from "./armoury";
+import { OPENING_ARMOURY } from "./armoury";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
 import type { Navy, TaskForce } from "./navy";
 import { screeningOf } from "./navy";
 import type { Ship } from "./ships";
-import { hullOf, organisationShare } from "./ships";
+import { classOf, hullOf, organisationShare, roleOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
@@ -44,12 +46,17 @@ const CARRIER_SORTIES_PER_DAY = 3;
 const SORTIE_EFFICIENCY = 0.5;
 const OWN_BATTLE_DAMAGE = 10;
 
-/** One task force as a battle sees it: whose it is, where in the navies, and how much of its fire its fuel leaves it. */
+/**
+ * One task force as a battle sees it: whose it is, where in the navies, how
+ * much of its fire its fuel leaves it, and what its nation's research arms it
+ * with.
+ */
 interface Engaged {
   readonly nation: number;
   readonly fleet: number;
   readonly force: TaskForce;
   readonly guns: number;
+  readonly armoury: Armoury;
 }
 
 /** The chance a ship of `force` hits with one round of fire. */
@@ -68,34 +75,39 @@ interface Fire {
 }
 
 /**
- * What the ships of `engaged` put out in a day: every ship's guns and
- * torpedoes on every round, and every carrier's naval bombers on every sortie
- * they fly, all of it cut by what their fuel leaves them.
+ * What the ships of `engaged` put out in a day: every ship's batteries and
+ * torpedoes on every round, raised by what its nation's research adds to its
+ * class's weapons, and every carrier's naval bombers, of the nation's newest
+ * design, on every sortie they fly, all of it cut by what their fuel leaves
+ * them.
  */
-const fireOf = ({ force, guns }: Engaged): Fire => {
+const fireOf = ({ armoury, force, guns }: Engaged): Fire => {
   let surface = 0;
   let submerged = 0;
   for (const ship of force.ships) {
-    const hull = hullOf(ship.shipClass);
+    const hull = hullOf(ship.design);
+    const weapons = armoury.weapons[classOf(ship)];
     const hitChance = hitChanceOf(force, ship);
     const strikes =
       ship.planes *
       BOMBERS_PER_DECK *
-      airframeOf("naval-bomber").navalAttack *
+      airframeOf(armoury.planes["naval-bomber"]).navalAttack *
       hitChance *
       CARRIER_SORTIES_PER_DAY *
       SORTIE_EFFICIENCY *
       OWN_BATTLE_DAMAGE;
-    surface +=
-      ((hull.guns + hull.torpedoes) * hitChance * ROUNDS_PER_DAY + strikes) *
-      guns;
+    const shot =
+      hull.light * (1 + weapons.light) +
+      hull.heavy * (1 + weapons.heavy) +
+      hull.torpedoes * (1 + weapons.torpedo);
+    surface += (shot * hitChance * ROUNDS_PER_DAY + strikes) * guns;
     submerged += hull.depthCharges * hitChance * ROUNDS_PER_DAY * guns;
   }
   return { submerged, surface };
 };
 
 const isSubmarine = (ship: Ship): boolean =>
-  hullOf(ship.shipClass).role === "submarine";
+  roleOf(classOf(ship)) === "submarine";
 
 /** The fire of `fire` aimed at ships of `ship`'s kind. */
 const aimedAt = (fire: Fire, ship: Ship): number => {
@@ -117,8 +129,8 @@ const exposureOf = (ship: Ship, targets: readonly Engaged[]): number => {
         (other) => isSubmarine(other) === isSubmarine(ship)
       )
     )
-    .reduce((total, other) => total + hullOf(other.shipClass).visibility, 0);
-  return hullOf(ship.shipClass).visibility / seen;
+    .reduce((total, other) => total + hullOf(other.design).visibility, 0);
+  return hullOf(ship.design).visibility / seen;
 };
 
 /** The ship with `damage` taken off its hull and its cohesion. */
@@ -171,7 +183,8 @@ const struckBy = (
 /** Every task force at sea and fit to fight, grouped by the zone it is in. */
 const byZone = (
   navies: readonly Navy[],
-  guns: readonly number[]
+  guns: readonly number[],
+  armouries: readonly Armoury[]
 ): ReadonlyMap<number, Engaged[]> => {
   const zones = new Map<number, Engaged[]>();
   for (const [nation, navy] of navies.entries()) {
@@ -180,7 +193,13 @@ const byZone = (
         continue;
       }
       const here = zones.get(force.zone) ?? [];
-      here.push({ fleet, force, guns: itemAt(guns, nation, 1), nation });
+      here.push({
+        armoury: itemAt(armouries, nation, OPENING_ARMOURY),
+        fleet,
+        force,
+        guns: itemAt(guns, nation, 1),
+        nation,
+      });
       zones.set(force.zone, here);
     }
   }
@@ -199,19 +218,21 @@ export interface SeaBattles {
 /**
  * One day of every battle at sea: in each zone, every task force fires on the
  * task forces there of the nations its own is at war with, keeping the share
- * of its fire `guns` gives its nation, and a ship whose hull is gone sinks. A
- * task force making for port to repair slips past.
+ * of its fire `guns` gives its nation and armed as `armouries` has its
+ * nation, and a ship whose hull is gone sinks. A task force making for port
+ * to repair slips past.
  */
 export const foughtAtSea = (
   navies: readonly Navy[],
   wars: Wars,
   roles: number,
-  guns: readonly number[]
+  guns: readonly number[],
+  armouries: readonly Armoury[]
 ): SeaBattles => {
   const fought = new Uint8Array(navies.length * roles);
   const zones = new Set<number>();
   const struck = new Map<number, TaskForce>();
-  for (const [zone, present] of byZone(navies, guns)) {
+  for (const [zone, present] of byZone(navies, guns, armouries)) {
     for (const engaged of present) {
       if (!present.some((other) => hostile(wars, engaged, other))) {
         continue;

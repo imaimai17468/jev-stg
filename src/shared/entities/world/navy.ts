@@ -5,13 +5,15 @@ import { valueAt } from "./grid";
 import { itemAt, replacedAt } from "./lookup";
 import type { ProvinceGraph } from "./provinces";
 import { aroundZone, stepAtSea } from "./seas";
-import type { Ship, ShipClass, ShipyardOrder } from "./ships";
+import type { Ship, ShipClass, ShipDesigns, ShipyardOrder } from "./ships";
 import {
+  classOf,
   hullOf,
   hullShare,
   launched,
   orderOf,
   organisationShare,
+  roleOf,
   SHIP_CLASSES,
   supremacyOf,
 } from "./ships";
@@ -108,22 +110,22 @@ export const fleetOf = (navy: Navy, role: FleetRole): TaskForce =>
 
 /** How many of `fleet`'s ships are of `shipClass`. */
 export const countOf = (fleet: TaskForce, shipClass: ShipClass): number =>
-  fleet.ships.filter((ship) => ship.shipClass === shipClass).length;
+  fleet.ships.filter((ship) => classOf(ship) === shipClass).length;
 
 /** How many screens Hearts of Iron IV wants beside every capital ship. */
 const SCREENS_PER_CAPITAL = 3;
 
 const screensOf = (fleet: TaskForce): number =>
-  fleet.ships.filter((ship) => hullOf(ship.shipClass).role === "screen").length;
+  fleet.ships.filter((ship) => roleOf(classOf(ship)) === "screen").length;
 
 /** Whether a ship of `shipClass` wants screens beside it: a capital ship or a carrier. */
 const isScreened = (shipClass: ShipClass): boolean => {
-  const { role } = hullOf(shipClass);
+  const role = roleOf(shipClass);
   return role === "capital" || role === "carrier";
 };
 
 const capitalsOf = (fleet: TaskForce): number =>
-  fleet.ships.filter((ship) => isScreened(ship.shipClass)).length;
+  fleet.ships.filter((ship) => isScreened(classOf(ship))).length;
 
 /**
  * The share of the screens its capital ships want that `fleet` has, from 0 to
@@ -169,7 +171,7 @@ const joinedAt = (fleet: TaskForce, home: number): number => {
 
 /** The navy with `ship` added to the task force its class joins. */
 const commissioned = (navy: Navy, ship: Ship, home: number): Navy => {
-  const role = roleFor(navy, ship.shipClass);
+  const role = roleFor(navy, classOf(ship));
   const fleet = fleetOf(navy, role);
   return {
     ...navy,
@@ -181,29 +183,45 @@ const commissioned = (navy: Navy, ship: Ship, home: number): Navy => {
   };
 };
 
-/** The navy with one of `order` finished and put to sea at `home`. */
-const finished = (navy: Navy, order: ShipyardOrder, home: number): Navy => {
+/**
+ * The navy with one of `order` finished and put to sea at `home`, a warship
+ * of the design `designs` has for its class.
+ */
+const finished = (
+  navy: Navy,
+  order: ShipyardOrder,
+  designs: ShipDesigns,
+  home: number
+): Navy => {
   if (order === "convoy") {
     return { ...navy, convoys: navy.convoys + 1 };
   }
-  return commissioned(navy, launched(order), home);
+  return commissioned(navy, launched(designs[order]), home);
 };
 
 /**
  * The navy after its dockyards have put `output` into what they are building,
- * finishing as many as that pays for and carrying the rest into the next. A
+ * the design `designs` has for the class it orders, finishing as many as that
+ * pays for and carrying the rest into the next. A warship laid down before a
+ * newer design was researched comes out as the newer one, at its cost. A
  * nation with no port to launch from builds nothing.
  */
-export const builtOneDay = (navy: Navy, output: number, home: number): Navy => {
+export const builtOneDay = (
+  navy: Navy,
+  output: number,
+  home: number,
+  designs: ShipDesigns
+): Navy => {
   if (home === UNASSIGNED) {
     return navy;
   }
-  const { cost } = orderOf(navy.order);
+  const { cost } = orderOf(navy.order, designs);
   let built = { ...navy, progress: navy.progress + output };
   while (built.progress >= cost) {
     built = finished(
       { ...built, progress: built.progress - cost },
       built.order,
+      designs,
       home
     );
   }
@@ -235,11 +253,15 @@ const OPENING_CONVOYS_PER_DOCKYARD = 10;
 
 /**
  * The navy a nation with `dockyards` opens the world with, put to sea at
- * `home`: none where it has no port, and otherwise a fleet and convoys in
- * proportion to its yards, its capital ships first so the destroyers go to
- * screen them.
+ * `home`: none where it has no port, and otherwise a fleet of the designs
+ * `designs` has and convoys in proportion to its yards, its capital ships
+ * first so the destroyers go to screen them.
  */
-export const openingNavy = (dockyards: number, home: number): Navy => {
+export const openingNavy = (
+  dockyards: number,
+  home: number,
+  designs: ShipDesigns
+): Navy => {
   if (home === UNASSIGNED) {
     return NO_NAVY;
   }
@@ -252,7 +274,7 @@ export const openingNavy = (dockyards: number, home: number): Navy => {
   )) {
     const count = Math.floor(dockyards * OPENING_FLEET_PER_DOCKYARD[shipClass]);
     for (let built = 0; built < count; built += 1) {
-      navy = commissioned(navy, launched(shipClass), home);
+      navy = commissioned(navy, launched(designs[shipClass]), home);
     }
   }
   return navy;
@@ -352,7 +374,7 @@ const REPAIR_PER_DAY = 0.02;
 
 /** The ship after a day out of battle, in its home port or away from it. */
 const recovered = (ship: Ship, inPort: boolean): Ship => {
-  const hull = hullOf(ship.shipClass);
+  const hull = hullOf(ship.design);
   return {
     ...ship,
     hp: Math.min(hull.hp, ship.hp + hull.hp * REPAIR_PER_DAY * Number(inPort)),
@@ -391,7 +413,7 @@ export const sailed = (
 /** What a task force's ships count toward the hold over the sea around it. */
 export const weightOf = (fleet: TaskForce): number =>
   fleet.ships.reduce(
-    (total, ship) => total + supremacyOf(ship.shipClass) * hullShare(ship),
+    (total, ship) => total + supremacyOf(ship.design) * hullShare(ship),
     0
   ) * MISSION_SUPREMACY[fleet.mission];
 
@@ -464,7 +486,7 @@ export const fleetStrength = (navy: Navy): number =>
   navy.fleets.reduce(
     (total, fleet) =>
       total +
-      fleet.ships.reduce((sum, ship) => sum + supremacyOf(ship.shipClass), 0),
+      fleet.ships.reduce((sum, ship) => sum + supremacyOf(ship.design), 0),
     0
   );
 
@@ -488,7 +510,7 @@ export const orderByRules = (
 ): ShipyardOrder => {
   const ships = navy.fleets.flatMap((fleet) => fleet.ships);
   const count = (shipClass: ShipClass) =>
-    ships.filter((ship) => ship.shipClass === shipClass).length;
+    ships.filter((ship) => classOf(ship) === shipClass).length;
   const screens = count("destroyer") + count("cruiser");
   const capitals = count("battleship") + count("carrier");
   if (navy.convoys < convoysWanted) {

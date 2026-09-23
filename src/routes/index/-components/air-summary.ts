@@ -1,7 +1,10 @@
 import { basesHeldBy } from "@/shared/entities/world/air-bases";
 import type { AirForce } from "@/shared/entities/world/air-force";
 import { flyingOf, planesOf } from "@/shared/entities/world/air-force";
-import type { Aircraft } from "@/shared/entities/world/aircraft";
+import type {
+  Aircraft,
+  AirframeModels,
+} from "@/shared/entities/world/aircraft";
 import { AIRCRAFT, airframeOf } from "@/shared/entities/world/aircraft";
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { FUEL_CAPACITY } from "@/shared/entities/world/fuel";
@@ -21,18 +24,20 @@ export interface Hangar {
   readonly nation: number;
   /** How the sky over each region divides for the nation. */
   readonly superiority: Superiority;
+  /** The design its factories build for each kind of plane. */
+  readonly models: AirframeModels;
 }
 
 /** Air superiority above this share counts as a sky held, where the wiki's colours turn to one side's. */
 const HELD_ABOVE = 0.6;
 
 /** What its military factories on planes are building, in the panel's words. */
-const productionLabel = ({ airForce }: Hangar): string => {
+const productionLabel = ({ airForce, models }: Hangar): string => {
   if (airForce.aviation === "none") {
     return AVIATION_NAMES.none;
   }
   return `${AVIATION_NAMES[airForce.aviation]}で${AIRCRAFT_NAMES[airForce.order]}（${percentLabel(
-    Math.min(1, airForce.progress / airframeOf(airForce.order).cost)
+    Math.min(1, airForce.progress / airframeOf(models[airForce.order]).cost)
   )}）`;
 };
 

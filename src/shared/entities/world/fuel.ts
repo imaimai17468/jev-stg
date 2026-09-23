@@ -18,12 +18,23 @@ export const PLANE_FUEL_PER_DAY = 8.4;
 export const SHIP_FUEL_PER_DAY = 2.4;
 export const COMBAT_FUEL_MULTIPLE = 2;
 
-/** A stockpile of `fuel` with `oil` units of oil refined into it, never holding more than it can store. */
-export const refined = (fuel: number, oil: number): number =>
-  Math.min(FUEL_CAPACITY, fuel + Math.max(0, oil) * FUEL_PER_OIL);
+/**
+ * A stockpile of `fuel` with `oil` units of oil refined into it, each giving
+ * the `refining` share more its technologies add, never holding more than it
+ * can store.
+ */
+export const refined = (fuel: number, oil: number, refining: number): number =>
+  Math.min(
+    FUEL_CAPACITY,
+    fuel + Math.max(0, oil) * FUEL_PER_OIL * (1 + refining)
+  );
 
-/** The oil a nation buys a day to cover the `burned` fuel it burned yesterday. */
-export const oilWanted = (burned: number): number => burned / FUEL_PER_OIL;
+/**
+ * The oil a nation buys a day to cover the `burned` fuel it burned yesterday,
+ * each unit giving the `refining` share more its technologies add.
+ */
+export const oilWanted = (burned: number, refining: number): number =>
+  burned / (FUEL_PER_OIL * (1 + refining));
 
 /** The share of `demand` a stockpile of `fuel` covers, from 0 to 1. */
 export const fuelShareOf = (fuel: number, demand: number): number =>

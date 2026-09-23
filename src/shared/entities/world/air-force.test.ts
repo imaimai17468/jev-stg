@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { AirForce, Wing } from "./air-force";
 import {
+  aircraftOf,
   airForceUnder,
   allPlanesOf,
   flyingOf,
@@ -9,13 +10,21 @@ import {
   openingAirForce,
   planesOf,
 } from "./air-force";
+import type { AirframeModels } from "./aircraft";
 import { UNASSIGNED } from "./spread";
 
-/** A wing of fighters waiting at `base` with `planes` in it. */
+/** The 1936 designs of every kind. */
+const MODELS: AirframeModels = {
+  "close-support": "close-air-support-1",
+  fighter: "fighter-1",
+  "naval-bomber": "naval-bomber-1",
+};
+
+/** A wing of 1936 fighters waiting at `base` with `planes` in it. */
 const fighters = (planes: number, base: number): Wing => ({
-  aircraft: "fighter",
   base,
   mission: "standby",
+  model: "fighter-1",
   planes,
   region: UNASSIGNED,
 });
@@ -26,49 +35,66 @@ const MIXED: AirForce = {
   wings: [
     fighters(90, 0),
     fighters(40, 1),
-    { ...fighters(30, 0), aircraft: "close-support" },
+    { ...fighters(30, 0), model: "close-air-support-1" },
   ],
 };
 
 describe(planesBuiltOneDay, () => {
   it("should build nothing and keep the progress when the nation has no air base", () => {
-    expect(planesBuiltOneDay(MIXED, 100, UNASSIGNED)).toBe(MIXED);
+    expect(planesBuiltOneDay(MIXED, 100, UNASSIGNED, MODELS)).toBe(MIXED);
   });
 
   it("should carry the production into progress when it pays for no plane", () => {
-    expect(planesBuiltOneDay(NO_AIR_FORCE, 10, 0)).toStrictEqual({
+    expect(planesBuiltOneDay(NO_AIR_FORCE, 10, 0, MODELS)).toStrictEqual({
       ...NO_AIR_FORCE,
       progress: 10,
     });
   });
 
   it("should fill the wing of that kind at that base and open a new one when the finished planes overflow it", () => {
-    expect(planesBuiltOneDay(MIXED, 24 * 15 + 5, 0)).toStrictEqual({
+    expect(planesBuiltOneDay(MIXED, 24 * 15 + 5, 0, MODELS)).toStrictEqual({
       ...MIXED,
       progress: 5,
       wings: [
         fighters(100, 0),
         fighters(40, 1),
-        { ...fighters(30, 0), aircraft: "close-support" },
+        { ...fighters(30, 0), model: "close-air-support-1" },
         fighters(5, 0),
       ],
     });
+  });
+
+  it("should open a new wing of the newer design when the nation builds one the wings at the base do not fly", () => {
+    expect(
+      planesBuiltOneDay(MIXED, 26 * 2, 0, { ...MODELS, fighter: "fighter-2" })
+    ).toStrictEqual({
+      ...MIXED,
+      wings: [...MIXED.wings, { ...fighters(2, 0), model: "fighter-2" }],
+    });
+  });
+});
+
+describe(aircraftOf, () => {
+  it("should give the kind of plane the wing's design is when the wing flies a close support design", () => {
+    expect(
+      aircraftOf({ ...fighters(1, 0), model: "close-air-support-3" })
+    ).toBe("close-support");
   });
 });
 
 describe(openingAirForce, () => {
   it("should open with no air force when the nation has no air base", () => {
-    expect(openingAirForce(10, UNASSIGNED)).toBe(NO_AIR_FORCE);
+    expect(openingAirForce(10, UNASSIGNED, MODELS)).toBe(NO_AIR_FORCE);
   });
 
   it("should open with wings of every kind at the base when the nation has one", () => {
-    expect(openingAirForce(20, 3)).toStrictEqual({
+    expect(openingAirForce(20, 3, MODELS)).toStrictEqual({
       ...NO_AIR_FORCE,
       wings: [
         fighters(100, 3),
         fighters(20, 3),
-        { ...fighters(60, 3), aircraft: "close-support" },
-        { ...fighters(20, 3), aircraft: "naval-bomber" },
+        { ...fighters(60, 3), model: "close-air-support-1" },
+        { ...fighters(20, 3), model: "naval-bomber-1" },
       ],
     });
   });
@@ -92,9 +118,9 @@ describe(airForceUnder, () => {
 describe(flyingOf, () => {
   it("should leave out the wings waiting at their bases when some are on a mission", () => {
     const sent: Wing = {
-      aircraft: "fighter",
       base: 0,
       mission: "superiority",
+      model: "fighter-1",
       planes: 10,
       region: 2,
     };

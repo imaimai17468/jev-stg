@@ -50,19 +50,21 @@ interface Advanced {
 }
 
 /**
- * One day of research and of work on the national focus, read in `year`. The
- * research runs at the speed the day began with, so a technology finished
- * today speeds up tomorrow's research rather than its own last day.
+ * One day of research and of work on the national focus, on day `today`
+ * since 1970. The research runs at the speed the day began with, so a
+ * technology finished today speeds up tomorrow's research rather than its
+ * own last day.
  */
 export const progressedOneDay = (
   advancement: Advancement,
   economy: NationEconomy,
-  year: number
+  today: number
 ): Advanced => {
   const research = researchedOneDay(
     advancement.research,
+    researchSlotsOf(advancement.focuses),
     modifiersOf(advancement, economy).research,
-    year
+    today
   );
   const pursued = focusedOneDay(advancement.focuses);
   return {

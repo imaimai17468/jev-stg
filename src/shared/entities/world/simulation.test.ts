@@ -7,6 +7,7 @@ import { openingAirBases } from "./air-bases";
 import { NO_AIR_FORCE } from "./air-force";
 import { airForceOf, flying, wing } from "./air-war-fixture";
 import { noQuiet } from "./armistice";
+import { OPENING_ARMOURY } from "./armoury";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
@@ -123,13 +124,13 @@ describe(ranOneDay, () => {
     });
   });
 
-  it("should put a day into every nation's research and focus when a day passes", () => {
+  it("should put a day into every nation's research and focus, and a saved day into every idle slot, when a day passes", () => {
     const studying: Simulation = {
       ...OPENING,
       advancements: [
         {
           focuses: focusStarted(START_FOCUSES, "army-effort"),
-          research: studyStarted(START_RESEARCH, "tools-1"),
+          research: studyStarted(START_RESEARCH, "fuel-storage"),
         },
         START_ADVANCEMENT,
       ],
@@ -142,12 +143,23 @@ describe(ranOneDay, () => {
           done: [],
         },
         research: {
-          researched: [],
-          studies: [{ bonus: 0, progress: 1.05, tech: "tools-1" }],
-          vouchers: [],
+          ...START_RESEARCH,
+          saved: [1, 1],
+          studies: [
+            {
+              ahead: 0,
+              bonus: 0,
+              progress: 1.05,
+              saved: 0,
+              tech: "fuel-storage",
+            },
+          ],
         },
       },
-      START_ADVANCEMENT,
+      {
+        ...START_ADVANCEMENT,
+        research: { ...START_RESEARCH, saved: [1, 1, 1] },
+      },
     ]);
   });
 
@@ -222,7 +234,7 @@ describe(ranOneDay, () => {
         ...OPENING.diplomacy,
         standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
       },
-      navies: [NO_NAVY, openingNavy(4, 4)],
+      navies: [NO_NAVY, openingNavy(4, 4, OPENING_ARMOURY.ships)],
     };
 
     expect(ranOneDay(LINE_WORLD, annexed).navies[1]).toBe(NO_NAVY);
@@ -256,7 +268,7 @@ describe(ranOneDay, () => {
       ...OPENING,
       airForces: [
         NO_AIR_FORCE,
-        airForceOf([wing({ aircraft: "fighter", base: 3, planes: 50 })]),
+        airForceOf([wing({ base: 3, model: "fighter-1", planes: 50 })]),
       ],
       diplomacy: {
         ...OPENING.diplomacy,
@@ -271,13 +283,15 @@ describe(ranOneDay, () => {
     const airborne: Simulation = {
       ...FIGHTING,
       airForces: [
-        airForceOf([wing({ aircraft: "close-support", base: 0, planes: 50 })]),
+        airForceOf([
+          wing({ base: 0, model: "close-air-support-1", planes: 50 }),
+        ]),
         NO_AIR_FORCE,
       ],
     };
 
     expect(ranOneDay(LINE_WORLD, airborne).airForces[0]?.wings).toStrictEqual([
-      flying(wing({ aircraft: "close-support", base: 0, planes: 50 }), {
+      flying(wing({ base: 0, model: "close-air-support-1", planes: 50 }), {
         mission: "close-support",
         region: 0,
       }),

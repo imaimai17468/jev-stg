@@ -6,6 +6,7 @@ import {
   canRaise,
   defenceOf,
   fieldedBy,
+  infantryEquipmentOf,
   marchDaysFor,
   menFor,
   paidForDivision,
@@ -65,9 +66,10 @@ describe(paidForDivision, () => {
   });
 });
 
-/** A division of a nation with nothing researched, fully supplied. */
+/** A division of a nation with nothing researched but the 1936 equipment, fully supplied. */
 const SUPPLIED: Backing = {
   air: 1,
+  equipment: "infantry-equipment-1",
   fill: 1,
   insight: 0,
   modifiers: NO_MODIFIERS,
@@ -114,6 +116,45 @@ describe("attackOf with what its nation knows", () => {
     expect(attackOf(division({}), { ...SUPPLIED, insight: 0.15 })).toBeCloseTo(
       6.9
     );
+  });
+});
+
+describe("attackOf with its nation's equipment", () => {
+  it("should hit harder by the equipment's soft attack when its nation fields a newer generation", () => {
+    expect(
+      attackOf(division({}), { ...SUPPLIED, equipment: "infantry-equipment-3" })
+    ).toBe(12);
+  });
+});
+
+describe("defenceOf with its nation's equipment", () => {
+  it("should hold harder by the equipment's defence when its nation fields a newer generation", () => {
+    expect(
+      defenceOf(division({}), {
+        ...SUPPLIED,
+        equipment: "infantry-equipment-2",
+      })
+    ).toBeCloseTo((10 * 28) / 22);
+  });
+});
+
+describe(infantryEquipmentOf, () => {
+  it("should arm the divisions with the 1918 kit when no infantry equipment is researched", () => {
+    expect(infantryEquipmentOf(new Set(["fighter-1"]))).toBe(
+      "basic-infantry-equipment"
+    );
+  });
+
+  it("should arm the divisions with the newest generation when several are researched", () => {
+    expect(
+      infantryEquipmentOf(
+        new Set([
+          "basic-infantry-equipment",
+          "infantry-equipment-1",
+          "infantry-equipment-2",
+        ])
+      )
+    ).toBe("infantry-equipment-2");
   });
 });
 

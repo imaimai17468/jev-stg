@@ -161,11 +161,11 @@ const FRESH_SERVICE = [
   { label: "国1の諜報", value: "経済20%・陸軍0%・海軍10%・空軍0%" },
 ];
 
-/** What the panel says of a nation that has researched and pursued nothing. */
+/** What the panel says of a nation that holds only the technologies it opened the world with and has pursued nothing. */
 const UNADVANCED: AdvancementSummary = {
   focus: { label: "進めている方針", value: "なし" },
   focusesDone: [],
-  researched: 0,
+  researched: START_ADVANCEMENT.research.researched.length,
   slots: [{ label: "空き枠", value: "3" }],
 };
 

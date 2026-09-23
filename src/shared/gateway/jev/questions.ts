@@ -9,9 +9,14 @@ import {
   factoriesFor,
   upgradeTermsOf,
 } from "@/shared/entities/world/agency";
-import type { Aircraft, Aviation } from "@/shared/entities/world/aircraft";
+import type {
+  Aircraft,
+  AirframeModels,
+  Aviation,
+} from "@/shared/entities/world/aircraft";
 import {
   AIRCRAFT,
+  AIRFRAME_MODELS,
   airframeOf,
   AVIATIONS,
   aviationShareOf,
@@ -31,6 +36,7 @@ import {
   rivalChoice,
   spyChoice,
 } from "@/shared/entities/world/consultation";
+import { INFANTRY_EQUIPMENT } from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,
@@ -41,19 +47,29 @@ import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
-import type { TechId } from "@/shared/entities/world/research";
 import {
   AHEAD_OF_TIME_PER_YEAR,
-  techOf,
+  daysOf,
 } from "@/shared/entities/world/research";
-import type { ShipyardOrder } from "@/shared/entities/world/ships";
+import type {
+  ShipClass,
+  ShipDesigns,
+  ShipyardOrder,
+} from "@/shared/entities/world/ships";
 import {
   hullOf,
   orderOf,
+  SHIP_DESIGNS,
   SHIPYARD_ORDERS,
 } from "@/shared/entities/world/ships";
 import type { Sighting } from "@/shared/entities/world/sightings";
 import type { Stance } from "@/shared/entities/world/stance";
+import type {
+  ShipUpgrade,
+  ShipWeapon,
+  TechId,
+} from "@/shared/entities/world/techs";
+import { techOf } from "@/shared/entities/world/techs";
 import type { TradeLaw } from "@/shared/entities/world/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
 
@@ -151,43 +167,57 @@ const TRADE_LAW_LABELS = Object.fromEntries(
   TRADE_LAWS.map((law) => [law, tradeLawLabel(law)])
 );
 
-/** What each order builds, in words, around the cost its dockyards pay. */
+/**
+ * What each order builds, in words, around the design `designs` lays down
+ * for its class and the cost its dockyards pay.
+ */
 const ORDER_WORDS = {
-  battleship: (cost: number) =>
-    `戦艦（費用${cost}、制海権への重みが最も大きい）`,
-  carrier: (cost: number) =>
-    `空母（費用${cost}、艦載機${hullOf("carrier").deck}機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）`,
+  battleship: (cost: number, designs: ShipDesigns) =>
+    `戦艦（${techOf(designs.battleship).name}、費用${cost}、制海権への重みが最も大きい）`,
+  carrier: (cost: number, designs: ShipDesigns) =>
+    `空母（${techOf(designs.carrier).name}、費用${cost}、艦載機${hullOf(designs.carrier).deck}機のうち半数の雷撃機で敵艦を攻撃し、半数の戦闘機で海の上の制空権を争う）`,
   convoy: (cost: number) =>
     `輸送船（費用${cost}、海越しの補給・交易・上陸に使う）`,
-  cruiser: (cost: number) => `巡洋艦（費用${cost}、主力艦を守る護衛艦）`,
-  destroyer: (cost: number) =>
-    `駆逐艦（費用${cost}、護衛艦で、潜水艦を爆雷で沈める）`,
-  submarine: (cost: number) => `潜水艦（費用${cost}、敵の輸送船を沈める）`,
-} satisfies Readonly<Record<ShipyardOrder, (cost: number) => string>>;
+  cruiser: (cost: number, designs: ShipDesigns) =>
+    `巡洋艦（${techOf(designs.cruiser).name}、費用${cost}、主力艦を守る護衛艦）`,
+  destroyer: (cost: number, designs: ShipDesigns) =>
+    `駆逐艦（${techOf(designs.destroyer).name}、費用${cost}、護衛艦で、潜水艦を爆雷で沈める）`,
+  submarine: (cost: number, designs: ShipDesigns) =>
+    `潜水艦（${techOf(designs.submarine).name}、費用${cost}、敵の輸送船を沈める）`,
+} satisfies Readonly<
+  Record<ShipyardOrder, (cost: number, designs: ShipDesigns) => string>
+>;
 
-const ORDER_LABELS = Object.fromEntries(
-  SHIPYARD_ORDERS.map((order) => [
-    order,
-    ORDER_WORDS[order](orderOf(order).cost),
-  ])
-);
+/** What each order builds, in words, for dockyards laying down `designs`. */
+const orderLabelsOf = (designs: ShipDesigns) =>
+  Object.fromEntries(
+    SHIPYARD_ORDERS.map((order) => [
+      order,
+      ORDER_WORDS[order](Math.round(orderOf(order, designs).cost), designs),
+    ])
+  );
 
-/** What each plane does, in words, around what one costs a military factory. */
+/** What each plane does, in words, around the design and what one costs a military factory. */
 const AIRCRAFT_WORDS = {
-  "close-support": (cost: number) =>
-    `近接航空支援機（1機の費用${cost}、前線の敵師団の組織力を削る）`,
-  fighter: (cost: number) =>
-    `戦闘機（1機の費用${cost}、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）`,
-  "naval-bomber": (cost: number) =>
-    `雷撃機（1機の費用${cost}、送られた海の敵艦を攻撃して沈める）`,
-} satisfies Readonly<Record<Aircraft, (cost: number) => string>>;
+  "close-support": (cost: number, name: string) =>
+    `近接航空支援機（${name}、1機の費用${cost}、前線の敵師団の組織力を削る）`,
+  fighter: (cost: number, name: string) =>
+    `戦闘機（${name}、1機の費用${cost}、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）`,
+  "naval-bomber": (cost: number, name: string) =>
+    `雷撃機（${name}、1機の費用${cost}、送られた海の敵艦を攻撃して沈める）`,
+} satisfies Readonly<Record<Aircraft, (cost: number, name: string) => string>>;
 
-const AIRCRAFT_LABELS = Object.fromEntries(
-  AIRCRAFT.map((aircraft) => [
-    aircraft,
-    AIRCRAFT_WORDS[aircraft](airframeOf(aircraft).cost),
-  ])
-);
+/** What each plane does, in words, for factories building `models`. */
+const aircraftLabelsOf = (models: AirframeModels) =>
+  Object.fromEntries(
+    AIRCRAFT.map((aircraft) => [
+      aircraft,
+      AIRCRAFT_WORDS[aircraft](
+        airframeOf(models[aircraft]).cost,
+        techOf(models[aircraft]).name
+      ),
+    ])
+  );
 
 /** What each weight of aviation puts on planes, in words, read off its share. */
 const aviationLabel = (aviation: Aviation): string => {
@@ -212,13 +242,53 @@ const MODIFIER_LABELS = {
   attack: "攻撃",
   construction: "建設速度",
   defence: "防御",
+  dockyards: "造船",
+  extraction: "資源の採掘",
   manpower: "動員できる人数",
   organisation: "組織力",
   production: "装備の生産",
   recovery: "組織力の回復",
+  refining: "石油から得る燃料",
   research: "研究速度",
   supply: "補給",
 } satisfies Readonly<Record<Modifier, string>>;
+
+const SHIP_CLASS_NAMES = {
+  battleship: "戦艦",
+  carrier: "空母",
+  cruiser: "巡洋艦",
+  destroyer: "駆逐艦",
+  submarine: "潜水艦",
+} satisfies Readonly<Record<ShipClass, string>>;
+
+const WEAPON_NAMES = {
+  heavy: "重攻撃",
+  light: "軽攻撃",
+  torpedo: "魚雷攻撃",
+} satisfies Readonly<Record<ShipWeapon, string>>;
+
+/** What a technology adds to warships' weapons, in words. */
+const upgradeWords = (upgrades: readonly ShipUpgrade[]): readonly string[] =>
+  upgrades.map(
+    (upgrade) =>
+      `${SHIP_CLASS_NAMES[upgrade.shipClass]}の${WEAPON_NAMES[upgrade.weapon]}+${Math.round(upgrade.share * PERCENT)}%`
+  );
+
+/** The technologies that unlock each kind of design, and what researching one does, in words. */
+const DESIGN_WORDS: readonly (readonly [ReadonlySet<string>, string])[] = [
+  [new Set(SHIP_DESIGNS), "造船所が新しい型で造る"],
+  [new Set(AIRFRAME_MODELS), "工場が新しい型の機体を作る"],
+  [new Set(INFANTRY_EQUIPMENT), "師団が新しい世代の装備で戦う"],
+];
+
+/** What researching `tech` brings in the way of a new design, in words. */
+const designWords = (tech: TechId): readonly string[] =>
+  DESIGN_WORDS.flatMap(([techs, words]) => {
+    if (!techs.has(tech)) {
+      return [];
+    }
+    return [words];
+  });
 
 const GRANT_LABELS = {
   civilianFactories: "民需工場",
@@ -254,8 +324,18 @@ const grantWords = (grants: Grants): readonly string[] =>
   });
 
 const techLabel = (tech: TechId): string => {
-  const { bonus, name, year } = techOf(tech);
-  return `${name}（${year}年の技術、${bonusWords(bonus).join("・")}）`;
+  const { bonus, name, upgrades, year } = techOf(tech);
+  const effects = [
+    ...designWords(tech),
+    ...bonusWords(bonus),
+    ...upgradeWords(upgrades),
+  ];
+  const told = itemAt(
+    [effects, ["それ自体の効果はなく、次の技術を開く"]],
+    Number(effects.length === 0),
+    effects
+  );
+  return `${name}（${year}年の技術、研究${daysOf(tech)}日、${told.join("・")}）`;
 };
 
 const focusLabel = (focus: FocusId): string => {
@@ -456,7 +536,7 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
   });
   if (brief.dockyards > 0) {
     asked.push({
-      criteria: ORDER_LABELS,
+      criteria: orderLabelsOf(brief.shipDesigns),
       instructions: `${name}の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。`,
       key: keyOf(nation, "shipbuilding"),
       nation,
@@ -472,7 +552,7 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       question: "aviation",
     },
     {
-      criteria: AIRCRAFT_LABELS,
+      criteria: aircraftLabelsOf(brief.planeModels),
       instructions: `${name}の航空機工場は次にどの機種を作りますか。戦闘機がいないと制空権を奪われ、近接航空支援機と雷撃機も撃ち落とされます。`,
       key: keyOf(nation, "aircraft"),
       nation,
@@ -484,7 +564,7 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       criteria: Object.fromEntries(
         brief.techs.map((tech): [string, string] => [tech, techLabel(tech)])
       ),
-      instructions: `${name}には空いている研究枠が${brief.freeSlots}つあります。次に研究する技術として最も良いものはどれですか。今年より後の年の技術は、1年早いごとに研究にかかる日数が${AHEAD_OF_TIME_PER_YEAR}倍ずつ増えます。`,
+      instructions: `${name}には空いている研究枠が${brief.freeSlots}つあります。次に研究する技術として最も良いものはどれですか。選択肢は分野ごとに今始められるいちばん早い年の技術です。今年より後の年の技術は、研究の速さが「1＋${AHEAD_OF_TIME_PER_YEAR}×早い年数」分の1に落ちます。`,
       key: keyOf(nation, "research"),
       nation,
       question: "research",

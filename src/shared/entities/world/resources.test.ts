@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { airspaceOf } from "./airspace";
 import type { Compliance } from "./compliance";
 import type { World } from "./index";
+import { NO_MODIFIERS } from "./modifiers";
 import type { Province } from "./provinces";
 import type { ResourceNeed } from "./resources";
 import {
@@ -157,10 +158,18 @@ describe(depositsOf, () => {
 
 describe(extractedBy, () => {
   it("should dig a home mine in full and an occupied one at its compliance when one nation holds its own mine and another an occupied one", () => {
-    expect(extractedBy(WORLD, OWNERS, COMPLIANCE)).toStrictEqual([
+    expect(extractedBy(WORLD, OWNERS, COMPLIANCE, [])).toStrictEqual([
       MINE,
       scaled(MINE, 0.25),
     ]);
+  });
+
+  it("should raise what a nation digs by the extraction its modifiers add when it has extraction technology", () => {
+    expect(
+      extractedBy(WORLD, OWNERS, COMPLIANCE, [
+        { ...NO_MODIFIERS, extraction: 0.5 },
+      ])
+    ).toStrictEqual([scaled(MINE, 1.5), scaled(MINE, 0.25)]);
   });
 });
 

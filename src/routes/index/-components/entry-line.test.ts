@@ -67,8 +67,9 @@ describe(entryLine, () => {
 
   it("should name the technology when a nation starts researching one", () => {
     expect(
-      lineOf({ kind: "research", nation: 0, tech: "tools-1" }).action
-    ).toBe("研究開始 → 工作機械I");
+      lineOf({ kind: "research", nation: 0, tech: "basic-machine-tools" })
+        .action
+    ).toBe("研究開始 → 基本工作機械");
   });
 
   it("should name the focus when a nation picks a national focus", () => {

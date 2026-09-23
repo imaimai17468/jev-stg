@@ -18,15 +18,15 @@ import {
   weightOf,
   withOrder,
 } from "./navy";
-import { SEA_GRAPH, ZERO_FIGHTS_ONE } from "./sea-fixture";
+import { SEA_GRAPH, SHIPS_1936, ZERO_FIGHTS_ONE } from "./sea-fixture";
 import { seaDistanceFrom } from "./seas";
 import type { Ship, ShipClass } from "./ships";
-import { launched, supremacyOf } from "./ships";
+import { classOf, launched, supremacyOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 
-/** A warship of `shipClass` fresh from the dockyard, with whatever a test needs changed. */
+/** A 1936 warship of `shipClass` fresh from the dockyard, with whatever a test needs changed. */
 const ship = (shipClass: ShipClass, patch: Partial<Ship> = {}): Ship => ({
-  ...launched(shipClass),
+  ...launched(SHIPS_1936[shipClass]),
   ...patch,
 });
 
@@ -55,7 +55,7 @@ const withMain = (ships: readonly Ship[]): Navy =>
 
 /** The classes of each task force's ships, battle fleet first. */
 const classesOf = (navy: Navy): readonly (readonly ShipClass[])[] =>
-  navy.fleets.map((fleet) => fleet.ships.map((one) => one.shipClass));
+  navy.fleets.map((fleet) => fleet.ships.map(classOf));
 
 /** A nation whose port opens onto zone 4 and that wants its ships nowhere else. */
 const QUIET: Station = {
@@ -138,18 +138,22 @@ describe(screeningOf, () => {
 
 describe(builtOneDay, () => {
   it("should build nothing when the nation has no port to launch from", () => {
-    expect(builtOneDay(NO_NAVY, 1000, UNASSIGNED)).toStrictEqual(NO_NAVY);
+    expect(builtOneDay(NO_NAVY, 1000, UNASSIGNED, SHIPS_1936)).toStrictEqual(
+      NO_NAVY
+    );
   });
 
   it("should carry the production into the next day when it does not pay for one", () => {
-    expect(builtOneDay(NO_NAVY, 60, 4)).toStrictEqual({
+    expect(builtOneDay(NO_NAVY, 60, 4, SHIPS_1936)).toStrictEqual({
       ...NO_NAVY,
       progress: 60,
     });
   });
 
   it("should finish as many convoys as the production pays for and carry the rest when it pays for several", () => {
-    expect(builtOneDay({ ...NO_NAVY, progress: 50 }, 220, 4)).toStrictEqual({
+    expect(
+      builtOneDay({ ...NO_NAVY, progress: 50 }, 220, 4, SHIPS_1936)
+    ).toStrictEqual({
       ...NO_NAVY,
       convoys: 2,
       progress: 70,
@@ -158,7 +162,10 @@ describe(builtOneDay, () => {
 
   it("should send a new submarine to the raiders at the home port when the raiders have no ship yet", () => {
     expect(
-      fleetOf(builtOneDay(withOrder(NO_NAVY, "submarine"), 350, 5), "raiders")
+      fleetOf(
+        builtOneDay(withOrder(NO_NAVY, "submarine"), 451, 5, SHIPS_1936),
+        "raiders"
+      )
     ).toStrictEqual(
       force({ role: "raiders", ships: [ship("submarine")], zone: 5 })
     );
@@ -166,7 +173,9 @@ describe(builtOneDay, () => {
 
   it("should send a new destroyer to the escorts when the battle fleet has no capital ship to screen", () => {
     expect(
-      classesOf(builtOneDay(withOrder(NO_NAVY, "destroyer"), 500, 4))
+      classesOf(
+        builtOneDay(withOrder(NO_NAVY, "destroyer"), 1184.5, 4, SHIPS_1936)
+      )
     ).toStrictEqual([[], ["destroyer"], []]);
   });
 
@@ -175,8 +184,9 @@ describe(builtOneDay, () => {
       classesOf(
         builtOneDay(
           withOrder(withMain([ship("battleship")]), "destroyer"),
-          500,
-          4
+          1184.5,
+          4,
+          SHIPS_1936
         )
       )
     ).toStrictEqual([["battleship", "destroyer"], [], []]);
@@ -185,14 +195,19 @@ describe(builtOneDay, () => {
   it("should send a new destroyer to the battle fleet when its carrier lacks screens", () => {
     expect(
       classesOf(
-        builtOneDay(withOrder(withMain([ship("carrier")]), "destroyer"), 500, 4)
+        builtOneDay(
+          withOrder(withMain([ship("carrier")]), "destroyer"),
+          1184.5,
+          4,
+          SHIPS_1936
+        )
       )
     ).toStrictEqual([["carrier", "destroyer"], [], []]);
   });
 
   it("should send a new carrier to the battle fleet when the dockyards finish one", () => {
     expect(
-      classesOf(builtOneDay(withOrder(NO_NAVY, "carrier"), 2094, 4))
+      classesOf(builtOneDay(withOrder(NO_NAVY, "carrier"), 8822, 4, SHIPS_1936))
     ).toStrictEqual([["carrier"], [], []]);
   });
 
@@ -204,8 +219,25 @@ describe(builtOneDay, () => {
     ]);
 
     expect(
-      fleetOf(builtOneDay(withOrder(atSea, "battleship"), 3000, 4), "main").zone
+      fleetOf(
+        builtOneDay(withOrder(atSea, "battleship"), 12_960, 4, SHIPS_1936),
+        "main"
+      ).zone
     ).toBe(6);
+  });
+
+  it("should launch the newest design of the class at its cost when a newer design is researched than the one laid down", () => {
+    expect(
+      fleetOf(
+        builtOneDay(
+          withOrder({ ...NO_NAVY, progress: 1200 }, "destroyer"),
+          151.25,
+          4,
+          { ...SHIPS_1936, destroyer: "destroyer-3" }
+        ),
+        "escort"
+      ).ships
+    ).toStrictEqual([launched("destroyer-3")]);
   });
 });
 
@@ -221,11 +253,11 @@ describe(withOrder, () => {
 
 describe(openingNavy, () => {
   it("should open with no navy when the nation has no port", () => {
-    expect(openingNavy(4, UNASSIGNED)).toStrictEqual(NO_NAVY);
+    expect(openingNavy(4, UNASSIGNED, SHIPS_1936)).toStrictEqual(NO_NAVY);
   });
 
   it("should put the capital ships in first so three destroyers screen them and the rest escort when the nation has a port", () => {
-    expect(classesOf(openingNavy(4, 4))).toStrictEqual([
+    expect(classesOf(openingNavy(4, 4, SHIPS_1936))).toStrictEqual([
       [
         "battleship",
         "destroyer",
@@ -240,7 +272,7 @@ describe(openingNavy, () => {
   });
 
   it("should put a carrier in beside the battleships so the destroyers screen it too when the nation has ten dockyards", () => {
-    expect(classesOf(openingNavy(10, 4))).toStrictEqual([
+    expect(classesOf(openingNavy(10, 4, SHIPS_1936))).toStrictEqual([
       [
         "battleship",
         "battleship",
@@ -254,7 +286,7 @@ describe(openingNavy, () => {
   });
 
   it("should float ten convoys for each dockyard when the nation has a port", () => {
-    expect(openingNavy(4, 4).convoys).toBe(40);
+    expect(openingNavy(4, 4, SHIPS_1936).convoys).toBe(40);
   });
 });
 
@@ -437,12 +469,12 @@ describe(weightOf, () => {
   it("should count a whole battleship's supremacy when it is on a strike", () => {
     expect(
       weightOf(force({ mission: "strike", ships: [ship("battleship")] }))
-    ).toBeCloseTo(supremacyOf("battleship"));
+    ).toBeCloseTo(supremacyOf(SHIPS_1936.battleship));
   });
 
   it("should count three quarters of it when the fleet is on patrol", () => {
     expect(weightOf(force({ ships: [ship("battleship")] }))).toBeCloseTo(
-      supremacyOf("battleship") * 0.75
+      supremacyOf(SHIPS_1936.battleship) * 0.75
     );
   });
 
@@ -451,7 +483,7 @@ describe(weightOf, () => {
       weightOf(
         force({ mission: "strike", ships: [ship("destroyer", { hp: 20 })] })
       )
-    ).toBeCloseTo(supremacyOf("destroyer") / 2);
+    ).toBeCloseTo(supremacyOf(SHIPS_1936.destroyer) / 2);
   });
 
   it("should count nothing when the fleet is making for port to repair", () => {
@@ -559,7 +591,7 @@ describe(fleetStrength, () => {
     ]);
 
     expect(fleetStrength(navy)).toBeCloseTo(
-      supremacyOf("battleship") + supremacyOf("destroyer")
+      supremacyOf(SHIPS_1936.battleship) + supremacyOf(SHIPS_1936.destroyer)
     );
   });
 });

@@ -8,7 +8,7 @@ import { FIXTURE_WORLD } from "./world-fixture";
 const flyingOver = (region: number, planes: number): AirForce => ({
   ...NO_AIR_FORCE,
   wings: [
-    { aircraft: "fighter", base: 0, mission: "superiority", planes, region },
+    { base: 0, mission: "superiority", model: "fighter-1", planes, region },
   ],
 });
 

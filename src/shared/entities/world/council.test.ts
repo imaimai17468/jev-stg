@@ -5,6 +5,7 @@ import { START_ADVANCEMENT } from "./advancement";
 import type { Agency } from "./agency";
 import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import { airForceOf, wing } from "./air-war-fixture";
+import { OPENING_ARMOURY } from "./armoury";
 import { division } from "./army-fixture";
 import type { Negotiation } from "./chronicle";
 import type { Council, NationBrief, Verdict } from "./consultation";
@@ -35,6 +36,7 @@ import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
 import type { Random } from "./random";
+import { START_RESEARCH } from "./research";
 import type { Sighting } from "./sightings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
@@ -98,10 +100,12 @@ const BRIEF: NationBrief = {
   militaryFactories: 0,
   nation: 1,
   operatives: 0,
+  planeModels: OPENING_ARMOURY.planes,
   planes: 0,
   population: 0,
   posted: false,
   rivals: [{ nation: 2, strength: exactly(0) }],
+  shipDesigns: OPENING_ARMOURY.ships,
   shortage: 0,
   skyLost: 0,
   spyTargets: [],
@@ -164,14 +168,17 @@ const advancedTo = (
   }),
 });
 
-/** Nation 0 with the technologies of `researched` finished. */
+/** Nation 0 with the technologies of `researched` finished on top of those it opens with. */
 const researchedAll = (
   simulation: Simulation,
   researched: Advancement["research"]["researched"]
 ): Simulation =>
   advancedTo(simulation, {
     ...START_ADVANCEMENT,
-    research: { researched, studies: [], vouchers: [] },
+    research: {
+      ...START_RESEARCH,
+      researched: [...START_RESEARCH.researched, ...researched],
+    },
   });
 
 /** What the rules put on nation 0's slots, in the order they started. */
@@ -307,7 +314,7 @@ describe(councilOf, () => {
     ).toStrictEqual([2, 3]);
   });
 
-  it("should offer the free slots every technology and focus without a prerequisite when a government has researched nothing", () => {
+  it("should offer the free slots each line's leading technology and every focus without a prerequisite when the world opens", () => {
     const brief = briefOfFirst(councilOf(ROW_WORLD, ROW_SIMULATION));
 
     expect({
@@ -323,13 +330,20 @@ describe(councilOf, () => {
       ],
       freeSlots: 3,
       techs: [
-        "infantry-weapons-1",
-        "artillery-1",
-        "modern-tactics",
-        "tools-1",
+        "improved-infantry-equipment-1",
+        "destroyer-3",
+        "light-cruiser-3",
+        "battleship-3",
+        "carrier-3",
+        "submarine-3",
+        "basic-light-battery",
+        "fighter-2",
+        "close-air-support-2",
+        "naval-bomber-2",
+        "basic-machine-tools",
         "construction-1",
-        "electronics-1",
-        "logistics-1",
+        "fuel-storage",
+        "electronic-mechanical-engineering",
       ],
     });
   });
@@ -341,7 +355,11 @@ describe(councilOf, () => {
         ...economy,
         dockyards: 4 - nation,
       })),
-      navies: [openingNavy(4, 4), openingNavy(2, 4), openingNavy(8, 4)],
+      navies: [
+        openingNavy(4, 4, OPENING_ARMOURY.ships),
+        openingNavy(2, 4, OPENING_ARMOURY.ships),
+        openingNavy(8, 4, OPENING_ARMOURY.ships),
+      ],
     };
     const brief = briefOfFirst(councilOf(ROW_WORLD, fleets));
 
@@ -353,8 +371,10 @@ describe(councilOf, () => {
     }).toStrictEqual({
       convoys: 40,
       dockyards: 4,
-      enemyFleet: exactly(fleetStrength(openingNavy(2, 4))),
-      fleet: fleetStrength(openingNavy(4, 4)),
+      enemyFleet: exactly(
+        fleetStrength(openingNavy(2, 4, OPENING_ARMOURY.ships))
+      ),
+      fleet: fleetStrength(openingNavy(4, 4, OPENING_ARMOURY.ships)),
     });
   });
 
@@ -365,12 +385,12 @@ describe(councilOf, () => {
         replacedAt(
           ROW_SIMULATION.airForces,
           0,
-          airForceOf([wing({ aircraft: "fighter", base: 0, planes: 30 })])
+          airForceOf([wing({ base: 0, model: "fighter-1", planes: 30 })])
         ),
         1,
         airForceOf([
-          wing({ aircraft: "fighter", base: 1, planes: 20 }),
-          wing({ aircraft: "close-support", base: 1, planes: 5 }),
+          wing({ base: 1, model: "fighter-1", planes: 20 }),
+          wing({ base: 1, model: "close-air-support-1", planes: 5 }),
         ])
       ),
       airPower: replacedAt(
@@ -402,13 +422,24 @@ describe(councilOf, () => {
     const busy = advancedTo(ROW_SIMULATION, {
       ...START_ADVANCEMENT,
       research: {
-        researched: [],
+        ...START_RESEARCH,
         studies: [
-          { bonus: 0, progress: 0, tech: "tools-1" },
-          { bonus: 0, progress: 0, tech: "construction-1" },
-          { bonus: 0, progress: 0, tech: "electronics-1" },
+          { ahead: 0, bonus: 0, progress: 0, saved: 0, tech: "fuel-storage" },
+          {
+            ahead: 0,
+            bonus: 0,
+            progress: 0,
+            saved: 0,
+            tech: "construction-1",
+          },
+          {
+            ahead: 0,
+            bonus: 0,
+            progress: 0,
+            saved: 0,
+            tech: "basic-machine-tools",
+          },
         ],
-        vouchers: [],
       },
     });
 
@@ -536,7 +567,7 @@ describe(ruledByRules, () => {
     ).toStrictEqual([2]);
   });
 
-  it("should start the army's technologies first when the rules declare war in the same council", () => {
+  it("should start the forces' technologies first when the rules declare war in the same council", () => {
     const armed: Simulation = {
       ...ROW_SIMULATION,
       clock: { ...ROW_SIMULATION.clock, days: 60 },
@@ -547,7 +578,11 @@ describe(ruledByRules, () => {
       ruledByRules(ROW_WORLD, armed, 60).advancements[3]?.research.studies.map(
         (study) => study.tech
       )
-    ).toStrictEqual(["infantry-weapons-1", "artillery-1", "modern-tactics"]);
+    ).toStrictEqual([
+      "basic-light-battery",
+      "basic-medium-battery",
+      "basic-heavy-battery",
+    ]);
   });
 
   it("should join the faction across its border when a nation is threatened", () => {
@@ -564,25 +599,37 @@ describe(ruledByRules, () => {
   it("should start the economy's technologies first on every free slot when a nation is at peace", () => {
     expect(
       startedTechs(ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY))
-    ).toStrictEqual(["tools-1", "construction-1", "electronics-1"]);
+    ).toStrictEqual(["basic-machine-tools", "construction-1", "fuel-storage"]);
   });
 
-  it("should start the army's technologies first on every free slot when a nation is at war", () => {
+  it("should start the forces' technologies first on every free slot when a nation is at war", () => {
     expect(
       startedTechs(ruledByRules(ROW_WORLD, atWar([]), COUNCIL_DAY))
-    ).toStrictEqual(["infantry-weapons-1", "artillery-1", "modern-tactics"]);
+    ).toStrictEqual([
+      "basic-light-battery",
+      "basic-medium-battery",
+      "basic-heavy-battery",
+    ]);
   });
 
-  it("should start a technology meant for this year before a later one when both are on offer", () => {
+  it("should start the economy's technologies meant for this year before the forces' later ones when a nation at war has none of its own left for this year", () => {
     expect(
       startedTechs(
         ruledByRules(
           ROW_WORLD,
-          researchedAll(ROW_SIMULATION, ["tools-1"]),
+          researchedAll(atWar([]), [
+            "basic-light-battery",
+            "basic-medium-battery",
+            "basic-heavy-battery",
+            "small-caliber-semi-armor-piercing-shell",
+            "armor-piercing-capped-medium-shell",
+            "armor-piercing-capped-shell",
+            "magnetic-detonator",
+          ]),
           COUNCIL_DAY
         )
       )
-    ).toStrictEqual(["construction-1", "electronics-1", "infantry-weapons-1"]);
+    ).toStrictEqual(["basic-machine-tools", "construction-1", "fuel-storage"]);
   });
 
   it("should pass over a technology an earlier pick ruled out when the rules fill the slots", () => {
@@ -590,22 +637,14 @@ describe(ruledByRules, () => {
       startedTechs(
         ruledByRules(
           ROW_WORLD,
-          researchedAll(ROW_SIMULATION, [
-            "infantry-weapons-1",
-            "artillery-1",
-            "modern-tactics",
-            "tools-1",
-            "construction-1",
-            "electronics-1",
-            "logistics-1",
-          ]),
+          researchedAll(ROW_SIMULATION, ["basic-machine-tools"]),
           COUNCIL_DAY
         )
       )
     ).toStrictEqual([
-      "tools-2",
       "concentrated-industry-1",
-      "support-weapons-1",
+      "construction-1",
+      "fuel-storage",
     ]);
   });
 
@@ -677,8 +716,8 @@ describe(ruledByRules, () => {
           ROW_SIMULATION.airForces,
           0,
           airForceOf([
-            wing({ aircraft: "fighter", base: 0, planes: 30 }),
-            wing({ aircraft: "close-support", base: 0, planes: 10 }),
+            wing({ base: 0, model: "fighter-1", planes: 30 }),
+            wing({ base: 0, model: "close-air-support-1", planes: 10 }),
           ])
         ),
       },
@@ -704,10 +743,10 @@ describe(ruledByRules, () => {
           replacedAt(
             ROW_SIMULATION.airForces,
             0,
-            airForceOf([wing({ aircraft: "fighter", base: 0, planes: 10 })])
+            airForceOf([wing({ base: 0, model: "fighter-1", planes: 10 })])
           ),
           1,
-          airForceOf([wing({ aircraft: "fighter", base: 1, planes: 20 })])
+          airForceOf([wing({ base: 1, model: "fighter-1", planes: 20 })])
         ),
       },
     },
@@ -716,7 +755,11 @@ describe(ruledByRules, () => {
       condition: "a nation at war is outgunned at sea",
       simulation: {
         ...atWar([]),
-        navies: replacedAt(ROW_SIMULATION.navies, 1, openingNavy(4, 4)),
+        navies: replacedAt(
+          ROW_SIMULATION.navies,
+          1,
+          openingNavy(4, 4, OPENING_ARMOURY.ships)
+        ),
       },
     },
     {
@@ -1097,7 +1140,9 @@ describe(rulingsFrom, () => {
   it("should hand every offered technology on, the heaviest first, when Jev weighs the research", () => {
     const researching: Council = {
       ...COUNCIL,
-      nations: [{ ...BRIEF, freeSlots: 1, techs: ["tools-1", "artillery-1"] }],
+      nations: [
+        { ...BRIEF, freeSlots: 1, techs: ["construction-1", "fuel-storage"] },
+      ],
     };
 
     expect(
@@ -1105,11 +1150,11 @@ describe(rulingsFrom, () => {
         researching,
         [
           verdict({
-            choice: "artillery-1",
+            choice: "fuel-storage",
             question: "research",
             weights: [
-              { choice: "tools-1", probability: 0.3 },
-              { choice: "artillery-1", probability: 0.6 },
+              { choice: "construction-1", probability: 0.3 },
+              { choice: "fuel-storage", probability: 0.6 },
             ],
           }),
         ],
@@ -1117,11 +1162,11 @@ describe(rulingsFrom, () => {
       )
     ).toStrictEqual([
       {
-        decision: { kind: "research", nation: 1, tech: "artillery-1" },
+        decision: { kind: "research", nation: 1, tech: "fuel-storage" },
         source: fromJev(0.6),
       },
       {
-        decision: { kind: "research", nation: 1, tech: "tools-1" },
+        decision: { kind: "research", nation: 1, tech: "construction-1" },
         source: fromJev(0.3),
       },
     ]);
@@ -1133,9 +1178,9 @@ describe(rulingsFrom, () => {
         COUNCIL,
         [
           verdict({
-            choice: "tools-1",
+            choice: "construction-1",
             question: "research",
-            weights: [{ choice: "tools-1", probability: 1 }],
+            weights: [{ choice: "construction-1", probability: 1 }],
           }),
         ],
         ANY_DRAW

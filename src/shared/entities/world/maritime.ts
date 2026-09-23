@@ -1,4 +1,5 @@
 import { Option } from "effect";
+import type { Armoury } from "./armoury";
 import type { Diplomacy } from "./diplomacy";
 import type { Division } from "./divisions";
 import {
@@ -76,6 +77,8 @@ export interface Coasts {
   readonly lift: readonly Float32Array[];
   /** The fuel in each nation's stockpile, by nation id. */
   readonly fuel: readonly number[];
+  /** What each nation's research arms it with, by nation id. */
+  readonly armouries: readonly Armoury[];
 }
 
 /** A day at sea, and the landings that went ashore on it. */
@@ -89,7 +92,7 @@ export interface Seafaring extends Seas {
 /** The fuel a task force burns in a day on the move. */
 const underwayFuelOf = (fleet: TaskForce): number =>
   fleet.ships.reduce(
-    (total, ship) => total + hullOf(ship.shipClass).fuel * SHIP_FUEL_PER_DAY,
+    (total, ship) => total + hullOf(ship.design).fuel * SHIP_FUEL_PER_DAY,
     0
   );
 
@@ -481,7 +484,8 @@ export const seafaredOneDay = (seas: Seas, coasts: Coasts): Seafaring => {
     sailedNavies,
     coasts.diplomacy.wars,
     FLEET_ROLES.length,
-    shares.map(gunsKeptWith)
+    shares.map(gunsKeptWith),
+    coasts.armouries
   );
   const waters: Waters = {
     all: watersOf(coasts.graph, battles.navies, coasts.lift),

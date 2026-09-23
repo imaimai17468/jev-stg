@@ -7,6 +7,7 @@ import type { AirForce } from "./air-force";
 import { allPlanesOf, NO_AIR_FORCE, planesOf } from "./air-force";
 import type { Aircraft, Aviation } from "./aircraft";
 import { AIRCRAFT, AVIATIONS } from "./aircraft";
+import { armouryOf } from "./armoury";
 import { dateLabel } from "./calendar";
 import type { Negotiation, Order, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
@@ -56,14 +57,20 @@ import { PEACE_TERMS } from "./peace";
 import { graphOf } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
-import type { TechBranch, TechId } from "./research";
-import { availableTechs, techOf } from "./research";
+import { availableTechs, leadingTechs } from "./research";
 import { ruled } from "./rulings";
 import { SHIPYARD_ORDERS } from "./ships";
 import type { Forces, Sighting } from "./sightings";
 import { sightingOf } from "./sightings";
 import type { Simulation } from "./simulation";
-import { espialOf, realmOf, skiesOf, supplyOf } from "./simulation";
+import {
+  armouriesOf,
+  espialOf,
+  modifiersOfAll,
+  realmOf,
+  skiesOf,
+  supplyOf,
+} from "./simulation";
 import type { Skies } from "./skies";
 import { skyLostBy } from "./skies";
 import type { Stance } from "./stance";
@@ -82,6 +89,8 @@ import {
 } from "./statecraft";
 import type { SupplyNetwork } from "./supply";
 import { undersuppliedShare } from "./supply";
+import type { TechCategory, TechId } from "./techs";
+import { categoryOf, techOf } from "./techs";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW, TRADE_LAWS } from "./trade";
 import { enemiesOf } from "./wars";
@@ -233,8 +242,9 @@ const factionsOf = (
 type Offers = Pick<NationBrief, "focuses" | "freeSlots" | "techs">;
 
 /**
- * The technologies its free slots may start on, which are none where no slot
- * is free, and the focuses it may pick next.
+ * The technologies its free slots may start on, the one each line of the
+ * tree leads with, which are none where no slot is free, and the focuses it
+ * may pick next.
  */
 const offersOf = (advancement: Advancement): Offers => {
   const freeSlots = freeSlotsOf(advancement);
@@ -242,7 +252,7 @@ const offersOf = (advancement: Advancement): Offers => {
   if (freeSlots === 0) {
     return { focuses, freeSlots, techs: [] };
   }
-  return { focuses, freeSlots, techs: availableTechs(advancement.research) };
+  return { focuses, freeSlots, techs: leadingTechs(advancement.research) };
 };
 
 /** One government's brief for the month. */
@@ -254,6 +264,7 @@ const briefOf = (
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   const enemies = enemiesOf(standoff.diplomacy.wars, nation);
   const airForce = itemAt(dossier.airForces, nation, NO_AIR_FORCE);
+  const armoury = armouryOf(dossier.advancement.research);
   const sighted = (
     kind: "army" | "navy" | "air",
     amount: (enemy: number) => number
@@ -290,10 +301,12 @@ const briefOf = (
     militaryFactories: economy.militaryFactories,
     nation,
     operatives: dossier.service.operatives,
+    planeModels: armoury.planes,
     planes: allPlanesOf(airForce),
     population: economy.population,
     posted: dossier.service.target !== HOME,
     rivals: rivalsOf(standoff, dossier, nation),
+    shipDesigns: armoury.ships,
     shortage: dossier.shortage,
     skyLost: skyLostBy(dossier.skies, nation),
     spyTargets: spyTargetsOf(standoff, dossier.intel, nation),
@@ -329,7 +342,12 @@ const governments = (world: World, simulation: Simulation): readonly number[] =>
 export const councilOf = (world: World, simulation: Simulation): Council => {
   const standoff = standoffOf(world, simulation);
   const supply = supplyOf(world, simulation);
-  const ledgers = ledgersOf({ ...simulation, world });
+  const ledgers = ledgersOf({
+    ...simulation,
+    armouries: armouriesOf(simulation),
+    modifiers: modifiersOfAll(simulation),
+    world,
+  });
   const intel = intelOf(espialOf(simulation, graphOf(world.provinces)));
   const random = randomFromSeed(
     streamSeed(streamSeed(world.seed, SIGHTING_STREAM), simulation.clock.days)
@@ -684,18 +702,17 @@ const intelligenceByRules = (
   ];
 };
 
-/** The branches that make a nation's army fight better. */
-const ARMY_BRANCHES: ReadonlySet<TechBranch> = new Set([
+/** The research categories that arm a nation's forces. */
+const MILITARY_CATEGORIES: ReadonlySet<TechCategory> = new Set([
   "infantry",
-  "artillery",
-  "doctrine",
-  "logistics",
+  "naval",
+  "air",
 ]);
 
 /**
  * The technologies the rules would start, the first choice first: the ones
  * meant for the earliest year first, since a later one takes longer, and within
- * a year the army's branches first at war and the economy's first at peace.
+ * a year the forces' categories first at war and the economy's first at peace.
  * Carrying them out in order fills the free slots, and passes over one that an
  * earlier pick ruled out.
  */
@@ -704,7 +721,7 @@ const techsByRules = (
   atWar: boolean
 ): readonly TechId[] => {
   const rank = (tech: TechId) =>
-    Number(ARMY_BRANCHES.has(techOf(tech).branch) !== atWar);
+    Number(MILITARY_CATEGORIES.has(categoryOf(techOf(tech).line)) !== atWar);
   return availableTechs(advancement.research).toSorted((one, other) => {
     const byYear = techOf(one).year - techOf(other).year;
     if (byYear !== 0) {

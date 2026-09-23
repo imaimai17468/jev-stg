@@ -7,11 +7,12 @@ import {
   modifiersOf,
   START_ADVANCEMENT,
 } from "./advancement";
+import { daysFromCivil } from "./calendar";
 import { NO_ECONOMY, withTradeLaw } from "./economy";
 import { FOCUS_DAYS } from "./focus";
 import { NO_MODIFIERS } from "./modifiers";
 
-/** Two technologies researched, one of them on research speed, and a focus a day from done. */
+/** Two technologies researched, one of them on research speed, one on a slot, and a focus a day from done. */
 const ADVANCED: Advancement = {
   focuses: {
     current: Option.some({
@@ -21,19 +22,25 @@ const ADVANCED: Advancement = {
     done: ["army-effort"],
   },
   research: {
-    researched: ["electronics-1", "tools-1"],
-    studies: [{ bonus: 0, progress: 0, tech: "artillery-1" }],
+    researched: ["electronic-mechanical-engineering", "construction-1"],
+    saved: [],
+    studies: [
+      { ahead: 0, bonus: 0, progress: 0, saved: 0, tech: "fuel-storage" },
+    ],
     vouchers: [],
   },
 };
+
+const JANUARY_1936 = daysFromCivil({ day: 1, month: 1, year: 1936 });
 
 describe(modifiersOf, () => {
   it("should add the technologies', the focuses' and the trade law's bonuses together when all three grant some", () => {
     expect(modifiersOf(ADVANCED, NO_ECONOMY)).toStrictEqual({
       ...NO_MODIFIERS,
-      construction: 0.1,
+      construction: 0.2,
+      dockyards: 0.1,
       organisation: 0.05,
-      production: 0.2,
+      production: 0.1,
       research: 0.08,
     });
   });
@@ -43,8 +50,8 @@ describe(modifiersOf, () => {
       modifiersOf(ADVANCED, withTradeLaw(NO_ECONOMY, "closed-economy"))
     ).toStrictEqual({
       ...NO_MODIFIERS,
+      construction: 0.1,
       organisation: 0.05,
-      production: 0.1,
       research: 0.03,
     });
   });
@@ -58,15 +65,24 @@ describe(freeSlotsOf, () => {
 
 describe(progressedOneDay, () => {
   it("should research at the day's speed and hand over what a finished focus grants when the day passes", () => {
-    expect(progressedOneDay(ADVANCED, NO_ECONOMY, 1936)).toStrictEqual({
+    expect(progressedOneDay(ADVANCED, NO_ECONOMY, JANUARY_1936)).toStrictEqual({
       advancement: {
         focuses: {
           current: Option.none(),
           done: ["army-effort", "industrialisation"],
         },
         research: {
-          researched: ["electronics-1", "tools-1"],
-          studies: [{ bonus: 0, progress: 1.08, tech: "artillery-1" }],
+          researched: ["electronic-mechanical-engineering", "construction-1"],
+          saved: [1, 1],
+          studies: [
+            {
+              ahead: 0,
+              bonus: 0,
+              progress: 1.08,
+              saved: 0,
+              tech: "fuel-storage",
+            },
+          ],
           vouchers: [],
         },
       },
@@ -76,7 +92,7 @@ describe(progressedOneDay, () => {
 
   it("should leave the economy alone when no focus finishes", () => {
     expect(
-      progressedOneDay(START_ADVANCEMENT, NO_ECONOMY, 1936).economy
+      progressedOneDay(START_ADVANCEMENT, NO_ECONOMY, JANUARY_1936).economy
     ).toStrictEqual(NO_ECONOMY);
   });
 });

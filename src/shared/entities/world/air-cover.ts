@@ -12,10 +12,16 @@ export interface AirCover {
   readonly enemy: readonly Float32Array[];
   /** The close air support planes each nation sends into a battle in each province, by nation id and then province id. */
   readonly support: readonly Float32Array[];
+  /** The ground attack those planes carry between them, by nation id and then province id. */
+  readonly supportAttack: readonly Float32Array[];
 }
 
 /** No planes over any province. */
-export const NO_AIR_COVER: AirCover = { enemy: [], support: [] };
+export const NO_AIR_COVER: AirCover = {
+  enemy: [],
+  support: [],
+  supportAttack: [],
+};
 
 /** A nation with nothing overhead. */
 const CLEAR = new Float32Array(0);
@@ -23,7 +29,7 @@ const CLEAR = new Float32Array(0);
 /**
  * What the cover gives `nation` over `province` in one of its readings: the
  * air superiority its enemies hold there, or the close air support planes it
- * sends into the battle there.
+ * sends into the battle there and the ground attack they carry.
  */
 export const coverOver = (
   cover: AirCover,
@@ -64,8 +70,9 @@ const battlesOf = (
 
 /**
  * The close air support each nation sends into each of its battles today, by
- * nation id and then province id: the planes it flies over a region spread
- * evenly over the battles it fights in that region.
+ * nation id and then province id: what it flies over a region, its planes or
+ * their ground attack, spread evenly over the battles it fights in that
+ * region.
  */
 export const supportOf = (
   field: Battlefield,

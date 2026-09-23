@@ -182,6 +182,20 @@ describe(outputOf, () => {
     ).toBe(5);
   });
 
+  it("should raise the ships' day by the dockyards modifier and not by production when the nation's modifiers raise both", () => {
+    expect(
+      outputOf(
+        { ...INDUSTRY, dockyards: 5 },
+        {
+          ...INLAND,
+          modifiers: { ...NO_MODIFIERS, dockyards: 0.5, production: 1 },
+          supplied: 0.5,
+        },
+        "ships"
+      )
+    ).toBe(7.5);
+  });
+
   it("should put three and a half a day into planes for every factory on them less the share their own resources lose when a fifth of the factories are on planes", () => {
     expect(
       outputOf(

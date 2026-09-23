@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { AirCover } from "./air-cover";
 import { NO_AIR_COVER } from "./air-cover";
+import { OPENING_ARMOURY } from "./armoury";
 import {
   AT_WAR,
   division,
@@ -35,6 +36,7 @@ const FALLBACK: LandProvince = {
 /** The line under `wars`, with neither nation's divisions improved by anything. */
 const theatreOf = (wars: Wars): Theatre => ({
   air: NO_AIR_COVER,
+  armouries: [OPENING_ARMOURY, OPENING_ARMOURY],
   insight: NO_INSIGHT,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
@@ -229,14 +231,30 @@ describe(foughtOneDay, () => {
   });
 });
 
-/** Nothing over the line but `planes` close air support planes of `nation` over province 2. */
-const supportedBy = (nation: number, planes: number): AirCover => ({
-  enemy: [],
-  support: replacedAt(
+/** Nothing over province 2 but one reading of `nation`'s close air support there. */
+const overTheBattle = (
+  nation: number,
+  value: number
+): readonly Float32Array[] =>
+  replacedAt(
     [new Float32Array(4), new Float32Array(4)],
     nation,
-    Float32Array.from([0, 0, planes, 0])
-  ),
+    Float32Array.from([0, 0, value, 0])
+  );
+
+/**
+ * Nothing over the line but `planes` close air support planes of `nation`
+ * over province 2, carrying `groundAttack` each, the 1936 design's unless
+ * given.
+ */
+const supportedBy = (
+  nation: number,
+  planes: number,
+  groundAttack = 8
+): AirCover => ({
+  enemy: [],
+  support: overTheBattle(nation, planes),
+  supportAttack: overTheBattle(nation, planes * groundAttack),
 });
 
 /** The organisation each of one attacker and one defender holds after a day on province 2 under `air`. */
@@ -248,6 +266,29 @@ const organisationUnder = (air: AirCover, insight: Insight = NO_INSIGHT) => {
   );
   return battle.standing.map((fighter) => fighter.organisation);
 };
+
+describe("foughtOneDay with the nations' equipment", () => {
+  it("should take more off the defender's organisation when the attacker's nation fields newer infantry equipment", () => {
+    const battle = foughtOneDay(
+      {
+        ...theatreOf(AT_WAR),
+        armouries: [
+          { ...OPENING_ARMOURY, infantry: "infantry-equipment-3" },
+          OPENING_ARMOURY,
+        ],
+      },
+      CONTESTED,
+      [
+        division({ nation: 0, province: 2 }),
+        division({ nation: 1, province: 2 }),
+      ]
+    );
+
+    expect(
+      battle.standing.map((fighter) => fighter.organisation)
+    ).toStrictEqual([55, 54]);
+  });
+});
 
 describe("foughtOneDay under the planes", () => {
   it("should take the attacker's close air support off the defender's organisation when ten planes fly over the battle", () => {
@@ -268,10 +309,29 @@ describe("foughtOneDay under the planes", () => {
     expect(attacker).toBeCloseTo(46.6, 10);
   });
 
+  it("should strike harder by the ground attack the planes carry when they are a newer design", () => {
+    const [, defender] = organisationUnder(supportedBy(0, 10, 13));
+
+    expect(defender).toBeCloseTo(60 - 3 - 10 * 13 * 0.035 * 3, 10);
+  });
+
+  it("should take the joining planes' share of the ground attack all of them carry when more fly than the battle takes", () => {
+    const [, defender] = organisationUnder(supportedBy(0, 100, 10));
+
+    expect(defender).toBeCloseTo(60 - 3 - 30 * 10 * 0.035 * 3, 10);
+  });
+
+  it("should take nothing off the defender's organisation from the air when no planes fly over the battle", () => {
+    const [, defender] = organisationUnder(supportedBy(0, 0));
+
+    expect(defender).toBe(57);
+  });
+
   it("should cut the defender's worth by 35% when its enemies hold the whole sky over it", () => {
     const [attacker] = organisationUnder({
       enemy: [new Float32Array(4), Float32Array.from([0, 0, 1, 0])],
       support: [],
+      supportAttack: [],
     });
 
     expect(attacker).toBeCloseTo(60 - 5 * 0.65, 10);

@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import type { ResourceNeed } from "./resources";
 import { NO_RESOURCES } from "./resources";
+import { newestPicker } from "./techs";
 
 /** Every class of warship a dockyard lays down. */
 const ShipClassSchema = Schema.Literals([
@@ -30,17 +31,58 @@ export const SHIPYARD_ORDERS = ShipyardOrderSchema.literals;
  */
 export type ShipRole = "screen" | "capital" | "carrier" | "submarine";
 
-/** What one class of warship costs and what it can do. */
+/** Where each class of warship stands in a battle line. */
+const ROLES = {
+  battleship: "capital",
+  carrier: "carrier",
+  cruiser: "screen",
+  destroyer: "screen",
+  submarine: "submarine",
+} satisfies Readonly<Record<ShipClass, ShipRole>>;
+
+export const roleOf = (shipClass: ShipClass): ShipRole => ROLES[shipClass];
+
+/** Every warship design, named by the technology that unlocks it, in the order the tree lists them. */
+const ShipDesignSchema = Schema.Literals([
+  "destroyer-1",
+  "destroyer-2",
+  "destroyer-3",
+  "destroyer-4",
+  "light-cruiser-1",
+  "light-cruiser-2",
+  "light-cruiser-3",
+  "light-cruiser-4",
+  "battleship-1",
+  "battleship-2",
+  "battleship-3",
+  "battleship-4",
+  "carrier-1",
+  "carrier-2",
+  "carrier-3",
+  "carrier-4",
+  "submarine-1",
+  "submarine-2",
+  "submarine-3",
+  "submarine-4",
+]);
+
+export type ShipDesign = typeof ShipDesignSchema.Type;
+
+export const SHIP_DESIGNS = ShipDesignSchema.literals;
+
+/** What one warship design is, what it costs and what it can do. */
 interface Hull {
-  readonly role: ShipRole;
+  readonly shipClass: ShipClass;
   /** The production a dockyard puts into one, in Hearts of Iron IV's units. */
   readonly cost: number;
   /** The damage it takes before it sinks. */
   readonly hp: number;
   /** The cohesion it starts a battle with and leaves it without. */
   readonly organisation: number;
-  /** What an hour of its guns does to a ship on the surface when they hit. */
-  readonly guns: number;
+  /** What an hour of its light batteries does to a ship on the surface when they hit. */
+  readonly light: number;
+  /** What an hour of its heavy batteries does to a ship on the surface when they hit. */
+  readonly heavy: number;
   /** What an hour of its torpedoes does to a ship on the surface when they hit. */
   readonly torpedoes: number;
   /** What an hour of its depth charges does to a submarine when they hit. */
@@ -56,84 +98,299 @@ interface Hull {
 }
 
 /**
- * The 1936 hulls of Hearts of Iron IV's ship designer: their cost, hull
- * points, organisation, surface visibility, resources and fuel, and the 18
- * torpedo attack of its first torpedo launcher. The guns and the depth
- * charges of the default designs are not on the wiki, so those are this
- * game's own, and so is the fuel the engine of each default design adds to
- * its hull's, which the wiki gives for its later engines alone. A carrier
- * holds one hangar's 20 planes, since the wiki gives the hangar's deck size
- * and not how many hangars the 1936 design carries.
+ * The warships of Hearts of Iron IV without Man the Guns, the light cruisers
+ * standing for this world's cruisers: their cost, hull points, light and
+ * heavy attack, torpedo attack, depth charges, surface visibility, fuel,
+ * resources and deck size. That page lists no organisation, so each class
+ * keeps the one Man the Guns gives its 1936 hull.
  */
 const HULLS = {
-  battleship: {
-    cost: 3000,
+  "battleship-1": {
+    cost: 12_246,
     deck: 0,
     depthCharges: 0,
-    fuel: 92,
-    guns: 42,
-    hp: 370,
+    fuel: 87,
+    heavy: 28,
+    hp: 367.5,
+    light: 7,
     organisation: 50,
-    resources: { ...NO_RESOURCES, chromium: 1, steel: 1 },
-    role: "capital",
-    torpedoes: 0,
-    visibility: 20,
-  },
-  carrier: {
-    cost: 2094,
-    deck: 20,
-    depthCharges: 0,
-    fuel: 112,
-    guns: 0,
-    hp: 250,
-    organisation: 40,
     resources: { ...NO_RESOURCES, chromium: 1, steel: 3 },
-    role: "carrier",
+    shipClass: "battleship",
     torpedoes: 0,
     visibility: 30,
   },
-  cruiser: {
-    cost: 1900,
+  "battleship-2": {
+    cost: 12_960,
     deck: 0,
     depthCharges: 0,
-    fuel: 36,
-    guns: 12,
-    hp: 110,
-    organisation: 40,
-    resources: { ...NO_RESOURCES, steel: 2 },
-    role: "screen",
+    fuel: 92,
+    heavy: 36,
+    hp: 495,
+    light: 7,
+    organisation: 50,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 4 },
+    shipClass: "battleship",
     torpedoes: 0,
-    visibility: 15,
+    visibility: 30,
   },
-  destroyer: {
-    cost: 500,
+  "battleship-3": {
+    cost: 13_650,
     deck: 0,
-    depthCharges: 10,
-    fuel: 8,
-    guns: 5,
-    hp: 40,
+    depthCharges: 0,
+    fuel: 97,
+    heavy: 44,
+    hp: 575,
+    light: 8,
+    organisation: 50,
+    resources: { ...NO_RESOURCES, chromium: 2, steel: 4 },
+    shipClass: "battleship",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "battleship-4": {
+    cost: 15_489.75,
+    deck: 0,
+    depthCharges: 0,
+    fuel: 102,
+    heavy: 52,
+    hp: 632.5,
+    light: 9,
+    organisation: 50,
+    resources: { ...NO_RESOURCES, chromium: 3, steel: 5 },
+    shipClass: "battleship",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "carrier-1": {
+    cost: 7964,
+    deck: 8,
+    depthCharges: 0,
+    fuel: 99,
+    heavy: 0,
+    hp: 250,
+    light: 3,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 3 },
+    shipClass: "carrier",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "carrier-2": {
+    cost: 8822,
+    deck: 10,
+    depthCharges: 0,
+    fuel: 99,
+    heavy: 0,
+    hp: 325,
+    light: 3,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 4 },
+    shipClass: "carrier",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "carrier-3": {
+    cost: 11_110,
+    deck: 14,
+    depthCharges: 0,
+    fuel: 99,
+    heavy: 0,
+    hp: 350,
+    light: 3,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, chromium: 2, steel: 4 },
+    shipClass: "carrier",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "carrier-4": {
+    cost: 11_935,
+    deck: 16,
+    depthCharges: 0,
+    fuel: 99,
+    heavy: 0,
+    hp: 350,
+    light: 3,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, chromium: 2, steel: 5 },
+    shipClass: "carrier",
+    torpedoes: 0,
+    visibility: 30,
+  },
+  "destroyer-1": {
+    cost: 911.25,
+    deck: 0,
+    depthCharges: 9,
+    fuel: 14,
+    heavy: 0,
+    hp: 25,
+    light: 1,
     organisation: 35,
     resources: { ...NO_RESOURCES, steel: 2 },
-    role: "screen",
+    shipClass: "destroyer",
     torpedoes: 18,
     visibility: 10,
   },
-  submarine: {
-    cost: 350,
+  "destroyer-2": {
+    cost: 1184.5,
+    deck: 0,
+    depthCharges: 14,
+    fuel: 8,
+    heavy: 0,
+    hp: 40,
+    light: 1.5,
+    organisation: 35,
+    resources: { ...NO_RESOURCES, steel: 2 },
+    shipClass: "destroyer",
+    torpedoes: 24,
+    visibility: 10,
+  },
+  "destroyer-3": {
+    cost: 1351.25,
+    deck: 0,
+    depthCharges: 18,
+    fuel: 10,
+    heavy: 0,
+    hp: 50,
+    light: 2,
+    organisation: 35,
+    resources: { ...NO_RESOURCES, steel: 3 },
+    shipClass: "destroyer",
+    torpedoes: 30,
+    visibility: 10,
+  },
+  "destroyer-4": {
+    cost: 1518,
+    deck: 0,
+    depthCharges: 23,
+    fuel: 10,
+    heavy: 0,
+    hp: 60,
+    light: 3,
+    organisation: 35,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 4 },
+    shipClass: "destroyer",
+    torpedoes: 36,
+    visibility: 10,
+  },
+  "light-cruiser-1": {
+    cost: 3116.5,
     deck: 0,
     depthCharges: 0,
-    fuel: 5,
-    guns: 0,
-    hp: 20,
-    organisation: 30,
+    fuel: 32,
+    heavy: 0,
+    hp: 120,
+    light: 8,
+    organisation: 40,
     resources: { ...NO_RESOURCES, steel: 2 },
-    role: "submarine",
-    torpedoes: 18,
+    shipClass: "cruiser",
+    torpedoes: 20,
+    visibility: 15,
+  },
+  "light-cruiser-2": {
+    cost: 3301.75,
+    deck: 0,
+    depthCharges: 5,
+    fuel: 36,
+    heavy: 0,
+    hp: 140,
+    light: 10,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, steel: 3 },
+    shipClass: "cruiser",
+    torpedoes: 26,
+    visibility: 15,
+  },
+  "light-cruiser-3": {
+    cost: 3528,
+    deck: 0,
+    depthCharges: 6,
+    fuel: 40,
+    heavy: 0,
+    hp: 160,
+    light: 12,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, steel: 3 },
+    shipClass: "cruiser",
+    torpedoes: 32,
+    visibility: 15,
+  },
+  "light-cruiser-4": {
+    cost: 4116,
+    deck: 0,
+    depthCharges: 8,
+    fuel: 40,
+    heavy: 0,
+    hp: 180,
+    light: 15,
+    organisation: 40,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 4 },
+    shipClass: "cruiser",
+    torpedoes: 38,
+    visibility: 15,
+  },
+  "submarine-1": {
+    cost: 363,
+    deck: 0,
+    depthCharges: 0,
+    fuel: 8,
+    heavy: 0,
+    hp: 10,
+    light: 0,
+    organisation: 30,
+    resources: { ...NO_RESOURCES, steel: 1 },
+    shipClass: "submarine",
+    torpedoes: 15,
     visibility: 1,
   },
-} satisfies Readonly<Record<ShipClass, Hull>>;
+  "submarine-2": {
+    cost: 451,
+    deck: 0,
+    depthCharges: 0,
+    fuel: 8,
+    heavy: 0,
+    hp: 20,
+    light: 0,
+    organisation: 30,
+    resources: { ...NO_RESOURCES, steel: 2 },
+    shipClass: "submarine",
+    torpedoes: 26,
+    visibility: 1,
+  },
+  "submarine-3": {
+    cost: 583,
+    deck: 0,
+    depthCharges: 0,
+    fuel: 8,
+    heavy: 0,
+    hp: 30,
+    light: 0,
+    organisation: 30,
+    resources: { ...NO_RESOURCES, steel: 2 },
+    shipClass: "submarine",
+    torpedoes: 42,
+    visibility: 1,
+  },
+  "submarine-4": {
+    cost: 660,
+    deck: 0,
+    depthCharges: 0,
+    fuel: 8,
+    heavy: 0,
+    hp: 35,
+    light: 0,
+    organisation: 30,
+    resources: { ...NO_RESOURCES, chromium: 1, steel: 3 },
+    shipClass: "submarine",
+    torpedoes: 54,
+    visibility: 1,
+  },
+} satisfies Readonly<Record<ShipDesign, Hull>>;
 
-export const hullOf = (shipClass: ShipClass): Hull => HULLS[shipClass];
+export const hullOf = (design: ShipDesign): Hull => HULLS[design];
+
+/** The class of warship `design` builds. */
+const designClass = (design: ShipDesign): ShipClass => HULLS[design].shipClass;
 
 /**
  * What one convoy costs a dockyard and what each dockyard building convoys
@@ -145,17 +402,56 @@ const CONVOY = {
   resources: { ...NO_RESOURCES, steel: 2 },
 } satisfies Pick<Hull, "cost" | "resources">;
 
+/** The design a nation's dockyards lay down for each class of warship. */
+export const ShipDesignsSchema = Schema.Struct({
+  battleship: ShipDesignSchema,
+  carrier: ShipDesignSchema,
+  cruiser: ShipDesignSchema,
+  destroyer: ShipDesignSchema,
+  submarine: ShipDesignSchema,
+});
+
+export type ShipDesigns = typeof ShipDesignsSchema.Type;
+
+/** The first design of each class, which a dockyard lays down where nothing newer is researched. */
+const FIRST_DESIGNS = {
+  battleship: "battleship-1",
+  carrier: "carrier-1",
+  cruiser: "light-cruiser-1",
+  destroyer: "destroyer-1",
+  submarine: "submarine-1",
+} satisfies ShipDesigns;
+
+/** The newest researched design of one kind. */
+const newest = newestPicker(SHIP_DESIGNS, designClass, FIRST_DESIGNS);
+
+/**
+ * The newest design of each class among `researched`, in the tree's order,
+ * and the first where none of a class is.
+ */
+export const shipDesignsOf = (
+  researched: ReadonlySet<string>
+): ShipDesigns => ({
+  battleship: newest(researched, "battleship"),
+  carrier: newest(researched, "carrier"),
+  cruiser: newest(researched, "cruiser"),
+  destroyer: newest(researched, "destroyer"),
+  submarine: newest(researched, "submarine"),
+});
+
 /**
  * What one of `order` costs its dockyards to finish, and what each dockyard
- * working on it takes out of the stockpiles in a day.
+ * working on it takes out of the stockpiles in a day, a warship being the
+ * design `designs` lays down for its class.
  */
 export const orderOf = (
-  order: ShipyardOrder
+  order: ShipyardOrder,
+  designs: ShipDesigns
 ): Pick<Hull, "cost" | "resources"> => {
   if (order === "convoy") {
     return CONVOY;
   }
-  return HULLS[order];
+  return HULLS[designs[order]];
 };
 
 /**
@@ -163,36 +459,40 @@ export const orderOf = (
  * scales with the ship's production cost and gives an early battleship about
  * 356 and a destroyer about 117. Every reader of the weight sets one side's
  * against another's, so the cost raised to this power keeps that three to one
- * between them without matching either number.
+ * between the first battleship and the first destroyer without matching
+ * either number.
  */
-const SUPREMACY_EXPONENT = 0.62;
+const SUPREMACY_EXPONENT = 0.43;
 
-export const supremacyOf = (shipClass: ShipClass): number =>
-  HULLS[shipClass].cost ** SUPREMACY_EXPONENT;
+export const supremacyOf = (design: ShipDesign): number =>
+  HULLS[design].cost ** SUPREMACY_EXPONENT;
 
-/** One warship: its class and what is left of it. */
+/** One warship: its design and what is left of it. */
 export interface Ship {
-  readonly shipClass: ShipClass;
+  readonly design: ShipDesign;
   readonly hp: number;
   readonly organisation: number;
   /** The planes aboard, which only a carrier has room for. */
   readonly planes: number;
 }
 
+/** The class of warship `ship` is. */
+export const classOf = (ship: Ship): ShipClass => designClass(ship.design);
+
 /**
  * A warship fresh from the dockyard, a carrier with its hangars full. Hearts
  * of Iron IV builds a carrier's planes on a line of their own, and this game
  * counts them into the hull.
  */
-export const launched = (shipClass: ShipClass): Ship => {
-  const { deck, hp, organisation } = HULLS[shipClass];
-  return { hp, organisation, planes: deck, shipClass };
+export const launched = (design: ShipDesign): Ship => {
+  const { deck, hp, organisation } = HULLS[design];
+  return { design, hp, organisation, planes: deck };
 };
 
 /** How much of its hull points the ship still has, from 0 to 1. */
 export const hullShare = (ship: Ship): number =>
-  ship.hp / HULLS[ship.shipClass].hp;
+  ship.hp / HULLS[ship.design].hp;
 
 /** How much of its cohesion the ship still has, from 0 to 1. */
 export const organisationShare = (ship: Ship): number =>
-  ship.organisation / HULLS[ship.shipClass].organisation;
+  ship.organisation / HULLS[ship.design].organisation;

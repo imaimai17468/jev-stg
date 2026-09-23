@@ -1,5 +1,6 @@
 import { NO_AIR_COVER } from "./air-cover";
 import { airspaceOf } from "./airspace";
+import { OPENING_ARMOURY } from "./armoury";
 import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
@@ -101,6 +102,7 @@ export const FULL_SUPPLY: SupplyNetwork = {
 /** The two nations at war, both attacking at the stance every nation opens with. */
 export const WAR_COMMAND: Command = {
   air: NO_AIR_COVER,
+  armouries: [OPENING_ARMOURY, OPENING_ARMOURY],
   insight: NO_INSIGHT,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   stances: [START_STANCE, START_STANCE],

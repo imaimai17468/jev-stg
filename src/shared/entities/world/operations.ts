@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
 import type { IntelKind } from "./intel";
-import type { TechBranch } from "./research";
+import type { TechCategory } from "./techs";
 import type { UnrestKind } from "./unrest";
 
 /** Every operation an agency runs, in the order the rules weigh them. */
@@ -72,14 +72,15 @@ export type BlueprintTheft = typeof BlueprintTheftSchema.Type;
 export const BLUEPRINT_THEFTS = BlueprintTheftSchema.literals;
 
 /**
- * The research branches each stolen blueprint speeds up. Hearts of Iron IV's
- * military and industrial blueprints; this world has no naval or aviation
- * technologies for the other two to reach.
+ * The research categories each stolen blueprint speeds up, after Hearts of
+ * Iron IV: the military one infantry, support, artillery and armour, of which
+ * this world researches infantry alone, and the industrial one electronics
+ * and industry.
  */
-export const BLUEPRINT_BRANCHES = {
-  "steal-industrial-blueprints": ["industry", "construction"],
-  "steal-military-blueprints": ["infantry", "artillery", "logistics"],
-} satisfies Readonly<Record<BlueprintTheft, readonly TechBranch[]>>;
+export const BLUEPRINT_CATEGORIES = {
+  "steal-industrial-blueprints": ["industry", "electronics"],
+  "steal-military-blueprints": ["infantry"],
+} satisfies Readonly<Record<BlueprintTheft, readonly TechCategory[]>>;
 
 /** What a nation's operatives in a target find there, which decides the operations open to them. */
 export interface Prospect {
@@ -101,7 +102,7 @@ export interface Prospect {
   readonly unrest: ReadonlySet<UnrestKind>;
   /** Whether the nation is at war, which puts the army's blueprints before industry's. */
   readonly atWar: boolean;
-  /** The blueprints whose bonus the nation's research would use now: none waiting unused for their branches, and a technology left in them. */
+  /** The blueprints whose bonuses the nation's research would use now: none waiting unused for their categories, and a technology left in them for each. */
   readonly usableBlueprints: ReadonlySet<BlueprintTheft>;
   /** The operations the nation already has under way in the target, which it does not start again. */
   readonly underway: ReadonlySet<Operation>;
@@ -157,8 +158,8 @@ export interface Crew {
  * it is running, so it holds the third operative back only until it starts;
  * the blueprints, which a nation can steal again and again, come last, so
  * they take the operatives only when nothing else is open; the army's
- * blueprints are stolen at war and industry's at peace. The order and the waiting are this game's
- * own.
+ * blueprints are stolen at war and industry's at peace. The order and the
+ * waiting are this game's own.
  */
 export const operationWanted = (
   prospect: Prospect,

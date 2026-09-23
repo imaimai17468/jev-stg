@@ -1,4 +1,9 @@
-import type { Aircraft, Aviation } from "./aircraft";
+import type {
+  Aircraft,
+  AirframeModel,
+  AirframeModels,
+  Aviation,
+} from "./aircraft";
 import { AIRCRAFT, airframeOf } from "./aircraft";
 import { UNASSIGNED } from "./spread";
 
@@ -15,7 +20,7 @@ export type AirMission =
 
 /** One air wing: its planes, where it is based, and what it is doing. */
 export interface Wing {
-  readonly aircraft: Aircraft;
+  readonly model: AirframeModel;
   /** The planes left in it, which a day's fighting leaves in fractions. */
   readonly planes: number;
   /** The province of the air base it flies from. */
@@ -47,29 +52,33 @@ export const NO_AIR_FORCE: AirForce = {
 /** The planes one land-based wing holds at most, after Hearts of Iron IV. */
 export const WING_SIZE = 100;
 
-/** A wing of `planes` of `aircraft` waiting at `base`. */
-const wingAt = (aircraft: Aircraft, planes: number, base: number): Wing => ({
-  aircraft,
+/** The kind of plane `wing` flies. */
+export const aircraftOf = (wing: Wing): Aircraft =>
+  airframeOf(wing.model).aircraft;
+
+/** A wing of `planes` of `model` waiting at `base`. */
+const wingAt = (model: AirframeModel, planes: number, base: number): Wing => ({
   base,
   mission: "standby",
+  model,
   planes,
   region: UNASSIGNED,
 });
 
 /**
- * The air force with `planes` more of `aircraft` at `base`: into the wings
- * of that kind based there while they have room, and into new ones after
+ * The air force with `planes` more of `model` at `base`: into the wings of
+ * that design based there while they have room, and into new ones after
  * that.
  */
 const reinforced = (
   airForce: AirForce,
-  aircraft: Aircraft,
+  model: AirframeModel,
   planes: number,
   base: number
 ): AirForce => {
   let left = planes;
   const wings = airForce.wings.map((wing) => {
-    if (wing.aircraft !== aircraft || wing.base !== base) {
+    if (wing.model !== model || wing.base !== base) {
       return wing;
     }
     const added = Math.min(left, WING_SIZE - wing.planes);
@@ -78,7 +87,7 @@ const reinforced = (
   });
   while (left > 0) {
     const size = Math.min(left, WING_SIZE);
-    wings.push(wingAt(aircraft, size, base));
+    wings.push(wingAt(model, size, base));
     left -= size;
   }
   return { ...airForce, wings };
@@ -86,24 +95,26 @@ const reinforced = (
 
 /**
  * The air force after its factories have put `output` into the plane they
- * are building, finishing as many as that pays for at `base` and carrying the
- * rest into the next. A nation with no air base to send them to builds
- * nothing.
+ * are building, the design `models` has for the kind it orders, finishing as
+ * many as that pays for at `base` and carrying the rest into the next. A
+ * nation with no air base to send them to builds nothing.
  */
 export const planesBuiltOneDay = (
   airForce: AirForce,
   output: number,
-  base: number
+  base: number,
+  models: AirframeModels
 ): AirForce => {
   if (base === UNASSIGNED) {
     return airForce;
   }
-  const { cost } = airframeOf(airForce.order);
+  const model = models[airForce.order];
+  const { cost } = airframeOf(model);
   const progress = airForce.progress + output;
   const finished = Math.floor(progress / cost);
   return reinforced(
     { ...airForce, progress: progress - finished * cost },
-    airForce.order,
+    model,
     finished,
     base
   );
@@ -122,11 +133,13 @@ const OPENING_PLANES_PER_FACTORY = {
 
 /**
  * The air force a nation with `militaryFactories` opens the world with, all
- * of it at `base`: none where it has no air base.
+ * of it the designs `models` has and at `base`: none where it has no air
+ * base.
  */
 export const openingAirForce = (
   militaryFactories: number,
-  base: number
+  base: number,
+  models: AirframeModels
 ): AirForce => {
   if (base === UNASSIGNED) {
     return NO_AIR_FORCE;
@@ -135,7 +148,7 @@ export const openingAirForce = (
   for (const aircraft of AIRCRAFT) {
     airForce = reinforced(
       airForce,
-      aircraft,
+      models[aircraft],
       militaryFactories * OPENING_PLANES_PER_FACTORY[aircraft],
       base
     );
@@ -162,7 +175,7 @@ export const flyingOf = (airForce: AirForce): readonly Wing[] =>
 /** How many planes of `aircraft` the air force has. */
 export const planesOf = (airForce: AirForce, aircraft: Aircraft): number =>
   airForce.wings
-    .filter((wing) => wing.aircraft === aircraft)
+    .filter((wing) => aircraftOf(wing) === aircraft)
     .reduce((total, wing) => total + wing.planes, 0);
 
 /** How many planes the air force has of every kind. */

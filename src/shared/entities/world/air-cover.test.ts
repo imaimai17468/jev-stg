@@ -3,10 +3,14 @@ import type { AirCover, Battlefield } from "./air-cover";
 import { coverOver, NO_AIR_COVER, supportOf } from "./air-cover";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 
-/** Nation 0's enemies hold most of the sky over its second province, and it flies five planes of support there. */
+/**
+ * Nation 0's enemies hold most of the sky over its second province, and it
+ * flies five planes of support there carrying forty ground attack.
+ */
 const COVER: AirCover = {
   enemy: [Float32Array.from([0.25, 0.75])],
   support: [Float32Array.from([0, 5])],
+  supportAttack: [Float32Array.from([0, 40])],
 };
 
 /**
@@ -33,6 +37,10 @@ describe(coverOver, () => {
 
   it("should read the support the nation sends into the province when it flies some", () => {
     expect(coverOver(COVER, "support", 0, 1)).toBe(5);
+  });
+
+  it("should read the ground attack the nation's support carries into the province when it flies some", () => {
+    expect(coverOver(COVER, "supportAttack", 0, 1)).toBe(40);
   });
 
   it("should read none when the nation has nothing overhead", () => {

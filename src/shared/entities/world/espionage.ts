@@ -26,7 +26,7 @@ import type { Build, Networks } from "./networks";
 import { networkBuiltOneDay } from "./networks";
 import type { Operation, Prospect } from "./operations";
 import {
-  BLUEPRINT_BRANCHES,
+  BLUEPRINT_CATEGORIES,
   BLUEPRINT_THEFTS,
   operationTermsOf,
   operationWanted,
@@ -34,9 +34,10 @@ import {
 import type { ProvinceGraph } from "./provinces";
 import { isLand } from "./provinces";
 import type { Random } from "./random";
-import type { Research, TechBranch } from "./research";
-import { bonusUsable, voucherGranted } from "./research";
+import type { Research, Voucher } from "./research";
+import { bonusUsable, vouchersGranted } from "./research";
 import { isCoastal } from "./seas";
+import type { TechCategory } from "./techs";
 import type { Unrest, UnrestKind } from "./unrest";
 import { unrestAgainst, unrestOneDay, unrestStarted } from "./unrest";
 import { atWar, enemiesOf } from "./wars";
@@ -199,8 +200,14 @@ export const counterIntelligenceOf = (service: Service): number => {
  */
 const CAPTURE_PER_POINT = 0.0001;
 
-/** The research bonus a stolen blueprint gives, after Hearts of Iron IV's 300%. */
+/**
+ * What a stolen blueprint gives, after Hearts of Iron IV: two research
+ * bonuses of 300%, the second of them also an ahead-of-time bonus of two
+ * years one time in three and of one year otherwise.
+ */
 const BLUEPRINT_BONUS = 3;
+const BLUEPRINT_VOUCHERS = 2;
+const TWO_YEARS_AHEAD_CHANCE = 1 / 3;
 
 /** The share of the target's cipher strength a captured cipher gives, after Hearts of Iron IV's 30%. */
 const CAPTURED_CIPHER = 0.3;
@@ -397,7 +404,8 @@ const prospectOf = (
       itemAt(surroundings.strengths, target, Number.POSITIVE_INFINITY),
     coastal: valueAt(surroundings.coastal, target) === 1,
     codebreakers:
-      decrypts(service.agency) && surroundings.researched.has("computing-1"),
+      decrypts(service.agency) &&
+      surroundings.researched.has("mechanical-computing"),
     infiltrated: new Set(
       INTEL_KINDS.filter(
         (_, slot) =>
@@ -420,7 +428,7 @@ const prospectOf = (
       BLUEPRINT_THEFTS.filter(
         (theft) =>
           !service.missions.some((mission) => mission.operation === theft) &&
-          bonusUsable(research, BLUEPRINT_BRANCHES[theft])
+          bonusUsable(research, BLUEPRINT_CATEGORIES[theft], BLUEPRINT_VOUCHERS)
       )
     ),
   };
@@ -467,27 +475,33 @@ const resistanceWork =
   });
 
 /**
- * A stolen blueprint, which waits for the next technology in `branches`, or
- * comes to nothing where the nation's research has run out of use for it
- * while the theft was under way.
+ * A stolen blueprint, whose two bonuses wait for the next technologies in
+ * `categories`, or which comes to nothing where the nation's research has run
+ * out of use for them while the theft was under way.
  */
 const blueprint =
-  (branches: readonly TechBranch[]): Effect =>
-  (_, worked) => {
+  (categories: readonly TechCategory[]): Effect =>
+  (_, worked, _mission, surroundings) => {
     const { research } = worked.advancement;
-    const granted = voucherGranted(research, {
-      branches,
-      share:
-        BLUEPRINT_BONUS *
-        (1 + agencyModifiersOf(worked.service.agency).blueprints),
-    });
+    const share =
+      BLUEPRINT_BONUS *
+      (1 + agencyModifiersOf(worked.service.agency).blueprints);
+    const vouchers: readonly Voucher[] = [
+      { ahead: 0, categories, share },
+      {
+        ahead:
+          1 + Number(surroundings.scene.random.unit() < TWO_YEARS_AHEAD_CHANCE),
+        categories,
+        share,
+      },
+    ];
     return {
       ...worked,
       advancement: {
         ...worked.advancement,
         research: itemAt(
-          [research, granted],
-          Number(bonusUsable(research, branches)),
+          [research, vouchersGranted(research, vouchers)],
+          Number(bonusUsable(research, categories, BLUEPRINT_VOUCHERS)),
           research
         ),
       },
@@ -538,10 +552,10 @@ const rescue: Effect = (spy, worked, mission, surroundings) => {
  * What each operation does once it is done, after Hearts of Iron IV: an
  * infiltration opens 10% of its kind, contacts and strengthening raise the
  * resistance target, sabotage turns the resistance on the occupier's
- * factories, a blueprint gives 300% to the next technology in the army's
- * equipment or in industry, a captured cipher gives 30% of its strength, and
- * a rescue frees the operatives caught there. The bonus results the wiki
- * lists come at chances it does not give, so no operation rolls for one.
+ * factories, a blueprint gives two 300% bonuses to the next technologies in
+ * its categories, a captured cipher gives 30% of its strength, and a rescue
+ * frees the operatives caught there. The other bonus results the wiki lists
+ * come at chances it does not give, so no other operation rolls for one.
  */
 const EFFECTS = {
   "capture-cipher": capturedCipher,
@@ -553,10 +567,10 @@ const EFFECTS = {
   "resistance-contacts": resistanceWork("contacts"),
   "sabotage-industry": resistanceWork("sabotage"),
   "steal-industrial-blueprints": blueprint(
-    BLUEPRINT_BRANCHES["steal-industrial-blueprints"]
+    BLUEPRINT_CATEGORIES["steal-industrial-blueprints"]
   ),
   "steal-military-blueprints": blueprint(
-    BLUEPRINT_BRANCHES["steal-military-blueprints"]
+    BLUEPRINT_CATEGORIES["steal-military-blueprints"]
   ),
   "strengthen-resistance": resistanceWork("strengthened"),
 } satisfies Readonly<Record<Operation, Effect>>;

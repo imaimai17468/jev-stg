@@ -33,6 +33,7 @@ const UNDER_ENEMY_SKY: Command = {
   air: {
     enemy: [Float32Array.from([1, 1, 1, 1, 1]), new Float32Array(5)],
     support: [],
+    supportAttack: [],
   },
 };
 

@@ -1,32 +1,32 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Flight } from "./air-combat";
 import { destroyedIn, foughtInTheAir } from "./air-combat";
-import type { Aircraft } from "./aircraft";
+import type { AirframeModel } from "./aircraft";
 import { AT_WAR } from "./army-fixture";
 import { itemAt } from "./lookup";
 import { noWars } from "./wars";
 
-/** `planes` of `aircraft` flown by `nation` with all of them in the air. */
+/** `planes` of `model` flown by `nation` with all of them in the air. */
 const flight = (
   nation: number,
-  aircraft: Aircraft,
+  model: AirframeModel,
   planes: number
 ): Flight => ({
-  aircraft,
   efficiency: 1,
+  model,
   nation,
   planes,
 });
 
 /** Nation 0's fighters, split over two flights, against nation 1's fighters. */
 const DOGFIGHT: readonly Flight[] = [
-  flight(0, "fighter", 60),
-  flight(0, "fighter", 40),
-  flight(1, "fighter", 100),
+  flight(0, "fighter-1", 60),
+  flight(0, "fighter-1", 40),
+  flight(1, "fighter-1", 100),
 ];
 
 /** A flight nobody can read from the result. */
-const NO_FLIGHT: Flight = flight(-1, "fighter", 0);
+const NO_FLIGHT: Flight = flight(-1, "fighter-1", 0);
 
 /** The planes left in the flight at `index` of what `foughtInTheAir` returned. */
 const planesLeft = (flights: readonly Flight[], index: number): number =>
@@ -34,25 +34,25 @@ const planesLeft = (flights: readonly Flight[], index: number): number =>
 
 describe(destroyedIn, () => {
   it("should bring down fire over air defence when the two are the same plane", () => {
-    expect(destroyedIn(100, "fighter", "fighter")).toBeCloseTo(
+    expect(destroyedIn(100, "fighter-1", "fighter-1")).toBeCloseTo(
       ((360 + 45) * 0.01) / 10
     );
   });
 
   it("should lose some fire to a more agile target when the attacker is the clumsier plane", () => {
-    expect(destroyedIn(100, "close-support", "fighter")).toBeCloseTo(
+    expect(destroyedIn(100, "close-air-support-1", "fighter-1")).toBeCloseTo(
       ((120 - 120 * 0.45 * (50 / 35 - 1) + 11.7) * 0.01) / 10
     );
   });
 
   it("should gain fire for the difference in speed when the attacker is the faster plane", () => {
-    expect(destroyedIn(100, "fighter", "naval-bomber")).toBeCloseTo(
+    expect(destroyedIn(100, "fighter-1", "naval-bomber-1")).toBeCloseTo(
       ((360 + 360 * 0.65 * (500 / 230 - 1) + 45) * 0.01) / 12
     );
   });
 
   it("should bring down a thousandth of a plane when the fire is too weak to do more", () => {
-    expect(destroyedIn(0.01, "fighter", "fighter")).toBe(0.001);
+    expect(destroyedIn(0.01, "fighter-1", "fighter-1")).toBe(0.001);
   });
 });
 
@@ -79,7 +79,7 @@ describe(foughtInTheAir, () => {
     expect(
       planesLeft(
         foughtInTheAir(
-          [flight(0, "fighter", 100), flight(1, "fighter", 100)],
+          [flight(0, "fighter-1", 100), flight(1, "fighter-1", 100)],
           AT_WAR
         ),
         0
@@ -92,8 +92,8 @@ describe(foughtInTheAir, () => {
       planesLeft(
         foughtInTheAir(
           [
-            { ...flight(0, "fighter", 100), efficiency: 0 },
-            flight(1, "fighter", 100),
+            { ...flight(0, "fighter-1", 100), efficiency: 0 },
+            flight(1, "fighter-1", 100),
           ],
           AT_WAR
         ),
@@ -106,7 +106,7 @@ describe(foughtInTheAir, () => {
     expect(
       planesLeft(
         foughtInTheAir(
-          [flight(0, "fighter", 400), flight(1, "close-support", 100)],
+          [flight(0, "fighter-1", 400), flight(1, "close-air-support-1", 100)],
           AT_WAR
         ),
         1
@@ -114,7 +114,7 @@ describe(foughtInTheAir, () => {
     ).toBeCloseTo(
       planesLeft(
         foughtInTheAir(
-          [flight(0, "fighter", 350), flight(1, "close-support", 100)],
+          [flight(0, "fighter-1", 350), flight(1, "close-air-support-1", 100)],
           AT_WAR
         ),
         1
@@ -126,7 +126,7 @@ describe(foughtInTheAir, () => {
     expect(
       planesLeft(
         foughtInTheAir(
-          [flight(0, "fighter", 100), flight(1, "close-support", 0)],
+          [flight(0, "fighter-1", 100), flight(1, "close-air-support-1", 0)],
           AT_WAR
         ),
         1

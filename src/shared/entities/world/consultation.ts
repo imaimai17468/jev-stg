@@ -1,7 +1,9 @@
 import { Schema } from "effect";
 import { AgencyProjectSchema } from "./agency";
+import { AirframeModelsSchema } from "./aircraft";
 import { FocusIdSchema } from "./focus";
-import { TechIdSchema } from "./research";
+import { ShipDesignsSchema } from "./ships";
+import { TechIdSchema } from "./techs";
 
 /**
  * The most nations and the most options one consultation names. They bound
@@ -100,6 +102,8 @@ const NationBriefSchema = Schema.Struct({
   nation: NationId,
   /** The operatives its agency has. */
   operatives: Amount,
+  /** The design its factories build for each kind of plane. */
+  planeModels: AirframeModelsSchema,
   /** The planes it has. */
   planes: Amount,
   population: Amount,
@@ -107,6 +111,8 @@ const NationBriefSchema = Schema.Struct({
   posted: Schema.Boolean,
   /** Nations it may declare on, empty unless it is independent and at peace. */
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  /** The design its dockyards lay down for each class of warship. */
+  shipDesigns: ShipDesignsSchema,
   /** The share of its arms output lost to the resources it goes without. */
   shortage: Share,
   /** The share of the skies its side and its enemies both fly over where the enemies hold air superiority. */

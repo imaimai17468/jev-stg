@@ -2,7 +2,8 @@ import { Option } from "effect";
 import type { Advancement } from "@/shared/entities/world/advancement";
 import { freeSlotsOf } from "@/shared/entities/world/advancement";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
-import { costOf, techOf } from "@/shared/entities/world/research";
+import { daysOf } from "@/shared/entities/world/research";
+import { techOf } from "@/shared/entities/world/techs";
 import type { Stat } from "./stat";
 
 /** What the nation panel says about a nation's research and focus tree. */
@@ -19,11 +20,11 @@ export interface AdvancementSummary {
 
 const PERCENT = 100;
 
-/** The busy slots, each with the share of its technology's cost for `year` done. */
-const slotRows = (advancement: Advancement, year: number): readonly Stat[] => {
+/** The busy slots, each with the share of its technology's research-days done. */
+const slotRows = (advancement: Advancement): readonly Stat[] => {
   const busy = advancement.research.studies.map((study) => ({
     label: techOf(study.tech).name,
-    value: `${Math.floor((study.progress / costOf(study.tech, year)) * PERCENT)}%`,
+    value: `${Math.floor((study.progress / daysOf(study.tech)) * PERCENT)}%`,
   }));
   const free = freeSlotsOf(advancement);
   if (free === 0) {
@@ -41,13 +42,12 @@ const focusRow = (advancement: Advancement): Stat =>
     }),
   });
 
-/** The nation's research and focus tree as the panel reads them in `year`. */
+/** The nation's research and focus tree as the panel reads them. */
 export const advancementSummaryOf = (
-  advancement: Advancement,
-  year: number
+  advancement: Advancement
 ): AdvancementSummary => ({
   focus: focusRow(advancement),
   focusesDone: advancement.focuses.done.map((focus) => focusOf(focus).name),
   researched: advancement.research.researched.length,
-  slots: slotRows(advancement, year),
+  slots: slotRows(advancement),
 });
