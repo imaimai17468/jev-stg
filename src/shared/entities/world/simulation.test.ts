@@ -1,15 +1,18 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { START_ADVANCEMENT } from "./advancement";
-import { LINE_OWNERS, LINE_WORLD } from "./army-fixture";
+import { noQuiet } from "./armistice";
+import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
+import { NO_NAVY, openingNavy } from "./navy";
 import { START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, startSimulation, withClock } from "./simulation";
+import { UNASSIGNED } from "./spread";
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
@@ -17,6 +20,7 @@ const OPENING: Simulation = {
   chronicle: [],
   clock: START_CLOCK,
   compliance: startCompliance(LINE_OWNERS),
+  deals: [],
   diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
   divisions: [],
   economies: [
@@ -33,10 +37,23 @@ const OPENING: Simulation = {
       population: 600_000,
     },
   ],
+  invasions: [],
+  navies: [NO_NAVY, NO_NAVY],
   negotiations: [],
   owners: LINE_OWNERS,
+  quiet: noQuiet(2),
   stances: ["balanced", "balanced"],
 };
+
+/** The two nations of the line at war. */
+const FIGHTING: Simulation = {
+  ...OPENING,
+  diplomacy: { ...OPENING.diplomacy, wars: AT_WAR },
+};
+
+/** What went into the chronicle, without who decided it or when. */
+const decisionsOf = (simulation: Simulation) =>
+  simulation.chronicle.map((entry) => entry.ruling.decision);
 
 describe(startSimulation, () => {
   it("should spread the nations over the ground when a world opens", () => {
@@ -89,7 +106,7 @@ describe(ranOneDay, () => {
         },
         research: {
           researched: [],
-          studies: [{ progress: 1, tech: "tools-1" }],
+          studies: [{ progress: 1.05, tech: "tools-1" }],
         },
       },
       START_ADVANCEMENT,
@@ -125,6 +142,52 @@ describe(ranOneDay, () => {
 
   it("should leave the map alone when no nation can put a division in the field", () => {
     expect(ranOneDay(LINE_WORLD, OPENING).owners).toBe(LINE_OWNERS);
+  });
+
+  it("should chronicle the landing when a division goes ashore on an enemy coast across an empty sea", () => {
+    const landing: Simulation = {
+      ...FIGHTING,
+      invasions: [
+        {
+          convoys: 5,
+          crossing: "landing",
+          divisions: [division({ nation: 0, province: 0 })],
+          lane: [4],
+          nation: 0,
+          readyOn: 0,
+          target: 3,
+        },
+      ],
+    };
+
+    expect(decisionsOf(ranOneDay(LINE_WORLD, landing))).toStrictEqual([
+      { defender: 1, kind: "landing", nation: 0, target: 3 },
+    ]);
+  });
+
+  it("should sign a white peace when two nations at war have gone half a year without touching", () => {
+    const apart: Simulation = {
+      ...FIGHTING,
+      owners: Int32Array.from([0, UNASSIGNED, UNASSIGNED, 1, UNASSIGNED]),
+      quiet: Int32Array.from([0, 179, 179, 0]),
+    };
+
+    expect(decisionsOf(ranOneDay(LINE_WORLD, apart))).toStrictEqual([
+      { kind: "white-peace", one: 0, other: 1 },
+    ]);
+  });
+
+  it("should sink an annexed nation's navy when a day passes", () => {
+    const annexed: Simulation = {
+      ...OPENING,
+      diplomacy: {
+        ...OPENING.diplomacy,
+        standings: [INDEPENDENT, { by: 0, kind: "annexed" }],
+      },
+      navies: [NO_NAVY, openingNavy(4, 4)],
+    };
+
+    expect(ranOneDay(LINE_WORLD, annexed).navies[1]).toBe(NO_NAVY);
   });
 });
 

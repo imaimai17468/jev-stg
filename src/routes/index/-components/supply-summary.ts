@@ -3,10 +3,8 @@ import type { NationEconomy } from "@/shared/entities/world/economy";
 import { upkeepOf } from "@/shared/entities/world/economy";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { isUndersupplied, postOf } from "@/shared/entities/world/supply";
-import { countLabel } from "./count-label";
+import { countLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";
-
-const PERCENT = 100;
 
 /**
  * What the nation panel says about one nation's supply: how many of its
@@ -36,7 +34,7 @@ export const supplySummaryOf = (
     },
     {
       label: "維持費の充足",
-      value: `${Math.round(economy.upkeepMet * PERCENT)}%`,
+      value: percentLabel(economy.upkeepMet),
     },
   ];
 };

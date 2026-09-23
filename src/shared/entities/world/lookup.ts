@@ -21,3 +21,16 @@ export const replacedAt = <T>(
     }
     return held;
   });
+
+/** `start` with `step` applied for each of `items` in turn. */
+export const foldedWith = <T, R>(
+  items: readonly T[],
+  start: R,
+  step: (sum: R, item: T) => R
+): R => {
+  let sum = start;
+  for (const item of items) {
+    sum = step(sum, item);
+  }
+  return sum;
+};

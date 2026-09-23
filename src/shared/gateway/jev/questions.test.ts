@@ -9,9 +9,13 @@ import { evaluationFor, verdictsFrom } from "./questions";
 const BRIEF: NationBrief = {
   atWar: true,
   civilianFactories: 20,
+  convoys: 12.4,
+  dockyards: 0,
+  enemyFleet: 30.6,
   enemyStrength: 40_000,
   equipment: 1500.4,
   factions: [{ faction: 0, strength: 60_000 }],
+  fleet: 10.2,
   focuses: [],
   freeSlots: 0,
   manpower: 90_000.6,
@@ -19,6 +23,7 @@ const BRIEF: NationBrief = {
   nation: 1,
   population: 3_000_000.2,
   rivals: [{ nation: 2, strength: 20_000 }],
+  shortage: 0.126,
   strength: 20_000,
   techs: [],
   undersupplied: 0.254,
@@ -40,14 +45,54 @@ const TALKS: PeaceTalks = {
 };
 
 describe(evaluationFor, () => {
-  it("should ask a government about its law, plan, stance, war and faction when it has rivals and factions in reach", () => {
+  it("should ask a government about its law, plan, stance, war, trade and faction when it has rivals and factions in reach", () => {
     expect(Object.keys(evaluationFor(COUNCIL).body.questions)).toStrictEqual([
       "n1_conscription",
       "n1_plan",
       "n1_stance",
       "n1_war",
+      "n1_trade",
       "n1_faction",
     ]);
+  });
+
+  it("should ask what the dockyards build next when the nation has dockyards", () => {
+    const building: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, dockyards: 3 }],
+    };
+
+    expect(
+      evaluationFor(building).body.questions.n1_shipbuilding
+    ).toStrictEqual({
+      criteria: {
+        battleship: "戦艦（費用3000、制海権への重みが最も大きい）",
+        convoy: "輸送船（費用100、海越しの補給・交易・上陸に使う）",
+        cruiser: "巡洋艦（費用1900、主力艦を守る護衛艦）",
+        destroyer: "駆逐艦（費用500、護衛艦で、潜水艦を爆雷で沈める）",
+        submarine: "潜水艦（費用350、敵の輸送船を沈める）",
+      },
+      instructions:
+        "国1の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。",
+      type: "choice",
+    });
+  });
+
+  it("should offer every trade law with what it sells and adds when the trade question is asked", () => {
+    expect(evaluationFor(COUNCIL).body.questions.n1_trade).toStrictEqual({
+      criteria: {
+        "closed-economy": "閉鎖経済（資源を売らない。上乗せなし）",
+        "export-focus":
+          "輸出重視（掘った資源の50%まで売る。工場・造船・建設+10%、研究+5%）",
+        "free-trade":
+          "自由貿易（掘った資源の80%まで売る。工場・造船・建設+15%、研究+10%）",
+        "limited-exports":
+          "輸出制限（掘った資源の25%まで売る。工場・造船・建設+5%、研究+1%）",
+      },
+      instructions:
+        "国1はどの交易法を取りますか。売る割合が大きいほど工場と研究に上乗せが付きます。資源の足りない国に買われると、資源8単位ごとに相手の民需工場を1つ受け取って建設に使え、そのぶん手元の資源は減ります。",
+      type: "choice",
+    });
   });
 
   it("should leave out war and faction when the brief offers neither", () => {
@@ -60,6 +105,7 @@ describe(evaluationFor, () => {
       "n1_conscription",
       "n1_plan",
       "n1_stance",
+      "n1_trade",
     ]);
   });
 
@@ -70,7 +116,7 @@ describe(evaluationFor, () => {
         none: "どこにも宣戦しない",
       },
       instructions:
-        "国1は今月、隣国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。",
+        "国1は今月、陸で接する国か、艦隊で海を渡れる国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。",
       type: "choice",
     });
   });
@@ -143,14 +189,21 @@ describe(evaluationFor, () => {
           人口: 3_000_000,
           人的資源: 90_001,
           国: "国1",
+          宣戦できる国: [
+            { こちらとの兵力比: 1, 国: "国2", 相手陣営の兵力: 20_000 },
+          ],
           工場: { 民需: 20, 軍需: 5 },
           戦争中: true,
           敵に対する兵力比: 0.5,
           敵の兵力: 40_000,
+          敵の艦隊の強さ: 31,
           自陣営の兵力: 20_000,
+          艦隊の強さ: 10,
           装備: 1500,
           補給が足りない師団の割合: 0.25,
-          隣国: [{ こちらとの兵力比: 1, 国: "国2", 相手陣営の兵力: 20_000 }],
+          資源不足で落ちた軍需生産の割合: 0.13,
+          輸送船: 12,
+          造船所: 0,
         },
       ],
       日付: "1936-03-01",
@@ -195,14 +248,19 @@ describe("evaluationFor at peace", () => {
           人口: 3_000_000,
           人的資源: 90_001,
           国: "国1",
+          宣戦できる国: [],
           工場: { 民需: 20, 軍需: 5 },
           戦争中: false,
           敵に対する兵力比: "相手は兵を出していない",
           敵の兵力: 0,
+          敵の艦隊の強さ: 31,
           自陣営の兵力: 20_000,
+          艦隊の強さ: 10,
           装備: 1500,
           補給が足りない師団の割合: 0.25,
-          隣国: [],
+          資源不足で落ちた軍需生産の割合: 0.13,
+          輸送船: 12,
+          造船所: 0,
         },
       ],
       日付: "1936-03-01",

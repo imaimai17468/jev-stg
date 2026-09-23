@@ -3,6 +3,8 @@ import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import type { ComplianceLevel } from "./compliance-level";
+import type { ResourceLevel } from "./resource-level";
+import type { SeaHoldLevel } from "./sea-hold";
 import type { SupplyLevel } from "./supply-level";
 
 interface MapColours {
@@ -94,6 +96,42 @@ export const COMPLIANCE_HATCH = {
   home: 0,
   wavering: 4,
 } satisfies Readonly<Record<ComplianceLevel, number>>;
+
+/**
+ * What the naval map paints a sea zone: the colour of the nation that holds it,
+ * the same striped where another's ships share it, and the flat sea where no
+ * warship is. The legend shows a held zone and a shared one in a neutral grey,
+ * because the colour on the map is whichever nation's it is.
+ */
+export const SEA_HOLD_SWATCHES = {
+  contested: { blue: 150, green: 150, red: 150 },
+  empty: MAP_COLOURS.sea,
+  held: { blue: 150, green: 150, red: 150 },
+} satisfies Readonly<Record<SeaHoldLevel, Colour>>;
+
+export const SEA_HOLD_HATCH = {
+  contested: 3,
+  empty: 0,
+  held: 0,
+} satisfies Readonly<Record<SeaHoldLevel, number>>;
+
+/**
+ * How dim the land is drawn on the naval map, so the eye goes to the sea while
+ * the coasts still say whose they are.
+ */
+export const NAVAL_LAND_SHADE = 0.45;
+
+/**
+ * What the resource map paints a province by its richest resource: a steel
+ * blue for steel, amber for tungsten, green for chromium, and a dark grey where
+ * it yields nothing.
+ */
+export const RESOURCE_COLOURS = {
+  chromium: { blue: 120, green: 180, red: 70 },
+  none: { blue: 60, green: 58, red: 56 },
+  steel: { blue: 200, green: 160, red: 120 },
+  tungsten: { blue: 40, green: 160, red: 225 },
+} satisfies Readonly<Record<ResourceLevel, Colour>>;
 
 /** How much a stripe darkens the colour under it. */
 export const HATCH_SHADE = 0.55;

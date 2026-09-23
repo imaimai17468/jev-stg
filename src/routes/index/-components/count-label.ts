@@ -19,3 +19,9 @@ export const countLabel = (value: number): string => {
   const grouped = [head, ...rest].filter((part) => part.length > 0).join(",");
   return `${"-".repeat(Number(rounded < 0))}${grouped}`;
 };
+
+const PERCENT = 100;
+
+/** A share from 0 to 1 as a whole percentage. */
+export const percentLabel = (share: number): string =>
+  `${Math.round(share * PERCENT)}%`;

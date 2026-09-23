@@ -7,6 +7,7 @@ import {
   defenceOf,
   fieldedBy,
   marchDaysFor,
+  menFor,
   paidForDivision,
   raisedAt,
   rested,
@@ -27,6 +28,7 @@ const ARMED: NationEconomy = {
 describe(raisedAt, () => {
   it("should stand a full division in the province when one is raised", () => {
     expect(raisedAt(2, 7)).toStrictEqual({
+      arrival: "march",
       kind: "infantry",
       marched: 0,
       movingTo: 7,
@@ -75,6 +77,12 @@ const backedBy = (bonus: Partial<Modifiers>): Backing => ({
 describe(attackOf, () => {
   it("should be worth half when the division has lost half its men", () => {
     expect(attackOf(division({ strength: 10_000 }), SUPPLIED)).toBe(3);
+  });
+});
+
+describe("attackOf off a beach", () => {
+  it("should be worth half when the division came ashore from a landing", () => {
+    expect(attackOf(division({ arrival: "landing" }), SUPPLIED)).toBe(3);
   });
 });
 
@@ -162,6 +170,12 @@ describe(fieldedBy, () => {
         3
       )
     ).toStrictEqual([1, 2, 0]);
+  });
+});
+
+describe(menFor, () => {
+  it("should call up a full division's men for each division when several are raised", () => {
+    expect(menFor(3)).toBe(60_000);
   });
 });
 

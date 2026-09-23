@@ -2,6 +2,7 @@ import { Option } from "effect";
 import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { dateOf } from "@/shared/entities/world/clock";
+import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/commerce";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
   factionOf,
@@ -15,6 +16,7 @@ import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
+import { NO_NAVY } from "@/shared/entities/world/navy";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
@@ -22,9 +24,11 @@ import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
+import { navySummaryOf } from "./navy-summary";
 import { occupationSummaryOf } from "./occupation-summary";
 import type { Stat } from "./stat";
 import { supplySummaryOf } from "./supply-summary";
+import { tradeSummaryOf } from "./trade-summary";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {
@@ -68,6 +72,8 @@ export interface NationSummary {
   readonly advancement: AdvancementSummary;
   readonly supply: readonly Stat[];
   readonly occupation: readonly Stat[];
+  readonly navy: readonly Stat[];
+  readonly trade: readonly Stat[];
 }
 
 const EMPTY: NationSummary = {
@@ -80,12 +86,14 @@ const EMPTY: NationSummary = {
   faction: Option.none(),
   id: -1,
   name: "",
+  navy: [],
   neighbours: [],
   occupation: [],
   provinces: 0,
   puppets: [],
   standing: { kind: "independent" },
   terrain: [],
+  trade: [],
 };
 
 const terrainShares = (
@@ -192,6 +200,11 @@ export const summaryOf = (
     ...allegianceOf(diplomacy, nation, nameOf),
     id: nation,
     name: named.name,
+    navy: navySummaryOf(
+      itemAt(simulation.navies, nation, NO_NAVY),
+      itemAt(simulation.economies, nation, NO_ECONOMY),
+      simulation.invasions.filter((crossing) => crossing.nation === nation)
+    ),
     neighbours: [...neighbours].map(nameOf),
     occupation: occupationSummaryOf(
       world,
@@ -207,5 +220,9 @@ export const summaryOf = (
       nation
     ),
     terrain: terrainShares(counts),
+    trade: tradeSummaryOf(
+      itemAt(simulation.economies, nation, NO_ECONOMY),
+      itemAt(ledgersOf({ ...simulation, world }), nation, NO_LEDGER)
+    ),
   };
 };

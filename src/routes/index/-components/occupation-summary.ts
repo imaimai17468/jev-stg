@@ -7,18 +7,15 @@ import {
 } from "@/shared/entities/world/compliance";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
+import { percentLabel } from "./count-label";
 import type { Stat } from "./stat";
-
-const PERCENT = 100;
-
-const percent = (share: number): string => `${Math.round(share * PERCENT)}%`;
 
 /** The average of `levels`, or a dash where there are none. */
 const averageLabel = (levels: readonly number[]): string => {
   if (levels.length === 0) {
     return "—";
   }
-  return percent(
+  return percentLabel(
     levels.reduce((total, level) => total + level, 0) / levels.length
   );
 };
@@ -49,7 +46,7 @@ export const occupationSummaryOf = (
   return [
     { label: "占領している州", value: String(occupied.length) },
     { label: "平均の服従度", value: averageLabel(occupied) },
-    { label: "召集できる人口", value: percent(reach.manpower) },
-    { label: "動かせる工場", value: percent(reach.factories) },
+    { label: "召集できる人口", value: percentLabel(reach.manpower) },
+    { label: "動かせる工場", value: percentLabel(reach.factories) },
   ];
 };

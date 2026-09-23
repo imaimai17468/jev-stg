@@ -2,6 +2,7 @@ import type { World } from "@/shared/entities/world";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { DivisionMark } from "./division-marks";
+import type { FleetMark } from "./fleet-marks";
 import type { NationLabel } from "./nation-labels";
 import type { Surface, Viewport } from "./viewport";
 
@@ -28,12 +29,18 @@ export interface MapPen {
     colour: Colour,
     supply: SupplyState
   ) => void;
+  /**
+   * Draws one fleet counter, centred on the point, in its nation's colour,
+   * shaped apart from an army counter so the two never read as one.
+   */
+  readonly fleet: (value: string, x: number, y: number, colour: Colour) => void;
 }
 
 /** What the map draws over the painted world. */
 export interface MapOverlay {
   readonly labels: readonly NationLabel[];
   readonly marks: readonly DivisionMark[];
+  readonly fleets: readonly FleetMark[];
 }
 
 /**
@@ -47,7 +54,8 @@ const LABEL_MIN_CELLS = 900;
 
 /**
  * Draws one frame: the painted world at the current viewport, the names over
- * it, and an army counter on every province that holds one.
+ * it, an army counter on every province that holds one, and a fleet counter on
+ * every sea zone that holds warships.
  */
 export const drawMap = (
   pen: MapPen,
@@ -80,6 +88,14 @@ export const drawMap = (
       (mark.y - view.y) * view.scale,
       mark.colour,
       mark.supply
+    );
+  }
+  for (const mark of overlay.fleets) {
+    pen.fleet(
+      String(mark.count),
+      (mark.x - view.x) * view.scale,
+      (mark.y - view.y) * view.scale,
+      mark.colour
     );
   }
 };

@@ -2,10 +2,11 @@ import { Option } from "effect";
 import type { Advancement } from "./advancement";
 import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
 import { dateLabel } from "./calendar";
-import type { Decision, Negotiation, Ruling, Source } from "./chronicle";
+import type { Negotiation, Order, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf } from "./clock";
+import { ledgersOf, NO_LEDGER } from "./commerce";
 import type {
   Council,
   JevReply,
@@ -22,14 +23,19 @@ import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
 import type { FocusId } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
 import type { World } from "./index";
+import { CONVOYS_PER_DIVISION } from "./invasion";
 import { itemAt } from "./lookup";
+import { overseasRivals } from "./maritime";
 import { neighbouringNations } from "./nations";
+import type { Navy } from "./navy";
+import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
 import type { TechBranch, TechId } from "./research";
 import { availableTechs, techOf } from "./research";
 import { ruled } from "./rulings";
+import { SHIPYARD_ORDERS } from "./ships";
 import type { Simulation } from "./simulation";
 import { realmOf, supplyOf } from "./simulation";
 import type { Stance } from "./stance";
@@ -44,9 +50,12 @@ import {
   sideStrength,
   strengthAmong,
   warTarget,
+  withinReach,
 } from "./statecraft";
 import type { SupplyNetwork } from "./supply";
 import { undersuppliedShare } from "./supply";
+import type { TradeLaw } from "./trade";
+import { START_TRADE_LAW, TRADE_LAWS } from "./trade";
 import { enemiesOf } from "./wars";
 
 /**
@@ -68,6 +77,7 @@ export interface Convened {
 const standoffOf = (world: World, simulation: Simulation): Standoff => ({
   ...realmOf(simulation),
   borders: neighbouringNations(world, simulation.owners),
+  overseas: overseasRivals(world, simulation),
   world,
 });
 
@@ -75,6 +85,10 @@ const standoffOf = (world: World, simulation: Simulation): Standoff => ({
 interface Dossier {
   readonly advancement: Advancement;
   readonly supply: SupplyNetwork;
+  /** Every nation's navy, by nation id. */
+  readonly navies: readonly Navy[];
+  /** The share of its arms output it loses to the resources it goes without. */
+  readonly shortage: number;
 }
 
 /** The men every nation fighting `nation` has in the field. */
@@ -82,11 +96,11 @@ const enemyStrength = (standoff: Standoff, nation: number): number =>
   strengthAmong(standoff, new Set(enemiesOf(standoff.diplomacy.wars, nation)));
 
 /**
- * The neighbours `nation` may declare on: none while it is at war, and
- * otherwise every neighbour outside its side that its side outmatches. Offered
- * every neighbour, Jev declares on any whose army has not formed yet, so the
- * offer carries the rules' odds and Jev decides which of those to fight, if
- * any.
+ * The nations `nation` may declare on: none while it is at war, and otherwise
+ * every nation within its reach, over land or across the sea, outside its
+ * side that its side outmatches. Offered every nation within reach, Jev declares on any
+ * whose army has not formed yet, so the offer carries the rules' odds and Jev
+ * decides which of those to fight, if any.
  */
 const rivalsOf = (
   standoff: Standoff,
@@ -96,7 +110,7 @@ const rivalsOf = (
   if (enemiesOf(diplomacy.wars, nation).length > 0) {
     return [];
   }
-  return bordering(standoff, nation).flatMap((other) => {
+  return withinReach(standoff, nation).flatMap((other) => {
     if (
       allied(diplomacy, nation, other) ||
       !outmatches(standoff, nation, other)
@@ -157,18 +171,28 @@ const briefOf = (
   nation: number
 ): NationBrief => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
+  const enemies = enemiesOf(standoff.diplomacy.wars, nation);
   return {
     ...offersOf(dossier.advancement),
-    atWar: enemiesOf(standoff.diplomacy.wars, nation).length > 0,
+    atWar: enemies.length > 0,
     civilianFactories: economy.civilianFactories,
+    convoys: itemAt(dossier.navies, nation, NO_NAVY).convoys,
+    dockyards: economy.dockyards,
+    enemyFleet: enemies.reduce(
+      (total, enemy) =>
+        total + fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY)),
+      0
+    ),
     enemyStrength: enemyStrength(standoff, nation),
     equipment: economy.equipment,
     factions: factionsOf(standoff, nation),
+    fleet: fleetStrength(itemAt(dossier.navies, nation, NO_NAVY)),
     manpower: economy.manpower,
     militaryFactories: economy.militaryFactories,
     nation,
     population: economy.population,
     rivals: rivalsOf(standoff, nation),
+    shortage: dossier.shortage,
     strength: sideStrength(standoff, nation),
     undersupplied: undersuppliedShare(
       dossier.supply,
@@ -195,6 +219,7 @@ const governments = (world: World, simulation: Simulation): readonly number[] =>
 export const councilOf = (world: World, simulation: Simulation): Council => {
   const standoff = standoffOf(world, simulation);
   const supply = supplyOf(world, simulation);
+  const ledgers = ledgersOf({ ...simulation, world });
   return {
     _tag: "council",
     date: dateLabel(dateOf(simulation.clock)),
@@ -207,6 +232,8 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
             nation,
             START_ADVANCEMENT
           ),
+          navies: simulation.navies,
+          shortage: itemAt(ledgers, nation, NO_LEDGER).shortage,
           supply,
         },
         nation
@@ -278,9 +305,9 @@ const decisionsByRules = (
   standoff: Standoff,
   nation: number,
   random: Random
-): readonly Decision[] => {
+): readonly Order[] => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
-  const decisions: Decision[] = [
+  const decisions: Order[] = [
     { kind: "stance", nation, stance: stanceByRules(standoff, nation) },
   ];
   if (enemiesOf(standoff.diplomacy.wars, nation).length > 0) {
@@ -304,6 +331,55 @@ const decisionsByRules = (
     decisions.push({ kind: "declare", nation, target });
   }
   return decisions;
+};
+
+/**
+ * The trade law the rules take: limited exports at war, which keeps most of
+ * the ore at home for the war effort, and Hearts of Iron IV's default export
+ * focus at peace.
+ */
+const tradeLawByRules = (atWar: boolean): TradeLaw => {
+  if (atWar) {
+    return "limited-exports";
+  }
+  return START_TRADE_LAW;
+};
+
+/**
+ * The convoys the rules keep afloat beyond what the lanes ran yesterday: a
+ * quarter more for the lanes to grow into, and enough for one landing.
+ */
+const LANE_MARGIN = 1.25;
+const LANDING_CONVOYS = 4 * CONVOYS_PER_DIVISION;
+
+/** The convoys the rules want `navy` to have afloat. */
+const convoysWanted = (navy: Navy): number =>
+  navy.lanes.reduce((total, lane) => total + lane.convoys, 0) * LANE_MARGIN +
+  LANDING_CONVOYS;
+
+/**
+ * What the rules decide for one nation's trade and dockyards this month: the
+ * trade law its war or its peace asks for, and, where it has dockyards, the
+ * order `orderByRules` gives them.
+ */
+const tradeAndShipsByRules = (
+  simulation: Simulation,
+  nation: number
+): readonly Order[] => {
+  const atWar = enemiesOf(simulation.diplomacy.wars, nation).length > 0;
+  const navy = itemAt(simulation.navies, nation, NO_NAVY);
+  const trade: Order = { kind: "trade", law: tradeLawByRules(atWar), nation };
+  if (itemAt(simulation.economies, nation, NO_ECONOMY).dockyards === 0) {
+    return [trade];
+  }
+  return [
+    trade,
+    {
+      kind: "shipbuilding",
+      nation,
+      order: orderByRules(navy, atWar, convoysWanted(navy)),
+    },
+  ];
 };
 
 /** The branches that make a nation's army fight better. */
@@ -356,22 +432,24 @@ const advancesByRules = (
   advancement: Advancement,
   nation: number,
   atWar: boolean
-): readonly Decision[] => [
-  ...techsByRules(advancement, atWar).map((tech): Decision => ({
+): readonly Order[] => [
+  ...techsByRules(advancement, atWar).map((tech): Order => ({
     kind: "research",
     nation,
     tech,
   })),
-  ...Option.toArray(focusByRules(advancement, atWar)).map(
-    (focus): Decision => ({ focus, kind: "focus", nation })
-  ),
+  ...Option.toArray(focusByRules(advancement, atWar)).map((focus): Order => ({
+    focus,
+    kind: "focus",
+    nation,
+  })),
 ];
 
 /** The simulation once every one of `decisions` is carried out under `source`. */
 const allRuled = (
   world: World,
   simulation: Simulation,
-  decisions: readonly Decision[],
+  decisions: readonly Order[],
   source: Source
 ): Simulation => {
   let current = simulation;
@@ -398,7 +476,10 @@ export const ruledByRules = (
     const decided = allRuled(
       world,
       current,
-      decisionsByRules(standoffOf(world, current), nation, random),
+      [
+        ...decisionsByRules(standoffOf(world, current), nation, random),
+        ...tradeAndShipsByRules(current, nation),
+      ],
       BY_RULES
     );
     current = allRuled(
@@ -431,24 +512,24 @@ const decisionOf = (
   brief: NationBrief,
   question: Question,
   choice: string
-): Option.Option<Decision> => {
+): Option.Option<Order> => {
   const { nation } = brief;
   if (question === "conscription") {
-    return Option.map(pickOf(CONSCRIPTION_LAWS, choice), (law): Decision => ({
+    return Option.map(pickOf(CONSCRIPTION_LAWS, choice), (law): Order => ({
       kind: "conscription",
       law,
       nation,
     }));
   }
   if (question === "plan") {
-    return Option.map(pickOf(INDUSTRY_PLANS, choice), (plan): Decision => ({
+    return Option.map(pickOf(INDUSTRY_PLANS, choice), (plan): Order => ({
       kind: "plan",
       nation,
       plan,
     }));
   }
   if (question === "stance") {
-    return Option.map(pickOf(STANCES, choice), (stance): Decision => ({
+    return Option.map(pickOf(STANCES, choice), (stance): Order => ({
       kind: "stance",
       nation,
       stance,
@@ -459,21 +540,35 @@ const decisionOf = (
       Option.fromUndefinedOr(
         brief.rivals.find((rival) => rivalChoice(rival.nation) === choice)
       ),
-      (rival): Decision => ({ kind: "declare", nation, target: rival.nation })
+      (rival): Order => ({ kind: "declare", nation, target: rival.nation })
     );
   }
   if (question === "research") {
-    return Option.map(pickOf(brief.techs, choice), (tech): Decision => ({
+    return Option.map(pickOf(brief.techs, choice), (tech): Order => ({
       kind: "research",
       nation,
       tech,
     }));
   }
   if (question === "focus") {
-    return Option.map(pickOf(brief.focuses, choice), (focus): Decision => ({
+    return Option.map(pickOf(brief.focuses, choice), (focus): Order => ({
       focus,
       kind: "focus",
       nation,
+    }));
+  }
+  if (question === "trade") {
+    return Option.map(pickOf(TRADE_LAWS, choice), (law): Order => ({
+      kind: "trade",
+      law,
+      nation,
+    }));
+  }
+  if (question === "shipbuilding" && brief.dockyards > 0) {
+    return Option.map(pickOf(SHIPYARD_ORDERS, choice), (order): Order => ({
+      kind: "shipbuilding",
+      nation,
+      order,
     }));
   }
   if (question === "faction") {
@@ -483,7 +578,7 @@ const decisionOf = (
           (option) => factionChoice(option.faction) === choice
         )
       ),
-      (option): Decision => ({ faction: option.faction, kind: "join", nation })
+      (option): Order => ({ faction: option.faction, kind: "join", nation })
     );
   }
   return Option.none();
@@ -546,7 +641,7 @@ export const rulingsFrom = (
   council: Council,
   verdicts: readonly Verdict[],
   random: Random
-): readonly Ruling[] =>
+): readonly Ruling<Order>[] =>
   verdicts.flatMap((verdict) => {
     const brief = council.nations.find(
       (entry) => entry.nation === verdict.nation
@@ -556,7 +651,7 @@ export const rulingsFrom = (
         Option.toArray(
           Option.map(
             decisionOf(found, verdict.question, weight.choice),
-            (decision): Ruling => ({
+            (decision): Ruling<Order> => ({
               decision,
               source: { kind: "jev", probability: weight.probability },
             })
@@ -591,12 +686,12 @@ export const ruledByJev = (
 export const termsFrom = (
   negotiation: Negotiation,
   verdicts: readonly Verdict[]
-): Option.Option<Ruling> => {
+): Option.Option<Ruling<Order>> => {
   const verdict = verdicts.find(
     (entry) => entry.question === "terms" && entry.nation === negotiation.loser
   );
   return Option.flatMap(Option.fromUndefinedOr(verdict), (found) =>
-    Option.map(pickOf(PEACE_TERMS, found.choice), (terms): Ruling => ({
+    Option.map(pickOf(PEACE_TERMS, found.choice), (terms): Ruling<Order> => ({
       decision: {
         kind: "peace",
         loser: negotiation.loser,
@@ -661,7 +756,7 @@ export const afterTalks = (
     Option.flatMap(verdictsOf(reply), (verdicts) =>
       termsFrom(negotiation, verdicts)
     ),
-    (): Ruling => ({
+    (): Ruling<Order> => ({
       decision: {
         kind: "peace",
         loser: negotiation.loser,

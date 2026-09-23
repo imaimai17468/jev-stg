@@ -1,3 +1,4 @@
+import { foldedWith } from "./lookup";
 /** Every modifier, in the order a description lists them. */
 export const MODIFIERS: readonly Modifier[] = [
   "attack",
@@ -71,10 +72,5 @@ const added = (total: Modifiers, bonus: Bonus): Modifiers => ({
 });
 
 /** Every one of `bonuses` added together. */
-export const summed = (bonuses: readonly Bonus[]): Modifiers => {
-  let total = NO_MODIFIERS;
-  for (const bonus of bonuses) {
-    total = added(total, bonus);
-  }
-  return total;
-};
+export const summed = (bonuses: readonly Bonus[]): Modifiers =>
+  foldedWith(bonuses, NO_MODIFIERS, added);

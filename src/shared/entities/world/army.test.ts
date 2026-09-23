@@ -78,6 +78,21 @@ describe(armiesAfterOneDay, () => {
     ]);
   });
 
+  it("should come off the beach when a division that landed arrives in the next province", () => {
+    const landed = startingWith({
+      divisions: [
+        division({ arrival: "landing", marched: 1, movingTo: 1, nation: 0 }),
+      ],
+      economies: [NO_ECONOMY, NO_ECONOMY],
+    });
+
+    expect(
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, landed).divisions
+    ).toStrictEqual([
+      division({ marched: 0, movingTo: 1, nation: 0, province: 1 }),
+    ]);
+  });
+
   it("should take the province when an attacker stands in it and nobody defends it", () => {
     const invaded = startingWith({
       divisions: [division({ nation: 0, province: 2 })],

@@ -73,9 +73,14 @@ export interface Situation {
   readonly diplomacy: Diplomacy;
 }
 
-/** A month's decisions also see which nations border which. */
+/**
+ * A month's decisions also see which nations border which, and which can
+ * carry a war to which across the sea.
+ */
 export interface Standoff extends Situation {
   readonly borders: readonly NationPair[];
+  /** Pairs whose first can carry a war across the sea to its second. */
+  readonly overseas: readonly NationPair[];
 }
 
 /** The men `nations` have in the field between them. */
@@ -107,6 +112,23 @@ export const bordering = (
     }
     return [];
   });
+
+/**
+ * The nations `nation` can go to war with: the ones its land touches, and the
+ * ones its fleet can carry a war to across the sea.
+ */
+export const withinReach = (
+  standoff: Standoff,
+  nation: number
+): readonly number[] => [
+  ...bordering(standoff, nation),
+  ...standoff.overseas.flatMap((pair) => {
+    if (pair.one !== nation) {
+      return [];
+    }
+    return [pair.other];
+  }),
+];
 
 /** The nations, strongest side first. */
 const strongestFirst = (
@@ -178,9 +200,9 @@ export const factionToJoin = (
 /**
  * The nation `nation` declares on this month, if it declares on one.
  *
- * Only an independent nation at peace goes looking, it looks at its weakest
- * neighbour outside its own side, and it declares when its side outmatches
- * that neighbour's and the month's draw falls its way.
+ * Only an independent nation at peace goes looking, it looks at the weakest
+ * nation within its reach outside its own side, and it declares when its side
+ * outmatches that nation's and the month's draw falls its way.
  */
 export const warTarget = (
   situation: Standoff,
@@ -196,7 +218,7 @@ export const warTarget = (
   }
   const prey = strongestFirst(
     situation,
-    bordering(situation, nation).filter(
+    withinReach(situation, nation).filter(
       (other) => !allied(diplomacy, nation, other)
     )
   ).toReversed();

@@ -91,6 +91,7 @@ export const withdrawn = (
     return [
       {
         ...division,
+        arrival: "march",
         marched: 0,
         movingTo: beside,
         organisation: 0,

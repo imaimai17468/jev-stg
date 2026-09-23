@@ -63,6 +63,11 @@ export interface Lines {
   readonly modifiers: readonly Modifiers[];
   /** The share of each nation's upkeep its depots met, by nation id. */
   readonly upkeepMet: readonly number[];
+  /**
+   * The share of what each nation's ground cut off from its capital needs
+   * that its convoys brought, by nation id.
+   */
+  readonly shipped: readonly number[];
 }
 
 /** The key one nation's divisions in one province are counted under. */
@@ -73,10 +78,11 @@ export const stackKey = (
 ): number => province * nations + nation;
 
 /**
- * The share of the capacity a piece of the nation's ground cut off from where
- * it musters still gets over the sea, through a coast it holds.
+ * The share of the capacity a port lands for the ground behind it, against
+ * what the railway from the capital carries: Hearts of Iron IV's first port
+ * level lands 8 supply where its first railway level carries 15.
  */
-const OVERSEAS_SHARE = 0.5;
+const PORT_SHARE = 8 / 15;
 
 /** Whether `province` is land `nation`'s own side holds. */
 const ours = (lines: Lines, nation: number, province: number): boolean =>
@@ -125,18 +131,24 @@ const reachFrom = (
   return reach;
 };
 
+/** Which of its coasts a land walk is asked for: the ones it reached, or the rest. */
+type Landfall = "reached" | "cut-off";
+
 /**
- * The coasts of `nation`'s side that the walk from where it musters never
- * reached, which is where a cut-off piece of its ground is supplied from.
+ * The coasts of `nation`'s side that the walk from where it musters reached,
+ * which is where its convoys sail from, or never reached, which is where a
+ * cut-off piece of its ground is supplied from.
  */
-const cutOffCoasts = (
+const coastsBy = (
   lines: Lines,
   nation: number,
-  reach: Int32Array
+  reach: Int32Array,
+  landfall: Landfall
 ): readonly number[] =>
   lines.world.provinces.flatMap((province) => {
     if (
-      valueAt(reach, province.id) !== UNASSIGNED ||
+      (valueAt(reach, province.id) === UNASSIGNED) !==
+        (landfall === "cut-off") ||
       !ours(lines, nation, province.id) ||
       province.neighbours.every((beside) => isLand(lines.graph, beside))
     ) {
@@ -163,12 +175,23 @@ const capacityOver = (
     );
   });
 
+/** How `nation`'s supply reaches its ground: over land, and over the sea. */
+export interface SupplyReach {
+  /** How far each province is from where it musters, walking over land. */
+  readonly overland: Int32Array;
+  /** How far each province is from the coasts the land walk never reached. */
+  readonly overseas: Int32Array;
+  /** The coasts the land walk reached, which is where the convoys sail from. */
+  readonly ports: readonly number[];
+  /** The coasts cut off from where it musters, which the convoys sail to. */
+  readonly cutOff: readonly number[];
+}
+
 /**
- * The divisions each province can keep supplied for `nation`, by province id:
- * from where it musters over land, and over the sea to whatever of its side's
- * ground that land walk never reached.
+ * How `nation`'s supply reaches its side's ground: from where it musters over
+ * land, and from whatever coast that land walk never reached over the sea.
  */
-const capacityOf = (lines: Lines, nation: number): Float32Array => {
+export const reachOf = (lines: Lines, nation: number): SupplyReach => {
   const source = musteringAt(
     lines.world,
     lines.owners,
@@ -179,14 +202,30 @@ const capacityOf = (lines: Lines, nation: number): Float32Array => {
     nation,
     [source].filter((province) => province !== UNASSIGNED)
   );
-  const overseas = reachFrom(
-    lines,
-    nation,
-    cutOffCoasts(lines, nation, overland)
-  );
+  const cutOff = coastsBy(lines, nation, overland, "cut-off");
+  return {
+    cutOff,
+    overland,
+    overseas: reachFrom(lines, nation, cutOff),
+    ports: coastsBy(lines, nation, overland, "reached"),
+  };
+};
+
+/**
+ * The divisions each province can keep supplied for `nation`, by province id:
+ * from where it musters over land, and through a port it holds to whatever of
+ * its side's ground that land walk never reached, as far as its convoys carry
+ * it there.
+ */
+const capacityOf = (lines: Lines, nation: number): Float32Array => {
+  const reach = reachOf(lines, nation);
   const boost = 1 + itemAt(lines.modifiers, nation, NO_MODIFIERS).supply;
-  const byLand = capacityOver(lines, overland, 1);
-  const bySea = capacityOver(lines, overseas, OVERSEAS_SHARE);
+  const byLand = capacityOver(lines, reach.overland, 1);
+  const bySea = capacityOver(
+    lines,
+    reach.overseas,
+    PORT_SHARE * itemAt(lines.shipped, nation, 1)
+  );
   return Float32Array.from(
     byLand,
     (capacity, province) => Math.max(capacity, valueAt(bySea, province)) * boost

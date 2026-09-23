@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
-import { atWar, declared, enemiesOf, noWars, peaceFor, warCount } from "./wars";
+import {
+  atWar,
+  declared,
+  enemiesOf,
+  noWars,
+  peaceBetween,
+  peaceFor,
+  warCount,
+} from "./wars";
 
 describe(atWar, () => {
   it("should read peace when nobody has declared anything", () => {
@@ -49,6 +57,25 @@ describe(peaceFor, () => {
     });
 
     expect(enemiesOf(peaceFor(wars, 0), 2)).toStrictEqual([1]);
+  });
+});
+
+describe(peaceBetween, () => {
+  it("should end the war both ways round when the two of the pair sign a peace", () => {
+    const wars = declared(noWars(3), { one: 0, other: 1 });
+
+    expect(peaceBetween(wars, { one: 1, other: 0 })).toStrictEqual(noWars(3));
+  });
+
+  it("should leave the pair's other wars alone when the two of it sign a peace", () => {
+    const wars = declared(declared(noWars(3), { one: 0, other: 1 }), {
+      one: 0,
+      other: 2,
+    });
+
+    expect(
+      enemiesOf(peaceBetween(wars, { one: 0, other: 1 }), 0)
+    ).toStrictEqual([2]);
   });
 });
 

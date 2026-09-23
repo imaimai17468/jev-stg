@@ -29,6 +29,12 @@ const TEMPLATES = {
   },
 } satisfies Readonly<Record<DivisionKind, Template>>;
 
+/**
+ * How a division came into the province it stands in: on foot, or off the
+ * transports onto a beach, which it attacks from at a penalty until it moves.
+ */
+export type Arrival = "march" | "landing";
+
 /** One division: where it stands, what is left of it, and where it is walking. */
 export interface Division {
   readonly nation: number;
@@ -43,6 +49,7 @@ export interface Division {
   readonly movingTo: number;
   /** The days it has spent walking toward `movingTo`. */
   readonly marched: number;
+  readonly arrival: Arrival;
 }
 
 /** The days it takes a division to walk into a province of each terrain. */
@@ -75,6 +82,7 @@ export const terrainDefenceOf = (terrain: Terrain): number =>
 
 /** A division fresh from the depots, standing where it was raised. */
 export const raisedAt = (nation: number, province: number): Division => ({
+  arrival: "march",
   kind: "infantry",
   marched: 0,
   movingTo: province,
@@ -133,9 +141,18 @@ const worthIn = (division: Division, backing: Backing, role: Role): number =>
   (1 + backing.modifiers[role]) *
   suppliedWorth(backing.fill);
 
+/**
+ * The share of its attack a division keeps while it fights off a beach, after
+ * Hearts of Iron IV's 50% penalty to a landing's attack.
+ */
+const ATTACK_KEPT_BY = {
+  landing: 0.5,
+  march: 1,
+} satisfies Readonly<Record<Arrival, number>>;
+
 /** What a division is worth in a day of attacking. */
 export const attackOf = (division: Division, backing: Backing): number =>
-  worthIn(division, backing, "attack");
+  worthIn(division, backing, "attack") * ATTACK_KEPT_BY[division.arrival];
 
 /** What it is worth in a day of holding the ground it stands on. */
 export const defenceOf = (division: Division, backing: Backing): number =>

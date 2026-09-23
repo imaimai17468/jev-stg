@@ -76,4 +76,38 @@ describe(entryLine, () => {
       lineOf({ focus: "research-bureau", kind: "focus", nation: 0 }).action
     ).toBe("国家方針 → 研究局");
   });
+
+  it.each([
+    {
+      action: "交易法 → 輸出制限",
+      decision: { kind: "trade", law: "limited-exports", nation: 0 },
+      what: "a nation changes its trade law",
+    },
+    {
+      action: "造船 → 潜水艦",
+      decision: { kind: "shipbuilding", nation: 0, order: "submarine" },
+      what: "a nation sets its dockyards to a new order",
+    },
+    {
+      action: "国1の海岸に上陸",
+      decision: { defender: 1, kind: "landing", nation: 0, target: 1 },
+      what: "a nation's divisions go ashore on an enemy coast",
+    },
+    {
+      action: "国1と白紙講和",
+      decision: { kind: "white-peace", one: 0, other: 1 },
+      what: "two nations that no longer touch sign a white peace",
+    },
+  ] satisfies readonly { action: string; decision: Decision; what: string }[])(
+    "should word it as $action when $what",
+    ({ action, decision }) => {
+      expect(lineOf(decision)).toStrictEqual({
+        action,
+        actor: "国0",
+        date: "1936-02-29",
+        key: "7",
+        source: "Jev 62%",
+      });
+    }
+  );
 });

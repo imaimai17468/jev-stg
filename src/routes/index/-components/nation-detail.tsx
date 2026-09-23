@@ -41,6 +41,12 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
       <PanelSection title="補給">
         <StatRows layout="column" stats={summary.supply} />
       </PanelSection>
+      <PanelSection title="海軍">
+        <StatRows layout="column" stats={summary.navy} />
+      </PanelSection>
+      <PanelSection title="資源と交易">
+        <StatRows layout="column" stats={summary.trade} />
+      </PanelSection>
       <PanelSection
         title={`研究（研究済み ${summary.advancement.researched}）`}
       >

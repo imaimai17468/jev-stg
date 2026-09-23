@@ -232,6 +232,19 @@ describe(withdrawn, () => {
     ]);
   });
 
+  it("should fall back on foot when the broken division came ashore from a landing", () => {
+    const beached = division({
+      arrival: "landing",
+      nation: 0,
+      organisation: -4,
+      province: 2,
+    });
+
+    expect(withdrawn(LINE_GRAPH, LINE_OWNERS, beached)).toStrictEqual([
+      division({ movingTo: 1, nation: 0, organisation: 0, province: 1 }),
+    ]);
+  });
+
   it("should be lost when a broken division has nothing of its own behind it", () => {
     const pocket = division({ nation: 0, organisation: -4, province: 3 });
 

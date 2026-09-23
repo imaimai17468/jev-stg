@@ -24,6 +24,10 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import { NO_ECONOMY } from "./economy";
+import { replacedAt } from "./lookup";
+import type { Navy } from "./navy";
+import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
 import type { Random } from "./random";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
@@ -49,9 +53,13 @@ const ORDERED: Simulation = withDiplomacy({
 const BRIEF: NationBrief = {
   atWar: false,
   civilianFactories: 0,
+  convoys: 0,
+  dockyards: 0,
+  enemyFleet: 0,
   enemyStrength: 0,
   equipment: 0,
   factions: [{ faction: 0, strength: 0 }],
+  fleet: 0,
   focuses: [],
   freeSlots: 0,
   manpower: 0,
@@ -59,6 +67,7 @@ const BRIEF: NationBrief = {
   nation: 1,
   population: 0,
   rivals: [{ nation: 2, strength: 0 }],
+  shortage: 0,
   strength: 0,
   techs: [],
   undersupplied: 0,
@@ -232,6 +241,30 @@ describe(councilOf, () => {
     });
   });
 
+  it("should count its own convoys and fleet against only its enemies' fleets when the nation is at war", () => {
+    const fleets: Simulation = {
+      ...withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1)),
+      economies: ROW_SIMULATION.economies.map((economy, nation) => ({
+        ...economy,
+        dockyards: 4 - nation,
+      })),
+      navies: [openingNavy(4, 4), openingNavy(2, 4), openingNavy(8, 4)],
+    };
+    const brief = briefOfFirst(councilOf(ROW_WORLD, fleets));
+
+    expect({
+      convoys: brief?.convoys,
+      dockyards: brief?.dockyards,
+      enemyFleet: brief?.enemyFleet,
+      fleet: brief?.fleet,
+    }).toStrictEqual({
+      convoys: 40,
+      dockyards: 4,
+      enemyFleet: fleetStrength(openingNavy(2, 4)),
+      fleet: fleetStrength(openingNavy(4, 4)),
+    });
+  });
+
   it("should offer no technology when every research slot is busy", () => {
     const busy = advancedTo(ROW_SIMULATION, {
       ...START_ADVANCEMENT,
@@ -266,6 +299,16 @@ describe(councilDayOf, () => {
   it("should name the first of the month when the clock is partway through it", () => {
     expect(councilDayOf({ days: 45, paused: false, speed: 2 })).toBe(31);
   });
+});
+
+/** Nation 0 with five dockyards and `navy`, the others as the row opens. */
+const shipbuilder = (navy: Navy): Simulation => ({
+  ...ROW_SIMULATION,
+  economies: replacedAt(ROW_SIMULATION.economies, 0, {
+    ...NO_ECONOMY,
+    dockyards: 5,
+  }),
+  navies: replacedAt(ROW_SIMULATION.navies, 0, navy),
 });
 
 describe(ruledByRules, () => {
@@ -432,6 +475,54 @@ describe(ruledByRules, () => {
     ]);
   });
 
+  it("should limit exports when a nation is at war", () => {
+    expect(
+      ruledByRules(ROW_WORLD, atWar([]), COUNCIL_DAY).economies[0]?.tradeLaw
+    ).toBe("limited-exports");
+  });
+
+  it("should keep exports its focus when a nation is at peace", () => {
+    expect(
+      ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY).economies[0]
+        ?.tradeLaw
+    ).toBe("export-focus");
+  });
+
+  it("should lay down battleships when a nation with dockyards has convoys to spare and no capital ship to screen", () => {
+    expect(
+      ruledByRules(
+        ROW_WORLD,
+        shipbuilder({ ...NO_NAVY, convoys: 1000 }),
+        COUNCIL_DAY
+      ).navies[0]?.order
+    ).toBe("battleship");
+  });
+
+  it("should lay down convoys when a nation's lanes want more than it has afloat", () => {
+    expect(
+      ruledByRules(
+        ROW_WORLD,
+        shipbuilder({
+          ...NO_NAVY,
+          convoys: 100,
+          lanes: [{ cargo: "trade", convoys: 100, zones: [4] }],
+          order: "battleship",
+        }),
+        COUNCIL_DAY
+      ).navies[0]?.order
+    ).toBe("convoy");
+  });
+
+  it("should leave the dockyards alone when a nation has none", () => {
+    expect(
+      ruledByRules(
+        ROW_WORLD,
+        { ...shipbuilder(NO_NAVY), economies: ROW_SIMULATION.economies },
+        COUNCIL_DAY
+      ).navies[0]
+    ).toBe(NO_NAVY);
+  });
+
   it("should pursue the first focus outside the army's branch when a nation is at peace", () => {
     expect(
       ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY).advancements[0]
@@ -526,6 +617,51 @@ describe(rulingsFrom, () => {
     const weighed = verdict({ weights: [{ choice: "n2", probability: 0.5 }] });
 
     expect(rulingsFrom(COUNCIL, [weighed], landingOn(0.9))).toStrictEqual([]);
+  });
+
+  it("should decide the trade law when a trade verdict names one", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [verdict({ choice: "free-trade", question: "trade" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { kind: "trade", law: "free-trade", nation: 1 },
+        source: fromJev(0.7),
+      },
+    ]);
+  });
+
+  it("should turn the dockyards when a shipbuilding verdict names an order and the nation has dockyards", () => {
+    const building: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, dockyards: 3 }],
+    };
+
+    expect(
+      rulingsFrom(
+        building,
+        [verdict({ choice: "submarine", question: "shipbuilding" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { kind: "shipbuilding", nation: 1, order: "submarine" },
+        source: fromJev(0.7),
+      },
+    ]);
+  });
+
+  it("should decide nothing when a shipbuilding verdict is about a nation with no dockyards", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [verdict({ choice: "submarine", question: "shipbuilding" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([]);
   });
 
   it("should change nothing when Jev is unsure of a new law", () => {

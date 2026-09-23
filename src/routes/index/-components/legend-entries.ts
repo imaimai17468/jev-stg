@@ -5,9 +5,16 @@ import type { MapMode } from "./map-mode";
 import {
   COMPLIANCE_COLOURS,
   COMPLIANCE_HATCH,
+  RESOURCE_COLOURS,
+  SEA_HOLD_HATCH,
+  SEA_HOLD_SWATCHES,
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
 } from "./map-palette";
+import type { ResourceLevel } from "./resource-level";
+import { RESOURCE_LEVELS } from "./resource-level";
+import type { SeaHoldLevel } from "./sea-hold";
+import { SEA_HOLD_LEVELS } from "./sea-hold";
 import type { SupplyLevel } from "./supply-level";
 import { SUPPLY_LEVELS } from "./supply-level";
 
@@ -35,6 +42,27 @@ const COMPLIANCE_LABELS = {
   wavering: "服従度 30〜60%",
 } satisfies Record<ComplianceLevel, string>;
 
+const SEA_HOLD_LABELS = {
+  contested: "争われている海",
+  empty: "艦のいない海",
+  held: "1国が握る海（その国の色）",
+} satisfies Record<SeaHoldLevel, string>;
+
+const RESOURCE_LABELS = {
+  chromium: "クロム",
+  none: "資源なし",
+  steel: "鋼鉄",
+  tungsten: "タングステン",
+} satisfies Record<ResourceLevel, string>;
+
+/** No province of the resource map is striped. */
+const NO_RESOURCE_HATCH = {
+  chromium: 0,
+  none: 0,
+  steel: 0,
+  tungsten: 0,
+} satisfies Record<ResourceLevel, number>;
+
 /** The legend of a map painted in `levels`, each with its colour, stripes and label. */
 const legendOf = <Level extends string>(
   levels: readonly Level[],
@@ -57,7 +85,19 @@ const LEGENDS = {
     COMPLIANCE_HATCH,
     COMPLIANCE_LABELS
   ),
+  naval: legendOf(
+    SEA_HOLD_LEVELS,
+    SEA_HOLD_SWATCHES,
+    SEA_HOLD_HATCH,
+    SEA_HOLD_LABELS
+  ),
   political: [],
+  resources: legendOf(
+    RESOURCE_LEVELS,
+    RESOURCE_COLOURS,
+    NO_RESOURCE_HATCH,
+    RESOURCE_LABELS
+  ),
   supply: legendOf(SUPPLY_LEVELS, SUPPLY_COLOURS, SUPPLY_HATCH, SUPPLY_LABELS),
 } satisfies Record<MapMode, readonly LegendEntry[]>;
 

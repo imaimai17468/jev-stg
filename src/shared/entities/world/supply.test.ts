@@ -15,10 +15,14 @@ import { UNASSIGNED } from "./spread";
 import type { Lines } from "./supply";
 import {
   postOf,
+  reachOf,
   supplyNetwork,
   supplyStateOf,
   undersuppliedShare,
 } from "./supply";
+
+/** Nation 0 holds the capital's two provinces and the far coast, with nation 1 between them. */
+const CUT_OFF_OWNERS = Int32Array.from([0, 0, 1, 0, UNASSIGNED]);
 
 const PEACE: Diplomacy = openingDiplomacy(LINE_OWNERS, 2, []);
 
@@ -29,6 +33,7 @@ const LINES: Lines = {
   graph: LINE_GRAPH,
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
+  shipped: [1, 1],
   upkeepMet: [1, 1],
   world: LINE_WORLD,
 };
@@ -90,13 +95,23 @@ describe(supplyNetwork, () => {
     ).toStrictEqual([60, 57, 0, 0, 0]);
   });
 
-  it("should supply a coast at half the capacity over the sea when it is cut off from the capital", () => {
+  it("should supply a coast at a port's share of the capacity when it is cut off from the capital and the convoys bring everything", () => {
     expect(
       capacities({
         ...LINES,
-        owners: Int32Array.from([0, 0, 1, 0, UNASSIGNED]),
+        owners: CUT_OFF_OWNERS,
       })
-    ).toStrictEqual([40, 38, 0, 20, 0]);
+    ).toStrictEqual([40, 38, 0, 21.33, 0]);
+  });
+
+  it("should supply a cut-off coast less when the convoys bring only half of what it needs", () => {
+    expect(
+      capacities({
+        ...LINES,
+        owners: CUT_OFF_OWNERS,
+        shipped: [0.5, 1],
+      })
+    ).toStrictEqual([40, 38, 0, 10.67, 0]);
   });
 
   it("should supply nothing when the nation holds no ground to muster on", () => {
@@ -106,6 +121,27 @@ describe(supplyNetwork, () => {
         owners: Int32Array.from([1, 1, 1, 1, UNASSIGNED]),
       })
     ).toStrictEqual([0, 0, 0, 0, 0]);
+  });
+});
+
+describe(reachOf, () => {
+  it("should walk over land from the capital and over the sea from the coast the land never reached when the nation's ground is cut in two", () => {
+    expect(reachOf({ ...LINES, owners: CUT_OFF_OWNERS }, 0)).toStrictEqual({
+      cutOff: [3],
+      overland: Int32Array.from([0, 1, UNASSIGNED, UNASSIGNED, UNASSIGNED]),
+      overseas: Int32Array.from([
+        UNASSIGNED,
+        UNASSIGNED,
+        UNASSIGNED,
+        0,
+        UNASSIGNED,
+      ]),
+      ports: [],
+    });
+  });
+
+  it("should sail from the coast the land walk reached when the nation holds it", () => {
+    expect(reachOf(LINES, 1).ports).toStrictEqual([3]);
   });
 });
 
