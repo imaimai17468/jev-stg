@@ -84,16 +84,21 @@ export const raisedAt = (nation: number, province: number): Division => ({
   strength: TEMPLATES.infantry.manpower,
 });
 
+/** The men it takes to raise `count` divisions. */
+export const menFor = (count: number): number =>
+  count * TEMPLATES.infantry.manpower;
+
 /** Whether the nation has the men and the weapons for another division. */
 export const canRaise = (economy: NationEconomy): boolean =>
   economy.manpower >= TEMPLATES.infantry.manpower &&
   economy.equipment >= TEMPLATES.infantry.equipment;
 
-/** The economy with one division's men and weapons taken out of it. */
+/** The economy with one division's men called up and its weapons taken out. */
 export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
   ...economy,
   equipment: economy.equipment - TEMPLATES.infantry.equipment,
   manpower: economy.manpower - TEMPLATES.infantry.manpower,
+  recruited: economy.recruited + TEMPLATES.infantry.manpower,
 });
 
 /** The men in a set of divisions, all of them together. */

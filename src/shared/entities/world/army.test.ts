@@ -32,7 +32,10 @@ describe(armiesAfterOneDay, () => {
       armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, startingWith({}))
     ).toStrictEqual({
       divisions: [division({ marched: 1, movingTo: 1, nation: 0 })],
-      economies: [{ ...ARMED, equipment: 500, manpower: 10_000 }, NO_ECONOMY],
+      economies: [
+        { ...ARMED, equipment: 500, manpower: 10_000, recruited: 20_000 },
+        NO_ECONOMY,
+      ],
       owners: LINE_OWNERS,
     });
   });

@@ -44,6 +44,7 @@ const INDUSTRY: NationEconomy = {
   militaryFactories: 10,
   plan: "civilian",
   population: 0,
+  recruited: 0,
   upkeepMet: 1,
 };
 
@@ -57,6 +58,7 @@ const PEOPLE: NationEconomy = {
   militaryFactories: 0,
   plan: "civilian",
   population: 1_000_000,
+  recruited: 0,
   upkeepMet: 1,
 };
 
@@ -74,6 +76,7 @@ describe(startEconomies, () => {
         militaryFactories: 5,
         plan: "civilian",
         population: 30_000_000,
+        recruited: 0,
         upkeepMet: 1,
       },
     ]);
@@ -127,6 +130,17 @@ describe(producedOneDay, () => {
     ).toStrictEqual({ ...INDUSTRY, construction: 78, equipment: 75 });
   });
 
+  it("should turn out less and build slower when the nation's law calls up its workers", () => {
+    expect(
+      producedOneDay({ ...INDUSTRY, conscription: "all-adults" }, NO_MODIFIERS)
+    ).toStrictEqual({
+      ...INDUSTRY,
+      conscription: "all-adults",
+      construction: 45.5,
+      equipment: 35,
+    });
+  });
+
   it("should finish a military factory when the nation holds less of them than its plan wants", () => {
     const arming: NationEconomy = {
       ...INDUSTRY,
@@ -153,30 +167,32 @@ describe(producedOneDay, () => {
     });
   });
 
-  it("should grow the population and recover the manpower when a day passes", () => {
+  it("should grow the population and open the whole reach of the law when nobody has been called up yet", () => {
     expect(producedOneDay(PEOPLE, NO_MODIFIERS)).toStrictEqual({
       ...PEOPLE,
-      manpower: 8.213822211165878,
-      population: 1_000_032.8542094456,
-    });
-  });
-
-  it("should hold the manpower at the cap when the law reaches no further", () => {
-    const full: NationEconomy = { ...PEOPLE, manpower: 15_000 };
-
-    expect(producedOneDay(full, NO_MODIFIERS)).toStrictEqual({
-      ...full,
       manpower: 15_000.492813141684,
       population: 1_000_032.8542094456,
     });
   });
+
+  it("should leave out everyone already called up when the nation has recruited some", () => {
+    expect(
+      producedOneDay({ ...PEOPLE, recruited: 10_000 }, NO_MODIFIERS).manpower
+    ).toBe(5000.492813141684);
+  });
+
+  it("should leave nobody to call when the nation has called up more than its law reaches", () => {
+    expect(
+      producedOneDay({ ...PEOPLE, recruited: 20_000 }, NO_MODIFIERS).manpower
+    ).toBe(0);
+  });
 });
 
 describe("producedOneDay under a wider reach", () => {
-  it("should recover the manpower toward a higher cap when the nation's modifiers widen the law's reach", () => {
+  it("should open a wider pool when the nation's modifiers widen the law's reach", () => {
     expect(
       producedOneDay(PEOPLE, { ...NO_MODIFIERS, manpower: 1 }).manpower
-    ).toBe(16.427644422331756);
+    ).toBeCloseTo(30_000.9856, 4);
   });
 });
 
@@ -209,6 +225,17 @@ describe(shareTransferred, () => {
       },
       { ...NO_ECONOMY, population: 5 },
     ]);
+  });
+
+  it("should move the share of the loser's call-ups with its people when ground changes hands", () => {
+    const drafted = [
+      { ...NO_ECONOMY, population: 100, recruited: 20_000 },
+      NO_ECONOMY,
+    ];
+
+    expect(
+      shareTransferred(drafted, 0, 1, 0.5).map((economy) => economy.recruited)
+    ).toStrictEqual([10_000, 10_000]);
   });
 
   it("should move no more than the loser holds when the share runs over one", () => {

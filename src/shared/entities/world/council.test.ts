@@ -284,6 +284,20 @@ describe(ruledByRules, () => {
     }).toStrictEqual({ conscription: "limited", plan: "balanced" });
   });
 
+  it("should keep the law when a nation at war still has men to call up", () => {
+    const manned: Simulation = {
+      ...atWar([]),
+      economies: ROW_SIMULATION.economies.map((economy) => ({
+        ...economy,
+        manpower: 1_000_000,
+      })),
+    };
+
+    expect(
+      ruledByRules(ROW_WORLD, manned, COUNCIL_DAY).economies[0]?.conscription
+    ).toBe("volunteer");
+  });
+
   it("should keep the heaviest law when a nation at war already has it", () => {
     const drafted: Simulation = {
       ...atWar([]),
