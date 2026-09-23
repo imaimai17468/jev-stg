@@ -1,3 +1,4 @@
+import { AdvancementDialog } from "./advancement-dialog";
 import { NationList } from "./nation-list";
 import {
   factionListing,
@@ -60,9 +61,21 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
         title={`研究（研究済み ${summary.advancement.researched}）`}
       >
         <StatRows layout="column" stats={summary.advancement.slots} />
+        <AdvancementDialog
+          defaultTab="techs"
+          nation={summary.name}
+          tree={summary.tree}
+          trigger="研究ツリーを見る"
+        />
       </PanelSection>
       <PanelSection title="国家方針">
         <StatRows layout="column" stats={[summary.advancement.focus]} />
+        <AdvancementDialog
+          defaultTab="focuses"
+          nation={summary.name}
+          tree={summary.tree}
+          trigger="国家方針ツリーを見る"
+        />
       </PanelSection>
       <PanelSection title="達成した国家方針">
         <NationList
