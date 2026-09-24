@@ -73,7 +73,10 @@ export interface Works {
   readonly tiedUp: readonly number[];
 }
 
-/** Where `nation` builds its next factory: what its plan wants, as far as it has a free slot for it. */
+/**
+ * Where `nation` builds its next factory: what its plan wants, in the province
+ * its government chose, as far as it has a free slot for it.
+ */
 const buildingSiteOf = (
   works: Works,
   economy: NationEconomy,
@@ -90,7 +93,13 @@ const buildingSiteOf = (
       world: works.world,
     },
     nation,
-    wantedKindOf(economy, itemAt(industry, nation, NO_INDUSTRY).coastal)
+    {
+      chosen: economy.buildSite,
+      wanted: wantedKindOf(
+        economy,
+        itemAt(industry, nation, NO_INDUSTRY).coastal
+      ),
+    }
   );
 
 /** A day of trade and work: the economies, the navies, the air forces, and the trade struck. */

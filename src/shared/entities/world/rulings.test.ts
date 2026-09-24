@@ -694,6 +694,30 @@ describe(ruled, () => {
     );
   });
 
+  it("should build the nation's factories in the province decided and record the ruling when it holds that province", () => {
+    const ruling = byRules({ kind: "build-site", nation: 3, province: 3 });
+
+    const after = ruled(ROW_WORLD, ROW_SIMULATION, ruling);
+
+    expect({
+      buildSite: after.economies[3]?.buildSite,
+      chronicle: after.chronicle,
+    }).toStrictEqual({
+      buildSite: 3,
+      chronicle: [{ day: 0, ruling, seq: 0 }],
+    });
+  });
+
+  it("should change nothing when a nation picks a province it does not hold to build in", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "build-site", nation: 3, province: 2 })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
   it("should change nothing when a puppet's dockyards are ruled on", () => {
     expect(
       ruled(

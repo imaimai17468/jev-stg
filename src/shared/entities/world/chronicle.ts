@@ -64,6 +64,12 @@ export type Decision =
       readonly aircraft: Aircraft;
     }
   | {
+      readonly kind: "build-site";
+      readonly nation: number;
+      /** The province its factories go up in. */
+      readonly province: number;
+    }
+  | {
       readonly kind: "aviation";
       readonly nation: number;
       readonly aviation: Aviation;
@@ -167,6 +173,7 @@ const STRAND_OF = {
   agency: "intelligence",
   aircraft: "policy",
   aviation: "policy",
+  "build-site": "policy",
   captured: "intelligence",
   cipher: "intelligence",
   conscription: "policy",

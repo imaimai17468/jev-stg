@@ -120,6 +120,7 @@ const UNSEEN_ONE: Sighting = { estimate: 0, margin: 0, unseen: 1 };
 const BRIEF: NationBrief = {
   agencyProjects: [],
   atWar: false,
+  buildSites: [],
   civilianFactories: 0,
   convoys: 0,
   dockyards: 0,
@@ -1217,6 +1218,43 @@ describe(rulingsFrom, () => {
         source: fromJev(0.7),
       },
     ]);
+  });
+
+  it("should pick the build site when a build-site verdict names a province the brief offered", () => {
+    const building: Council = {
+      ...COUNCIL,
+      nations: [
+        {
+          ...BRIEF,
+          buildSites: [
+            { coastal: false, free: 2, infrastructure: 3, province: 7 },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      rulingsFrom(
+        building,
+        [verdict({ choice: "p7", probability: 0.3, question: "build-site" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { kind: "build-site", nation: 1, province: 7 },
+        source: fromJev(0.3),
+      },
+    ]);
+  });
+
+  it("should decide nothing when a build-site verdict names a province the brief never offered", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [verdict({ choice: "p7", question: "build-site" })],
+        ANY_DRAW
+      )
+    ).toStrictEqual([]);
   });
 
   it("should decide nothing when a shipbuilding verdict is about a nation with no dockyards", () => {

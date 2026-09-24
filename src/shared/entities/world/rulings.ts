@@ -21,6 +21,7 @@ import {
 import type { NationEconomy } from "./economy";
 import {
   NO_ECONOMY,
+  withBuildSite,
   withConscription,
   withPlan,
   withTradeLaw,
@@ -28,6 +29,7 @@ import {
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
 import { availableFocuses, focusStarted } from "./focus";
+import { valueAt } from "./grid";
 import type { World } from "./index";
 import { itemAt, replacedAt } from "./lookup";
 import { overseasRivals } from "./maritime";
@@ -178,11 +180,26 @@ const changedTo = <T, V>(
   return Option.some(apply(decided));
 };
 
-/** The economy under the law or the plan decided, or none where it already has it. */
+/**
+ * The economy under the law or the plan decided, or building in the province
+ * decided, or none where it already has it or no longer holds that province.
+ */
 const economyRuled = (
+  simulation: Simulation,
   economy: NationEconomy,
-  decision: Extract<Decision, { kind: "conscription" | "plan" | "trade" }>
+  decision: Extract<
+    Decision,
+    { kind: "conscription" | "plan" | "trade" | "build-site" }
+  >
 ): Option.Option<NationEconomy> => {
+  if (decision.kind === "build-site") {
+    if (valueAt(simulation.owners, decision.province) !== decision.nation) {
+      return Option.none();
+    }
+    return changedTo(economy.buildSite, decision.province, (province) =>
+      withBuildSite(economy, province)
+    );
+  }
   if (decision.kind === "conscription") {
     return changedTo(economy.conscription, decision.law, (law) =>
       withConscription(economy, law)
@@ -314,13 +331,14 @@ const carriedOut = (
   if (
     decision.kind === "conscription" ||
     decision.kind === "plan" ||
-    decision.kind === "trade"
+    decision.kind === "trade" ||
+    decision.kind === "build-site"
   ) {
     return replacedFor(
       simulation,
       simulation.economies,
       decision.nation,
-      economyRuled(economy, decision),
+      economyRuled(simulation, economy, decision),
       (economies) => ({ ...simulation, economies })
     );
   }

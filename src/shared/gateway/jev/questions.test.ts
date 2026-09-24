@@ -18,6 +18,7 @@ const exactly = (estimate: number): Sighting => ({
 const BRIEF: NationBrief = {
   agencyProjects: [],
   atWar: true,
+  buildSites: [],
   civilianFactories: 20,
   convoys: 12.4,
   dockyards: 0,
@@ -166,6 +167,33 @@ describe(evaluationFor, () => {
       },
       instructions:
         "国1の造船所は次に何を造りますか。戦艦1隻には護衛艦3隻が付くと命中が上がり、輸送船が足りないと海越しの補給と上陸が止まります。",
+      type: "choice",
+    });
+  });
+
+  it("should offer each province with its infrastructure, its free slots and its coast when the nation has somewhere to build", () => {
+    const building: Council = {
+      ...COUNCIL,
+      nations: [
+        {
+          ...BRIEF,
+          buildSites: [
+            { coastal: true, free: 4, infrastructure: 5, province: 3 },
+            { coastal: false, free: 1, infrastructure: 2, province: 8 },
+          ],
+        },
+      ],
+    };
+
+    expect(
+      evaluationFor(building).body.questions["n1_build-site"]
+    ).toStrictEqual({
+      criteria: {
+        p3: "州3・インフラ5・空き枠4・沿岸",
+        p8: "州8・インフラ2・空き枠1",
+      },
+      instructions:
+        "国1は次の工場をどの州に建てますか。建てる州のインフラが1段階高いごとに建設が20%速くなり、造船所は沿岸の州にしか建ちません。選んだ州に空き枠があるあいだはそこに建ち、空き枠がないか州を失っているあいだは最もインフラの高い州に建ちます。",
       type: "choice",
     });
   });
