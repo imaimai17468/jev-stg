@@ -116,6 +116,19 @@ describe(armiesAfterOneDay, () => {
     ).toStrictEqual([]);
   });
 
+  it("should keep a garrison where it stands and dig it in when the line would call a division away", () => {
+    const guarded = startingWith({
+      divisions: [division({ nation: 0, task: "garrison" })],
+      economies: [NO_ECONOMY, NO_ECONOMY],
+    });
+
+    expect(
+      armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, guarded).divisions
+    ).toStrictEqual([
+      division({ entrenchment: 1, nation: 0, task: "garrison" }),
+    ]);
+  });
+
   it("should arrive in the next province when the march has taken its days", () => {
     const walking = startingWith({
       divisions: [division({ marched: 1, movingTo: 1, nation: 0 })],

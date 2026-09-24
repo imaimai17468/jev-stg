@@ -248,14 +248,17 @@ const homeGround = (
     return [province];
   });
 
-/** The divisions of `nation` standing on `ground`, which a crossing can take. */
+/** The divisions of `nation` standing on `ground` and guarding nothing, which a crossing can take. */
 const spareOf = (
   divisions: readonly Division[],
   ground: ReadonlySet<number>,
   nation: number
 ): readonly Division[] =>
   divisions.filter(
-    (division) => division.nation === nation && ground.has(division.province)
+    (division) =>
+      division.nation === nation &&
+      ground.has(division.province) &&
+      division.task !== "garrison"
   );
 
 const NO_REACH: SupplyReach = {

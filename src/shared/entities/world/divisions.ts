@@ -40,10 +40,13 @@ const TEMPLATES = {
 export type Arrival = "march" | "landing";
 
 /**
- * What a division is doing: standing to the orders of its nation's line, or
- * falling back to the fallback line after it broke, to regroup there.
+ * What a division is doing: standing to the orders of its nation's line,
+ * falling back to the fallback line after it broke, to regroup there, or
+ * holding the province it guards, which the line never calls away. A
+ * garrison that breaks regroups like any other division and then answers to
+ * the line.
  */
-export type Task = "line" | "regroup";
+export type Task = "line" | "regroup" | "garrison";
 
 /** One division: where it stands, what is left of it, and where it is walking. */
 export interface Division {

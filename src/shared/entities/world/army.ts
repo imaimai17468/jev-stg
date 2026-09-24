@@ -590,6 +590,14 @@ const marchedEverywhere = (
       ];
     })
   );
+  preparedAfter(
+    free.flatMap((division): readonly Order[] => {
+      if (division.task !== "garrison") {
+        return [];
+      }
+      return [{ after: division, before: division }];
+    })
+  );
   for (const stack of stacksOf(
     free.filter((division) => division.task === "line"),
     world.nations.length
