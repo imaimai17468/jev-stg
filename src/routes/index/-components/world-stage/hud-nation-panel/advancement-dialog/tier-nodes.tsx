@@ -1,4 +1,4 @@
-import type { TreeNode } from "./advancement-tree";
+import type { TreeNode } from "../../advancement-tree";
 import { TreeNodeCard } from "./tree-node-card";
 
 /** How a tier sets its nodes: side by side, wrapping, or stacked. */

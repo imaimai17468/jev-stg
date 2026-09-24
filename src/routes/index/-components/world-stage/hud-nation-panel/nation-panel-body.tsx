@@ -1,6 +1,6 @@
 import { Option } from "effect";
+import type { NationSummary } from "../nation-summary";
 import { NationDetail } from "./nation-detail";
-import type { NationSummary } from "./nation-summary";
 
 interface NationPanelBodyProps {
   readonly selection: Option.Option<NationSummary>;

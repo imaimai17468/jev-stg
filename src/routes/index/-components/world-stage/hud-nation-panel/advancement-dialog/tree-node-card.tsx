@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { cn } from "@/lib/utils";
-import type { TreeNode } from "./advancement-tree";
+import type { TreeNode } from "../../advancement-tree";
 import { STANDING_MARKS } from "./standing-marks";
 
 interface TreeNodeCardProps {
