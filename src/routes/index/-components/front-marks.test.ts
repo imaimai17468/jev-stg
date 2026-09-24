@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { World } from "@/shared/entities/world";
 import {
   AT_WAR,
   land,
@@ -12,6 +11,7 @@ import { battlePlanOf } from "@/shared/entities/world/battle-plan";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Wars } from "@/shared/entities/world/wars";
 import { declared, noWars } from "@/shared/entities/world/wars";
+import type { World } from "@/shared/entities/world/world";
 import { frontMarks, frontsOf } from "./front-marks";
 
 /** Every nation's battle plan on `world` under `wars`. */

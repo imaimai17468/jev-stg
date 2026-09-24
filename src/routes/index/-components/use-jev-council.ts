@@ -1,7 +1,6 @@
 import { useMutation } from "@tanstack/react-query";
 import type { Dispatch, SetStateAction } from "react";
 import { useEffect, useEffectEvent, useRef, useState } from "react";
-import type { World } from "@/shared/entities/world";
 import type { Negotiation } from "@/shared/entities/world/chronicle";
 import type {
   Consultation,
@@ -15,6 +14,7 @@ import {
   peaceTalksOf,
 } from "@/shared/entities/world/council";
 import type { Simulation } from "@/shared/entities/world/simulation";
+import type { World } from "@/shared/entities/world/world";
 
 /** Asks Jev about one consultation. */
 export type Consult = (consultation: Consultation) => Promise<JevReply>;

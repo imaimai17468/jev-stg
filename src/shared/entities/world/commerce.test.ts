@@ -8,7 +8,6 @@ import { FULL_REACH, startCompliance } from "./compliance";
 import { openingDiplomacy } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import type { World } from "./index";
 import { itemAt } from "./lookup";
 import { NO_MODIFIERS } from "./modifiers";
 import { fleetOf, NO_NAVY, withOrder } from "./navy";
@@ -17,6 +16,7 @@ import { launched } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Deal } from "./trade";
 import { declared, noWars } from "./wars";
+import type { World } from "./world";
 
 /**
  * A coastal mine of twenty steel a day held by nation 0, a barren coast held

@@ -1,4 +1,3 @@
-import type { World } from "@/shared/entities/world";
 import type { Division, DivisionKind } from "@/shared/entities/world/divisions";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour } from "@/shared/entities/world/nations";
@@ -8,6 +7,7 @@ import type {
   SupplyState,
 } from "@/shared/entities/world/supply";
 import { postOf, supplyStateOf } from "@/shared/entities/world/supply";
+import type { World } from "@/shared/entities/world/world";
 import type { UnitSymbol } from "./unit-symbols";
 import { dominantSymbol } from "./unit-symbols";
 

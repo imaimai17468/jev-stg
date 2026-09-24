@@ -1,11 +1,11 @@
 import type { Division } from "./divisions";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import type { NationPair } from "./nations";
 import { neighbouringNations } from "./nations";
 import { UNASSIGNED } from "./spread";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
+import type { World } from "./world";
 
 /**
  * The days two nations at war can go without touching each other before they

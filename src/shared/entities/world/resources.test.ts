@@ -1,7 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { airspaceOf } from "./airspace";
 import type { Compliance } from "./compliance";
-import type { World } from "./index";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Province } from "./provinces";
 import type { ResourceNeed } from "./resources";
@@ -18,6 +17,7 @@ import {
 } from "./resources";
 import { UNASSIGNED } from "./spread";
 import type { Terrain } from "./terrain";
+import type { World } from "./world";
 
 const land = (id: number, terrain: Terrain): Province => ({
   cells: 10,

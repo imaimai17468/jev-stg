@@ -9,8 +9,8 @@ import {
 } from "./diplomacy";
 import { shareTransferred } from "./economy";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { sentHome } from "./muster";
+import type { World } from "./world";
 
 /** What the victor takes from a nation that has surrendered. */
 export type PeaceTerms = "annex" | "puppet" | "cede";

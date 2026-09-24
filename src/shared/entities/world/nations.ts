@@ -1,5 +1,4 @@
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import type { Leaning } from "./leaning";
 import { drawnLeaning } from "./leaning";
 import { itemAt } from "./lookup";
@@ -13,6 +12,7 @@ import {
 } from "./provinces";
 import type { Random } from "./random";
 import { spreadFrom, UNASSIGNED } from "./spread";
+import type { World } from "./world";
 
 /** A colour as the map paints it, each channel in [0, 255]. */
 export interface Colour {

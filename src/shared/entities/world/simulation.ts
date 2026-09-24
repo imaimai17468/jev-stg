@@ -44,7 +44,6 @@ import {
   serviceFor,
 } from "./espionage";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { openingInfrastructure } from "./infrastructure";
 import type { Espial } from "./insight";
 import { insightOf, intelOf } from "./insight";
@@ -86,6 +85,7 @@ import type { Deal } from "./trade";
 import type { Stirred, Unrest } from "./unrest";
 import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";
+import type { World } from "./world";
 
 /** Everything about a world that the calendar moves. */
 export interface Simulation {

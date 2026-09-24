@@ -5,7 +5,6 @@ import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { fieldFrom } from "./front";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { onTheCoast, provincePeople } from "./industry";
 import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
@@ -14,6 +13,7 @@ import { nationsBeside } from "./nations";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces } from "./provinces";
 import { UNASSIGNED } from "./spread";
+import type { World } from "./world";
 
 /**
  * What an opening division is posted to do: guard the capital, stand on the

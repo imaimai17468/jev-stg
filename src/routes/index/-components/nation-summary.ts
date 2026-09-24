@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
@@ -42,6 +41,7 @@ import { superiorityOf } from "@/shared/entities/world/skies";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
+import type { World } from "@/shared/entities/world/world";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
 import type { AdvancementTree } from "./advancement-tree";

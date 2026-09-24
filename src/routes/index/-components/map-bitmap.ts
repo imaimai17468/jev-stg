@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import type { World } from "@/shared/entities/world";
 import { occupancyOf } from "@/shared/entities/world/compliance";
 import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
@@ -9,6 +8,7 @@ import { NO_NATION } from "@/shared/entities/world/nations";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import type { World } from "@/shared/entities/world/world";
 import { complianceLevelOf } from "./compliance-level";
 import type { Tint } from "./map-mode";
 import {

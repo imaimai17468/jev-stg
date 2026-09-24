@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { airspaceOf } from "./airspace";
-import { generateWorld, NATION_COUNT } from "./index";
 import { initialOwners } from "./nations";
 import { UNASSIGNED } from "./spread";
+import { generateWorld, NATION_COUNT } from "./world";
 
 /**
  * Drawn once for the whole file, because one draw takes seconds and a test that

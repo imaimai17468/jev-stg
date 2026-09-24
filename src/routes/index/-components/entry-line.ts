@@ -1,4 +1,3 @@
-import type { World } from "@/shared/entities/world";
 import { dateLabel } from "@/shared/entities/world/calendar";
 import type {
   Decision,
@@ -17,6 +16,7 @@ import { NO_NATION } from "@/shared/entities/world/nations";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
 import type { Stance } from "@/shared/entities/world/stance";
 import { techOf } from "@/shared/entities/world/techs";
+import type { World } from "@/shared/entities/world/world";
 import { destinationName, OPERATION_NAMES, projectName } from "./intel-names";
 import {
   AIRCRAFT_NAMES,

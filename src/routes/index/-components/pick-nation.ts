@@ -1,7 +1,7 @@
 import { Option } from "effect";
-import type { World } from "@/shared/entities/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import type { World } from "@/shared/entities/world/world";
 import type { Viewport } from "./viewport";
 
 /**

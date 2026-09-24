@@ -1,6 +1,5 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
@@ -25,6 +24,7 @@ import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { supplyOf } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
+import type { World } from "@/shared/entities/world/world";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementTreeOf } from "./advancement-tree";
 import { summaryOf } from "./nation-summary";

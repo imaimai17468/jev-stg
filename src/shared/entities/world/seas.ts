@@ -1,6 +1,5 @@
 import { Option } from "effect";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { itemAt } from "./lookup";
 import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
@@ -16,6 +15,7 @@ import {
   UNASSIGNED,
   unassignedBuffer,
 } from "./spread";
+import type { World } from "./world";
 
 /** The sea zones touching `province`, by province id. */
 export const coastOf = (

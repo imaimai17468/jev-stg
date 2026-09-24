@@ -4,7 +4,6 @@ import { OPENING_ARMOURY } from "./armoury";
 import type { Command } from "./army";
 import type { Division } from "./divisions";
 import { raisedAt } from "./divisions";
-import type { World } from "./index";
 import { NO_INSIGHT } from "./insight";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Nation } from "./nations";
@@ -17,6 +16,7 @@ import { START_STANCE } from "./stance";
 import type { SupplyNetwork } from "./supply";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
+import type { World } from "./world";
 
 /** A nation with no colour of its own, named after its id. */
 export const nation = (id: number, capital: number): Nation => ({

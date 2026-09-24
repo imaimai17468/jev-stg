@@ -1,4 +1,3 @@
-import type { World } from "@/shared/entities/world";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
@@ -19,6 +18,7 @@ import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { START_STANCE } from "@/shared/entities/world/stance";
+import type { World } from "@/shared/entities/world/world";
 
 const nation = (id: number, red: number): Nation => ({
   capital: id,

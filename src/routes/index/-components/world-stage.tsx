@@ -1,7 +1,6 @@
 import { Option } from "effect";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { afterMilliseconds } from "@/lib/schedule";
-import { generateWorld } from "@/shared/entities/world";
 import type { Speed } from "@/shared/entities/world/clock";
 import {
   atSpeed,
@@ -14,6 +13,7 @@ import {
   supplyOf,
   withClock,
 } from "@/shared/entities/world/simulation";
+import { generateWorld } from "@/shared/entities/world/world";
 import { askJev } from "./ask-jev";
 import { entryLine } from "./entry-line";
 import { headlineOf } from "./headline";
