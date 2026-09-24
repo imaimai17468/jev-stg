@@ -1,5 +1,14 @@
 import "@tanstack/react-start/server-only";
-import { Context, Effect, Layer, Option, Schedule, Schema } from "effect";
+import {
+  Context,
+  Effect,
+  Layer,
+  Match,
+  Option,
+  Ref,
+  Schedule,
+  Schema,
+} from "effect";
 import type { Duration } from "effect";
 import {
   FetchHttpClient,
@@ -17,22 +26,30 @@ import { reportError } from "@/lib/report-error";
 import type {
   Consultation,
   JevReply,
+  Verdict,
 } from "@/shared/entities/world/consultation";
 import { makeRunHandler } from "../runtime";
 import type { ChoiceAnswer, Evaluation } from "./questions";
-import { evaluationFor, verdictsFrom } from "./questions";
+import { evaluationFor, partsOf, verdictsFrom } from "./questions";
 
 const EVALUATE_URL = "https://ai-gateway.vercel.sh/v1/evaluate";
 
 /**
- * How long a consultation may run. A month of game time passes in 2.5 seconds
- * at the fastest speed, and a reply later than a few months is of little use,
- * so this stays short. A reference so a test can wait for none.
+ * How long a consultation, and each request it makes, may run. A month of
+ * game time passes in 2.5 seconds at the fastest speed, and a reply later
+ * than a few months is of little use, so this stays short. A reference so a
+ * test can wait for none.
  */
 export const ConsultationDeadline = Context.Reference<Duration.Input>(
   "app/gateways/jev/ConsultationDeadline",
   { defaultValue: () => "10 seconds" }
 );
+
+/** The consultation ran past its deadline with some of its requests unanswered. */
+class ConsultationOverran extends Schema.TaggedError<ConsultationOverran>()(
+  "ConsultationOverran",
+  { message: Schema.String }
+) {}
 
 /** The consultation did not produce an answer, whatever stopped it. */
 export class JevUnreachable extends Schema.TaggedError<JevUnreachable>()(
@@ -58,14 +75,20 @@ class GatewayRefused extends Schema.TaggedError<GatewayRefused>()(
 /** The first status that means the gateway's side failed rather than the request. */
 const SERVER_ERROR = 500;
 
+/** The status Jev's provider answers when it has more requests than it serves. */
+const TOO_MANY_REQUESTS = 429;
+
 /**
  * Whether a failure is the gateway's own and worth asking again. Jev answers
- * 503 on a share of requests that succeed when repeated a moment later, while
- * a refused key or a malformed body fails the same way every time.
+ * 503, and 429 when its provider is busy, on a share of requests that succeed
+ * when repeated a moment later, while a refused key or a malformed body fails
+ * the same way every time.
  */
 const worthRetrying = (
   error: GatewayRefused | HttpClientError.HttpClientError
-): boolean => error._tag === "GatewayRefused" && error.status >= SERVER_ERROR;
+): boolean =>
+  error._tag === "GatewayRefused" &&
+  (error.status >= SERVER_ERROR || error.status === TOO_MANY_REQUESTS);
 
 /**
  * The `choice` answers `/v1/evaluate` returns. The gateway's envelope also
@@ -205,12 +228,59 @@ const UNAVAILABLE: JevReply = { _tag: "unavailable" };
 
 const RATE_LIMITED: JevReply = { _tag: "rate-limited" };
 
+/** How many of a consultation's requests are in flight at once. */
+const REQUESTS_IN_FLIGHT = 4;
+
+/** What one request of a consultation came back with. */
+type PartReply =
+  | { readonly _tag: "answered"; readonly verdicts: readonly Verdict[] }
+  | { readonly _tag: "unanswered"; readonly nations: readonly number[] };
+
+/** The governments a request asks about, whom the rules decide where it fails. */
+const governmentsIn = (part: Consultation): readonly number[] => {
+  if (part._tag === "council") {
+    return part.nations.map((brief) => brief.nation);
+  }
+  return [];
+};
+
+/** The governments a request left without an answer. */
+const nationsLeftBy = (part: PartReply): readonly number[] =>
+  Match.valueTags(part, {
+    answered: () => [],
+    unanswered: (left) => left.nations,
+  });
+
+/** The verdicts a request came back with. */
+const verdictsIn = (part: PartReply): readonly Verdict[] =>
+  Match.valueTags(part, {
+    answered: (answered) => answered.verdicts,
+    unanswered: () => [],
+  });
+
+/**
+ * The reply the requests of one consultation add up to: unavailable where not
+ * one of them was answered, and otherwise every verdict with the governments
+ * whose request failed.
+ */
+const replyFrom = (parts: readonly PartReply[]): JevReply => {
+  if (parts.every((part) => part._tag === "unanswered")) {
+    return UNAVAILABLE;
+  }
+  return {
+    _tag: "answered",
+    unanswered: parts.flatMap(nationsLeftBy),
+    verdicts: parts.flatMap(verdictsIn),
+  };
+};
+
 /**
  * Jev's verdicts on `consultation`, or why there are none.
  *
- * A caller past its ceiling is answered without the gateway being asked, and
- * a consultation that fails for any reason is logged and answered as
- * unavailable, so the browser decides that month by the rules either way.
+ * A caller past its ceiling is answered without the gateway being asked. Each
+ * request that fails is logged and its governments named as unanswered, and a
+ * consultation none of whose requests was answered is answered as
+ * unavailable, so the browser decides by the rules whatever Jev left open.
  */
 export const consultJev = (
   consultation: Consultation
@@ -222,13 +292,53 @@ export const consultJev = (
       return RATE_LIMITED;
     }
     const jev = yield* JevEvaluations;
-    const evaluation = evaluationFor(consultation);
-    const answers = yield* jev.answer(evaluation);
-    const reply: JevReply = {
-      _tag: "answered",
-      verdicts: verdictsFrom(evaluation.asked, answers),
-    };
-    return reply;
+    const deadline = yield* ConsultationDeadline;
+    const parts = partsOf(consultation);
+    const heard = yield* Ref.make<ReadonlyMap<number, PartReply>>(new Map());
+    const finished = yield* Effect.forEach(
+      parts,
+      (part, index) => {
+        const evaluation = evaluationFor(part);
+        return jev.answer(evaluation).pipe(
+          Effect.map((answers): PartReply => ({
+            _tag: "answered",
+            verdicts: verdictsFrom(evaluation.asked, answers),
+          })),
+          Effect.catchTag("JevUnreachable", (error) =>
+            reportError("jev.consult", error.cause).pipe(
+              Effect.as<PartReply>({
+                _tag: "unanswered",
+                nations: governmentsIn(part),
+              })
+            )
+          ),
+          Effect.flatMap((reply) =>
+            Ref.update(heard, (replies) => new Map(replies).set(index, reply))
+          )
+        );
+      },
+      { concurrency: REQUESTS_IN_FLIGHT, discard: true }
+    ).pipe(Effect.timeoutOption(deadline));
+    if (Option.isNone(finished)) {
+      yield* reportError(
+        "jev.consult",
+        new ConsultationOverran({
+          message: "The consultation ran past its deadline.",
+        })
+      );
+    }
+    const replies = yield* Ref.get(heard);
+    return replyFrom(
+      parts.map((part, index) =>
+        Option.getOrElse(
+          Option.fromUndefinedOr(replies.get(index)),
+          (): PartReply => ({
+            _tag: "unanswered",
+            nations: governmentsIn(part),
+          })
+        )
+      )
+    );
   }).pipe(
     Effect.catchTags({
       JevUnreachable: (error) =>

@@ -11,6 +11,7 @@ interface HudDecisionFeedProps {
 const VOICE_LABELS = {
   consulting: "Jev に相談しています",
   jev: "Jev が判断しています",
+  mixed: "Jev が判断し、届かなかった国は規則で判断しています",
   rules: "Jev に届かないため、規則で判断しています",
 } satisfies Readonly<Record<CouncilVoice, string>>;
 
