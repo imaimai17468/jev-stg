@@ -3,6 +3,7 @@ import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import type { ComplianceLevel } from "./compliance-level";
+import type { LineKind } from "./draw-map";
 import type { NetworkLevel } from "./network-level";
 import type { ResourceLevel } from "./resource-level";
 import type { SeaHoldLevel } from "./sea-hold";
@@ -187,3 +188,23 @@ export const CRATES = {
   }),
   supplied: Option.none(),
 } satisfies Readonly<Record<SupplyState, Option.Option<Crate>>>;
+
+/** What a battle plan draws over the map: its two lines and its offensives' arrows. */
+type FrontInkKind = LineKind | "offensive";
+
+/**
+ * The colour each battle plan line is drawn in, whichever nation's plan it is.
+ *
+ * A line lies on its own nation's side of the border, over land painted that
+ * nation's colour, so each kind takes one fixed ink instead, and the side it
+ * lies on tells whose it is.
+ */
+export const FRONT_INKS = {
+  fallback: { blue: 60, green: 210, red: 245 },
+  front: { blue: 90, green: 30, red: 225 },
+  offensive: { blue: 26, green: 140, red: 255 },
+} satisfies Readonly<Record<FrontInkKind, Colour>>;
+
+/** A colour as the canvas and SVG take it. */
+export const inkOf = ({ blue, green, red }: Colour): string =>
+  `rgb(${red} ${green} ${blue})`;

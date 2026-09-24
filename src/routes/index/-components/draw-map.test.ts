@@ -73,7 +73,7 @@ const recorder = (): Recorder => {
       fleet: (value, x, y) => {
         fleets.push([Number(value), x, y]);
       },
-      lines: (segments, _colour, kind) => {
+      lines: (segments, kind) => {
         lines.push({ kind, segments });
       },
       text: (value) => {
@@ -102,7 +102,6 @@ const NOTHING_OVER = {
 
 /** One nation's front along the edge at column 3, its fallback line at column 2, and one offensive. */
 const FRONT: FrontMark = {
-  colour: { blue: 0, green: 0, red: 0 },
   fallback: [{ towardX: -1, towardY: 0, x1: 2, x2: 2, y1: 1, y2: 3 }],
   front: [{ towardX: 0, towardY: 1, x1: 3, x2: 5, y1: 4, y2: 4 }],
   nation: 0,

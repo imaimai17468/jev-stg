@@ -1,4 +1,5 @@
 import type { ReactNode } from "react";
+import { FRONT_INKS, inkOf } from "./map-palette";
 
 interface FrontLegendProps {
   /** Whether the map is drawing any front, which is when the legend shows. */
@@ -19,7 +20,7 @@ const ENTRIES: readonly {
   {
     glyph: (
       <line
-        stroke="currentColor"
+        stroke={inkOf(FRONT_INKS.front)}
         strokeWidth="3"
         x1="0"
         x2={GLYPH_WIDTH}
@@ -33,7 +34,7 @@ const ENTRIES: readonly {
   {
     glyph: (
       <line
-        stroke="currentColor"
+        stroke={inkOf(FRONT_INKS.fallback)}
         strokeDasharray="6 4"
         strokeWidth="2"
         x1="0"
@@ -49,7 +50,7 @@ const ENTRIES: readonly {
     glyph: (
       <>
         <line
-          stroke="currentColor"
+          stroke={inkOf(FRONT_INKS.offensive)}
           strokeLinecap="round"
           strokeWidth="3"
           x1="1"
@@ -58,7 +59,7 @@ const ENTRIES: readonly {
           y2={MIDDLE}
         />
         <polygon
-          fill="currentColor"
+          fill={inkOf(FRONT_INKS.offensive)}
           points={`${GLYPH_WIDTH},${MIDDLE} ${GLYPH_WIDTH - 9},1 ${GLYPH_WIDTH - 9},${GLYPH_HEIGHT - 1}`}
         />
       </>
@@ -69,9 +70,8 @@ const ENTRIES: readonly {
 ];
 
 /**
- * What the lines the map draws over the nations mean. Each line is drawn in
- * the colour of the nation it belongs to, so the legend tells them apart by
- * shape alone.
+ * What the lines the map draws over the nations mean, each glyph in the ink
+ * and the shape the map draws that line in.
  */
 export const FrontLegend = ({ shown }: FrontLegendProps) => (
   <ul

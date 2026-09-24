@@ -58,7 +58,6 @@ describe(frontMarks, () => {
       )
     ).toStrictEqual([
       {
-        colour: { blue: 0, green: 0, red: 0 },
         fallback: [{ towardX: -1, towardY: 0, x1: 1, x2: 1, y1: 0, y2: 1 }],
         front: [{ towardX: -1, towardY: 0, x1: 2, x2: 2, y1: 0, y2: 1 }],
         nation: 0,
@@ -71,7 +70,6 @@ describe(frontMarks, () => {
         ],
       },
       {
-        colour: { blue: 0, green: 0, red: 0 },
         fallback: [{ towardX: 1, towardY: 0, x1: 3, x2: 3, y1: 0, y2: 1 }],
         front: [{ towardX: 1, towardY: 0, x1: 2, x2: 2, y1: 0, y2: 1 }],
         nation: 1,
