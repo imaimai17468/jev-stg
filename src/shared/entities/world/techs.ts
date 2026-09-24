@@ -1,5 +1,4 @@
 import { Schema } from "effect";
-import { lastWhere } from "./lookup";
 import type { Bonus } from "./modifiers";
 import type { ShipClass } from "./navy/ships";
 
@@ -567,21 +566,3 @@ const TECHS = {
 } satisfies Readonly<Record<TechId, Tech>>;
 
 export const techOf = (tech: TechId): Tech => TECHS[tech];
-
-/**
- * What picks, for a kind of design, the newest of `designs` in the tree's
- * order whose kind `kindOf` gives and whose technology is researched, and
- * the kind's entry in `firsts` where none is.
- */
-export const newestPicker =
-  <D extends string, K extends string>(
-    designs: readonly D[],
-    kindOf: (design: D) => K,
-    firsts: Readonly<Record<K, D>>
-  ) =>
-  (researched: ReadonlySet<string>, kind: K): D =>
-    lastWhere(
-      designs,
-      (design) => kindOf(design) === kind && researched.has(design),
-      firsts[kind]
-    );

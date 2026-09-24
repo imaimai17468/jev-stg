@@ -19,6 +19,24 @@ export const lastWhere = <T>(
   return itemAt(kept, kept.length - 1, fallback);
 };
 
+/**
+ * What picks, for a kind of design, the newest of `designs` in the tree's
+ * order whose kind `kindOf` gives and whose technology is researched, and
+ * the kind's entry in `firsts` where none is.
+ */
+export const newestPicker =
+  <D extends string, K extends string>(
+    designs: readonly D[],
+    kindOf: (design: D) => K,
+    firsts: Readonly<Record<K, D>>
+  ) =>
+  (researched: ReadonlySet<string>, kind: K): D =>
+    lastWhere(
+      designs,
+      (design) => kindOf(design) === kind && researched.has(design),
+      firsts[kind]
+    );
+
 /** The list with `item` in place of the one at `index`. */
 export const replacedAt = <T>(
   items: readonly T[],
