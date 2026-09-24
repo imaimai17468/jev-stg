@@ -5,7 +5,7 @@ import { DivisionKindSchema } from "./divisions";
 import { FocusIdSchema } from "./focus";
 import { MOST_INFRASTRUCTURE } from "./infrastructure";
 import { ShipDesignsSchema } from "./ships";
-import { TechIdSchema } from "./techs";
+import { TECH_IDS, TechIdSchema } from "./techs";
 
 /**
  * The most nations and the most options one consultation names. They bound
@@ -13,6 +13,16 @@ import { TechIdSchema } from "./techs";
  */
 const MOST_NATIONS = 32;
 const MOST_OPTIONS = 16;
+
+/**
+ * The most technologies a research question offers. A slot is offered the
+ * leader of every line and each technology it rules out, which ran to 17 on
+ * the first day of a generated world, and never more than the tree holds.
+ */
+const MOST_TECHS = TECH_IDS.length;
+
+/** The most options any one question offers, with the choice of none. */
+const MOST_WEIGHTS = Math.max(MOST_OPTIONS, MOST_TECHS) + 1;
 
 /** The most research slots a nation can have, which the focus tree stays under. */
 const MOST_SLOTS = 8;
@@ -158,7 +168,7 @@ const NationBriefSchema = Schema.Struct({
   /** The men its own side has in the field. */
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
-  techs: Schema.Array(TechIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  techs: Schema.Array(TechIdSchema).check(Schema.isMaxLength(MOST_TECHS)),
   /** How close the whole world stands to war. */
   tension: Share,
   /** The share of its divisions that get less supply than they need. */
@@ -255,9 +265,7 @@ const VerdictSchema = Schema.Struct({
   probability: Share,
   question: Schema.Literals(QUESTIONS),
   /** Every option the question offered, in the order it offered them. */
-  weights: Schema.Array(WeightSchema).check(
-    Schema.isMaxLength(MOST_OPTIONS + 1)
-  ),
+  weights: Schema.Array(WeightSchema).check(Schema.isMaxLength(MOST_WEIGHTS)),
 });
 
 export type Verdict = typeof VerdictSchema.Type;

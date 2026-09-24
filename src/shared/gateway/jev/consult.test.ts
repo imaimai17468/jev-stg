@@ -5,6 +5,7 @@ import { describe, expect, it, vi } from "vite-plus/test";
 import type { ErrorLogRecord } from "@/lib/report-error";
 import type { Council, PeaceTalks } from "@/shared/entities/world/consultation";
 import { ConsultationSchema } from "@/shared/entities/world/consultation";
+import { TECH_IDS } from "@/shared/entities/world/techs";
 import { DriverFailed } from "@/test/defect";
 import { BRIEF } from "./brief-fixture";
 import {
@@ -305,6 +306,17 @@ describe(consultJev, () => {
 });
 
 describe("the consultation wire", () => {
+  it("should accept the council when a government is offered more technologies than any other question offers options", () => {
+    const researching: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, techs: TECH_IDS.slice(0, 17) }],
+    };
+
+    expect(
+      Schema.decodeUnknownSync(ConsultationSchema)(researching)
+    ).toStrictEqual(researching);
+  });
+
   it("should refuse the consultation when its date is not written as a calendar day", () => {
     expect(() =>
       Schema.decodeUnknownSync(ConsultationSchema)({
