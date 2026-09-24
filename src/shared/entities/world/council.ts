@@ -49,9 +49,10 @@ import { intelOf } from "./insight";
 import type { IntelTable } from "./intel";
 import { INTEL_KINDS, intelOn } from "./intel";
 import { CONVOYS_PER_DIVISION } from "./invasion";
+import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
 import { overseasRivals } from "./maritime";
-import { neighbouringNations } from "./nations";
+import { neighbouringNations, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
@@ -766,36 +767,60 @@ const techsByRules = (
 };
 
 /**
+ * The political stand the rules never take for a nation of each leaning: a
+ * nation that put its interwar years into its army takes militarism, and one
+ * that put them elsewhere takes neutrality, so the rules leave some nations
+ * free to justify a war goal at any world tension and hold the rest back.
+ */
+const STAND_REFUSED = {
+  army: "neutrality",
+  industry: "militarism",
+  navy: "militarism",
+} satisfies Readonly<Record<Leaning, FocusId>>;
+
+/**
  * The focus the rules pick next: the first on offer in the army's branch at
- * war and outside it at peace, or the first on offer where none is.
+ * war and outside it at peace, or the first on offer where none is, never the
+ * stand its leaning refuses.
  */
 const focusByRules = (
   advancement: Advancement,
-  atWar: boolean
+  atWar: boolean,
+  leaning: Leaning
 ): Option.Option<FocusId> => {
-  const offered = availableFocuses(advancement.focuses);
+  const offered = availableFocuses(advancement.focuses).filter(
+    (focus) => focus !== STAND_REFUSED[leaning]
+  );
   const preferred = offered.filter(
     (focus) => (focusOf(focus).branch === "army") === atWar
   );
   return Option.fromUndefinedOr([...preferred, ...offered].at(0));
 };
 
+/** What a government is, and whether it is at war, as its advances by the rules read it. */
+interface Circumstance {
+  readonly nation: number;
+  readonly leaning: Leaning;
+  readonly atWar: boolean;
+}
+
 /** What the rules put on a nation's research slots and focus tree this month. */
 const advancesByRules = (
   advancement: Advancement,
-  nation: number,
-  atWar: boolean
+  { atWar, leaning, nation }: Circumstance
 ): readonly Order[] => [
   ...techsByRules(advancement, atWar).map((tech): Order => ({
     kind: "research",
     nation,
     tech,
   })),
-  ...Option.toArray(focusByRules(advancement, atWar)).map((focus): Order => ({
-    focus,
-    kind: "focus",
-    nation,
-  })),
+  ...Option.toArray(focusByRules(advancement, atWar, leaning)).map(
+    (focus): Order => ({
+      focus,
+      kind: "focus",
+      nation,
+    })
+  ),
 ];
 
 /** The simulation once every one of `decisions` is carried out under `source`. */
@@ -845,11 +870,11 @@ export const ruledByRules = (
     current = allRuled(
       world,
       decided,
-      advancesByRules(
-        itemAt(decided.advancements, nation, START_ADVANCEMENT),
+      advancesByRules(itemAt(decided.advancements, nation, START_ADVANCEMENT), {
+        atWar: enemiesOf(decided.diplomacy.wars, nation).length > 0,
+        leaning: itemAt(world.nations, nation, NO_NATION).leaning,
         nation,
-        enemiesOf(decided.diplomacy.wars, nation).length > 0
-      ),
+      }),
       BY_RULES
     );
   }

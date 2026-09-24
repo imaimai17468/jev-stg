@@ -31,8 +31,11 @@ import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { HOME, serviceFor } from "./espionage";
+import type { FocusId } from "./focus";
 import { START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
+import type { World } from "./index";
+import type { Leaning } from "./leaning";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
@@ -47,6 +50,19 @@ const withDiplomacy = (diplomacy: Diplomacy): Simulation => ({
   ...ROW_SIMULATION,
   diplomacy,
 });
+
+/** Every focus outside the army's branch that the tree lists before the political stands. */
+const UP_TO_THE_STAND: readonly FocusId[] = [
+  "industrialisation",
+  "construction-effort",
+  "production-effort",
+  "total-mobilisation",
+  "research-bureau",
+  "technical-schools",
+  "secret-projects",
+  "political-effort",
+  "national-unity",
+];
 
 /** The row with nation 3 having finished militarism, which may justify at any tension. */
 const MILITARIST_THREE: Simulation = {
@@ -863,6 +879,35 @@ describe(ruledByRules, () => {
         ?.focuses.current
     ).toStrictEqual(Option.some({ focus: "industrialisation", progress: 0 }));
   });
+
+  it.each([
+    { leaning: "army", stand: "militarism" },
+    { leaning: "navy", stand: "neutrality" },
+    { leaning: "industry", stand: "neutrality" },
+  ] satisfies readonly {
+    readonly leaning: Leaning;
+    readonly stand: FocusId;
+  }[])(
+    "should take $stand when a $leaning nation at peace reaches its political stand",
+    ({ leaning, stand }) => {
+      const world: World = {
+        ...ROW_WORLD,
+        nations: ROW_WORLD.nations.map((nation) => ({ ...nation, leaning })),
+      };
+      const reached = replacedAt(ROW_SIMULATION.advancements, 0, {
+        ...START_ADVANCEMENT,
+        focuses: { ...START_FOCUSES, done: UP_TO_THE_STAND },
+      });
+
+      expect(
+        ruledByRules(
+          world,
+          { ...ROW_SIMULATION, advancements: reached },
+          COUNCIL_DAY
+        ).advancements[0]?.focuses.current
+      ).toStrictEqual(Option.some({ focus: stand, progress: 0 }));
+    }
+  );
 
   it("should pursue the first focus in the army's branch when a nation is at war", () => {
     expect(
