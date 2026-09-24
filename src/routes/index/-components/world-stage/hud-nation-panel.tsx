@@ -1,5 +1,5 @@
 import type { Option } from "effect";
-import { NationPanelBody } from "./nation-panel-body";
+import { NationPanelBody } from "./hud-nation-panel/nation-panel-body";
 import type { NationSummary } from "./nation-summary";
 
 interface HudNationPanelProps {

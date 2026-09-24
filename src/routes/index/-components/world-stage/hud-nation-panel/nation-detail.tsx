@@ -1,3 +1,6 @@
+import type { NationSummary } from "../nation-summary";
+import { PanelSection } from "../panel-section";
+import { StatRows } from "../stat-rows";
 import { AdvancementDialog } from "./advancement-dialog";
 import { NationList } from "./nation-list";
 import {
@@ -7,9 +10,6 @@ import {
   terrainOf,
   territoryOf,
 } from "./nation-stats";
-import type { NationSummary } from "./nation-summary";
-import { PanelSection } from "./panel-section";
-import { StatRows } from "./stat-rows";
 
 interface NationDetailProps {
   readonly summary: NationSummary;

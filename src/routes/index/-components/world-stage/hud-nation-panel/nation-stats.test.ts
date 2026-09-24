@@ -2,6 +2,7 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import type { Leaning } from "@/shared/entities/world/geography/leaning";
+import type { NationSummary } from "../nation-summary";
 import {
   factionListing,
   leaningLabel,
@@ -9,7 +10,6 @@ import {
   terrainOf,
   territoryOf,
 } from "./nation-stats";
-import type { NationSummary } from "./nation-summary";
 
 const SUMMARY: NationSummary = {
   advancement: {

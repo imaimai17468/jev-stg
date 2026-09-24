@@ -1,4 +1,4 @@
-import type { FocusTier, TreeGroup } from "./advancement-tree";
+import type { FocusTier, TreeGroup } from "../../advancement-tree";
 import { TierNodes } from "./tier-nodes";
 
 interface FocusTreeProps {

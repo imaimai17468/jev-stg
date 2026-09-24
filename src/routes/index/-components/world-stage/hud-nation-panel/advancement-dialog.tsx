@@ -8,10 +8,10 @@ import {
   DialogTrigger,
 } from "@/shared/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/shared/ui/tabs";
-import type { AdvancementTree } from "./advancement-tree";
-import { FocusTree } from "./focus-tree";
-import { StandingLegend } from "./standing-legend";
-import { TechTree } from "./tech-tree";
+import type { AdvancementTree } from "../advancement-tree";
+import { FocusTree } from "./advancement-dialog/focus-tree";
+import { StandingLegend } from "./advancement-dialog/standing-legend";
+import { TechTree } from "./advancement-dialog/tech-tree";
 
 /** Which of the two trees the dialog opens on. */
 type TreeTab = "focuses" | "techs";

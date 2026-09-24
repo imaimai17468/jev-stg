@@ -1,4 +1,4 @@
-import type { TreeGroup, YearTier } from "./advancement-tree";
+import type { TreeGroup, YearTier } from "../../advancement-tree";
 import { TierNodes } from "./tier-nodes";
 
 interface TechTreeProps {

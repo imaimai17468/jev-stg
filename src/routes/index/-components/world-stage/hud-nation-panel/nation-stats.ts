@@ -1,9 +1,9 @@
 import { Option } from "effect";
 import type { Leaning } from "@/shared/entities/world/geography/leaning";
 import type { Terrain } from "@/shared/entities/world/geography/terrain";
-import { countLabel } from "./count-label";
-import type { NationSummary, StandingSummary } from "./nation-summary";
-import type { Stat } from "./stat";
+import { countLabel } from "../count-label";
+import type { NationSummary, StandingSummary } from "../nation-summary";
+import type { Stat } from "../stat";
 
 const TERRAIN_LABELS = {
   desert: "砂漠",
