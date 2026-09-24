@@ -394,6 +394,7 @@ describe(armiesAfterOneDay, () => {
           Float32Array.from(LINE_WORLD.provinces, () => 1000),
         ],
         demand: new Map([[2, 10]]),
+        stationed: new Map([[2, 10]]),
       },
     };
 
@@ -410,6 +411,37 @@ describe(armiesAfterOneDay, () => {
           (moved) => moved.movingTo
         )
       ).toStrictEqual([1, 2, 0, 0, 0, 0, 0, 0, 0, 0]);
+    });
+
+    it("should keep only the armoured divisions the line province's supply carries when their tanks use more than infantry", () => {
+      const armoured = startingWith({
+        divisions: Array.from({ length: 4 }, () =>
+          division({
+            kind: "light-armour",
+            nation: 0,
+            organisation: 35,
+            province: 1,
+            strength: 17_000,
+          })
+        ),
+        economies: [NO_ECONOMY, NO_ECONOMY],
+      });
+      const fourInfantry = {
+        ...fullLine,
+        supply: {
+          ...fullLine.supply,
+          capacity: [
+            Float32Array.from([1000, 4, 1000, 1000, 0]),
+            Float32Array.from(LINE_WORLD.provinces, () => 1000),
+          ],
+        },
+      };
+
+      expect(
+        armiesAfterOneDay(LINE_WORLD, fourInfantry, armoured).divisions.map(
+          (moved) => moved.movingTo
+        )
+      ).toStrictEqual([1, 0, 0, 0]);
     });
 
     it("should keep a reserve where it stands when the province behind the line has room for it", () => {

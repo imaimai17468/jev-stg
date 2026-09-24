@@ -12,6 +12,11 @@ const NETWORK: SupplyNetwork = {
     [1, 1],
     [2, 1],
   ]),
+  stationed: new Map([
+    [0, 2],
+    [1, 1],
+    [2, 1],
+  ]),
   nations: 1,
   upkeepMet: [1],
 };

@@ -6,7 +6,7 @@ import { divisionMarks } from "./division-marks";
 import { FIXTURE_WORLD } from "./world-fixture";
 
 const standing = (nation: number, province: number): Division =>
-  raisedAt(nation, province);
+  raisedAt(nation, province, "infantry");
 
 /** Every province supplying far more than anyone stands in it, for both nations. */
 const SUPPLIED: SupplyNetwork = {
@@ -14,6 +14,7 @@ const SUPPLIED: SupplyNetwork = {
     Float32Array.from(FIXTURE_WORLD.provinces, () => 100)
   ),
   demand: new Map(),
+  stationed: new Map(),
   nations: 2,
   upkeepMet: [1, 1],
 };

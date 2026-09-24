@@ -1,6 +1,7 @@
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
 import type { Division } from "./divisions";
+import { supplyUseOf } from "./divisions";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { infrastructureSupply } from "./infrastructure";
@@ -39,8 +40,8 @@ const TERRAIN_SUPPLY = {
 /** What the depots and the roads can do for every nation on one day. */
 export interface SupplyNetwork {
   /**
-   * The divisions each province can keep supplied for each nation, by nation
-   * id and then by province id: zero where the nation's supply does not reach.
+   * The infantry divisions' worth of supply each province can keep up for
+   * each nation, by nation id and then by province id: zero where the nation's supply does not reach.
    */
   readonly capacity: readonly Float32Array[];
   /**
@@ -48,8 +49,10 @@ export interface SupplyNetwork {
    * starves every division alike when the equipment runs out.
    */
   readonly upkeepMet: readonly number[];
-  /** How many of each nation's divisions stand in each province, keyed by `stackKey`. */
+  /** The supply each nation's divisions in each province use, counted in infantry divisions and keyed by `stackKey`. */
   readonly demand: ReadonlyMap<number, number>;
+  /** How many of each nation's divisions stand in each province, keyed by `stackKey`. */
+  readonly stationed: ReadonlyMap<number, number>;
   readonly nations: number;
 }
 
@@ -239,7 +242,7 @@ const capacityOf = (lines: Lines, nation: number): Float32Array => {
   );
 };
 
-/** How many of each nation's divisions stand in each province. */
+/** The supply each nation's divisions in each province use, counted in infantry divisions. */
 const demandOf = (
   divisions: readonly Division[],
   nations: number
@@ -247,9 +250,22 @@ const demandOf = (
   const demand = new Map<number, number>();
   for (const division of divisions) {
     const key = stackKey(nations, division.nation, division.province);
-    demand.set(key, (demand.get(key) ?? 0) + 1);
+    demand.set(key, (demand.get(key) ?? 0) + supplyUseOf(division.kind));
   }
   return demand;
+};
+
+/** How many of each nation's divisions stand in each province. */
+const stationedOf = (
+  divisions: readonly Division[],
+  nations: number
+): ReadonlyMap<number, number> => {
+  const stationed = new Map<number, number>();
+  for (const division of divisions) {
+    const key = stackKey(nations, division.nation, division.province);
+    stationed.set(key, (stationed.get(key) ?? 0) + 1);
+  }
+  return stationed;
 };
 
 /** Every nation's supply for one day. */
@@ -259,6 +275,7 @@ export const supplyNetwork = (lines: Lines): SupplyNetwork => {
     capacity: lines.world.nations.map((nation) => capacityOf(lines, nation.id)),
     demand: demandOf(lines.divisions, nations),
     nations,
+    stationed: stationedOf(lines.divisions, nations),
     upkeepMet: lines.upkeepMet,
   };
 };
@@ -267,10 +284,12 @@ const NO_CAPACITY = new Float32Array(0);
 
 /** What one nation's supply is in one province on one day. */
 export interface Post {
-  /** The divisions the province can keep supplied for the nation. */
+  /** The infantry divisions' worth of supply the province can keep up for the nation. */
   readonly capacity: number;
-  /** How many of the nation's divisions stand there. */
+  /** The supply the nation's divisions there use, counted in infantry divisions. */
   readonly demand: number;
+  /** How many of the nation's divisions stand there. */
+  readonly stationed: number;
   /**
    * The share of what it needs each of those divisions gets, from 0 to 1: the
    * capacity shared among them, cut by the share of the upkeep the nation's
@@ -289,14 +308,15 @@ export const postOf = (
     itemAt(network.capacity, nation, NO_CAPACITY),
     province
   );
-  const demand =
-    network.demand.get(stackKey(network.nations, nation, province)) ?? 0;
+  const key = stackKey(network.nations, nation, province);
+  const demand = network.demand.get(key) ?? 0;
   return {
     capacity,
     demand,
     fill:
       Math.min(1, capacity / Math.max(1, demand)) *
       itemAt(network.upkeepMet, nation, 1),
+    stationed: network.stationed.get(key) ?? 0,
   };
 };
 

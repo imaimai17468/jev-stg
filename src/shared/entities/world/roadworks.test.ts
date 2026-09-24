@@ -17,6 +17,7 @@ const NETWORK: SupplyNetwork = {
   capacity: [Float32Array.from([4, 4, 4, 2]), Float32Array.from([0, 0, 0, 4])],
   demand: new Map(),
   nations: 2,
+  stationed: new Map(),
   upkeepMet: [1, 1],
 };
 
@@ -35,6 +36,12 @@ const standing = (
   network: {
     ...site.network,
     demand: new Map(
+      stacks.map(([nation, province, divisions]) => [
+        stackKey(site.network.nations, nation, province),
+        divisions,
+      ])
+    ),
+    stationed: new Map(
       stacks.map(([nation, province, divisions]) => [
         stackKey(site.network.nations, nation, province),
         divisions,

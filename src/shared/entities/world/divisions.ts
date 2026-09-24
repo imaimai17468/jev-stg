@@ -1,37 +1,115 @@
 import { Schema } from "effect";
+import type { Arms, Battalion, Ground } from "./battalions";
+import { armsOf, battalionOf, groundModifierOf } from "./battalions";
 import type { NationEconomy } from "./economy";
-import { lastWhere } from "./lookup";
+import type { Leaning } from "./leaning";
+import { itemAt, lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import type { Nation } from "./nations";
 import { entrenchedShare } from "./preparation";
 import type { Terrain } from "./terrain";
 
-/** What a division is built from. Armour and artillery join this later. */
-type DivisionKind = "infantry";
+/** Every kind of division a nation raises, named by the line battalions it is built around. */
+const DivisionKindSchema = Schema.Literals([
+  "infantry",
+  "cavalry",
+  "motorized",
+  "mechanized",
+  "light-armour",
+  "medium-armour",
+  "heavy-armour",
+  "mountaineers",
+  "marines",
+  "paratroopers",
+]);
 
-/** What one division of a kind costs to raise and what it can do. */
-interface Template {
-  /** The men it takes to raise, and the most it ever holds. */
-  readonly manpower: number;
-  /** The equipment it takes to raise. */
-  readonly equipment: number;
-  /** What a day of attacking with it is worth, at full strength. */
-  readonly attack: number;
-  /** What a day of holding ground with it is worth, at full strength. */
-  readonly defence: number;
-  /** The cohesion it starts a battle with and falls back without. */
-  readonly organisation: number;
+export type DivisionKind = typeof DivisionKindSchema.Type;
+
+const DIVISION_KINDS = DivisionKindSchema.literals;
+
+/** One line of battalions in a division, and how many of them it holds. */
+interface Line {
+  readonly battalion: Battalion;
+  readonly count: number;
 }
 
-const TEMPLATES = {
-  infantry: {
-    attack: 6,
-    defence: 10,
-    equipment: 1000,
-    manpower: 20_000,
-    organisation: 60,
-  },
-} satisfies Readonly<Record<DivisionKind, Template>>;
+/**
+ * The battalions each kind is built from: ten of its own line, and an armoured
+ * division's tanks alongside as many motorized battalions, the way Hearts of
+ * Iron IV's armoured templates carry infantry that keeps up with the tanks.
+ * The counts are this game's own.
+ */
+const COMPOSITIONS = {
+  cavalry: [{ battalion: "cavalry", count: 10 }],
+  "heavy-armour": [
+    { battalion: "heavy-armour", count: 5 },
+    { battalion: "motorized", count: 5 },
+  ],
+  infantry: [{ battalion: "infantry", count: 10 }],
+  "light-armour": [
+    { battalion: "light-armour", count: 5 },
+    { battalion: "motorized", count: 5 },
+  ],
+  marines: [{ battalion: "marines", count: 10 }],
+  mechanized: [{ battalion: "mechanized", count: 10 }],
+  "medium-armour": [
+    { battalion: "medium-armour", count: 5 },
+    { battalion: "motorized", count: 5 },
+  ],
+  motorized: [{ battalion: "motorized", count: 10 }],
+  mountaineers: [{ battalion: "mountaineers", count: 10 }],
+  paratroopers: [{ battalion: "paratroopers", count: 10 }],
+} satisfies Readonly<Record<DivisionKind, readonly Line[]>>;
+
+/** The total over `kind`'s battalions of what `read` takes from each. */
+const summedOver = (
+  kind: DivisionKind,
+  read: (battalion: Battalion) => number
+): number =>
+  COMPOSITIONS[kind].reduce(
+    (total, { battalion, count }) => total + count * read(battalion),
+    0
+  );
+
+/** The average over `kind`'s battalions of what `read` takes from each. */
+const averagedOver = (
+  kind: DivisionKind,
+  read: (battalion: Battalion) => number
+): number => summedOver(kind, read) / summedOver(kind, () => 1);
+
+/**
+ * This world's men for one of Hearts of Iron IV's, which keeps an infantry
+ * division of ten battalions at the 20,000 men it was raised with before its
+ * battalions were counted.
+ */
+const MEN_PER_BATTALION_MAN = 2;
+
+/** This world's equipment for one industrial capacity, which keeps that division at 1,000. */
+const EQUIPMENT_PER_COST = 2;
+
+/** The men it takes to raise a division of `kind`, and the most it ever holds. */
+const manpowerOf = (kind: DivisionKind): number =>
+  summedOver(kind, (battalion) => battalionOf(battalion).manpower) *
+  MEN_PER_BATTALION_MAN;
+
+/** The equipment it takes to raise a division of `kind`. */
+const equipmentOf = (kind: DivisionKind): number =>
+  summedOver(kind, (battalion) => battalionOf(battalion).cost) *
+  EQUIPMENT_PER_COST;
+
+/** The cohesion a division of `kind` starts a battle with and falls back without. */
+const organisationOf = (kind: DivisionKind): number =>
+  averagedOver(kind, (battalion) => battalionOf(battalion).organisation);
+
+/** How fast a division of `kind` recovers its cohesion against an infantry division. */
+const recoveryOf = (kind: DivisionKind): number =>
+  averagedOver(kind, (battalion) => battalionOf(battalion).recovery) /
+  battalionOf("infantry").recovery;
+
+/** The supply a division of `kind` uses, counted in infantry divisions. */
+export const supplyUseOf = (kind: DivisionKind): number =>
+  summedOver(kind, (battalion) => battalionOf(battalion).supply) /
+  summedOver("infantry", (battalion) => battalionOf(battalion).supply);
 
 /**
  * How a division came into the province it stands in: on foot, or off the
@@ -91,54 +169,74 @@ const TERRAIN_DEFENCE = {
 } satisfies Readonly<Record<Terrain, number>>;
 
 /**
- * The share of its template's cohesion a regrouping division recovers before
+ * The share of its kind's cohesion a regrouping division recovers before
  * it goes back to the line. The share is this game's own.
  */
 const REGROUPED_SHARE = 0.8;
 
 /** Whether a regrouping division has recovered enough to go back to the line. */
 export const regroupedEnough = (division: Division): boolean =>
-  division.organisation >=
-  TEMPLATES[division.kind].organisation * REGROUPED_SHARE;
+  division.organisation >= organisationOf(division.kind) * REGROUPED_SHARE;
 
-/** Cohesion a division out of contact recovers in a day. */
+/** Cohesion an infantry division out of contact recovers in a day. */
 const ORGANISATION_PER_DAY = 3;
 
-export const marchDaysFor = (terrain: Terrain): number => MARCH_DAYS[terrain];
+/**
+ * The days it takes a division of `kind` to walk into a province of
+ * `terrain`: an infantry division's days, cut by how much faster its slowest
+ * battalion moves there.
+ */
+export const marchDaysFor = (kind: DivisionKind, terrain: Terrain): number => {
+  const infantry = battalionOf("infantry").speed;
+  const slowest = Math.min(
+    ...COMPOSITIONS[kind].map(
+      ({ battalion }) =>
+        battalionOf(battalion).speed *
+        (1 + groundModifierOf(battalion, terrain).movement)
+    )
+  );
+  return (MARCH_DAYS[terrain] * infantry) / slowest;
+};
 
 export const terrainDefenceOf = (terrain: Terrain): number =>
   TERRAIN_DEFENCE[terrain];
 
-/** A division fresh from the depots, standing where it was raised. */
-export const raisedAt = (nation: number, province: number): Division => ({
+/** A division of `kind` fresh from the depots, standing where it was raised. */
+export const raisedAt = (
+  nation: number,
+  province: number,
+  kind: DivisionKind
+): Division => ({
   arrival: "march",
   entrenchment: 0,
-  kind: "infantry",
+  kind,
   marched: 0,
   movingTo: province,
   nation,
-  organisation: TEMPLATES.infantry.organisation,
+  organisation: organisationOf(kind),
   planning: 0,
   province,
-  strength: TEMPLATES.infantry.manpower,
+  strength: manpowerOf(kind),
   task: "line",
 });
 
-/** The men it takes to raise `count` divisions. */
-export const menFor = (count: number): number =>
-  count * TEMPLATES.infantry.manpower;
+/** The men it takes to raise `count` infantry divisions. */
+export const menFor = (count: number): number => count * manpowerOf("infantry");
 
-/** Whether the nation has the men and the weapons for another division. */
-export const canRaise = (economy: NationEconomy): boolean =>
-  economy.manpower >= TEMPLATES.infantry.manpower &&
-  economy.equipment >= TEMPLATES.infantry.equipment;
+/** Whether the nation has the men and the weapons for another division of `kind`. */
+export const canRaise = (economy: NationEconomy, kind: DivisionKind): boolean =>
+  economy.manpower >= manpowerOf(kind) &&
+  economy.equipment >= equipmentOf(kind);
 
-/** The economy with one division's men called up and its weapons taken out. */
-export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
+/** The economy with one division of `kind`'s men called up and its weapons taken out. */
+export const paidForDivision = (
+  economy: NationEconomy,
+  kind: DivisionKind
+): NationEconomy => ({
   ...economy,
-  equipment: economy.equipment - TEMPLATES.infantry.equipment,
-  manpower: economy.manpower - TEMPLATES.infantry.manpower,
-  recruited: economy.recruited + TEMPLATES.infantry.manpower,
+  equipment: economy.equipment - equipmentOf(kind),
+  manpower: economy.manpower - manpowerOf(kind),
+  recruited: economy.recruited + manpowerOf(kind),
 });
 
 /** The divisions a nation raises, and its economy after paying for them. */
@@ -155,18 +253,92 @@ export type Levied = (
 ) => Levy;
 
 /**
- * A day of the depots: one division standing at `home` where the nation can
- * afford it, none where it cannot.
+ * How many divisions of each kind a nation of each leaning raises for every
+ * ten: mostly infantry, with the fast and the specialist divisions a 1936
+ * army could raise, where its leaning puts them. The mixes are this game's own.
  */
-export const dailyLevy: Levied = (economy, nation, home) => {
-  if (!canRaise(economy)) {
-    return { divisions: [], economy };
-  }
-  return {
-    divisions: [raisedAt(nation.id, home)],
-    economy: paidForDivision(economy),
-  };
+const ARMY_MIX = {
+  army: {
+    cavalry: 1,
+    infantry: 6,
+    "light-armour": 1,
+    motorized: 1,
+    mountaineers: 1,
+  },
+  industry: { infantry: 6, "light-armour": 1, motorized: 2, mountaineers: 1 },
+  navy: { infantry: 6, "light-armour": 1, marines: 2, motorized: 1 },
+} satisfies Readonly<
+  Record<Leaning, Partial<Readonly<Record<DivisionKind, number>>>>
+>;
+
+/** How many of every ten divisions a nation of `leaning` raises as `kind`, none where its mix has none. */
+const mixShareOf = (leaning: Leaning, kind: DivisionKind): number => {
+  const mix: Partial<Readonly<Record<DivisionKind, number>>> =
+    ARMY_MIX[leaning];
+  return mix[kind] ?? 0;
 };
+
+/**
+ * The kind a nation of `leaning` raises next, with `fielded` divisions of
+ * each kind already in the field: the one furthest short of its share of the
+ * mix once the next is counted in, the earlier kind first on a tie. The
+ * shortfalls are compared as whole numbers of the mix's parts, so a tie stays
+ * a tie.
+ */
+export const nextKindFor = (
+  leaning: Leaning,
+  fielded: ReadonlyMap<DivisionKind, number>
+): DivisionKind => {
+  const total = [...fielded.values()].reduce((sum, count) => sum + count, 1);
+  const mixed = DIVISION_KINDS.reduce(
+    (sum, kind) => sum + mixShareOf(leaning, kind),
+    0
+  );
+  const shortOf = (kind: DivisionKind): number =>
+    mixShareOf(leaning, kind) * total - (fielded.get(kind) ?? 0) * mixed;
+  return itemAt(
+    DIVISION_KINDS.toSorted((one, other) => shortOf(other) - shortOf(one)),
+    0,
+    "infantry"
+  );
+};
+
+/** How many divisions of each kind `nation` has among `divisions`. */
+const fieldedKindsOf = (
+  divisions: readonly Division[],
+  nation: number
+): ReadonlyMap<DivisionKind, number> => {
+  const fielded = new Map<DivisionKind, number>();
+  for (const division of divisions) {
+    if (division.nation !== nation) {
+      continue;
+    }
+    fielded.set(division.kind, (fielded.get(division.kind) ?? 0) + 1);
+  }
+  return fielded;
+};
+
+/**
+ * A day of the depots beside `divisions` already in the field: one division
+ * of the kind its mix is shortest of standing at `home` where the nation can
+ * afford it, and none where it cannot, so the weapons for a costly division
+ * are saved up rather than spent on a cheaper one.
+ */
+export const dailyLevyBeside =
+  (divisions: readonly Division[]): Levied =>
+  (economy, nation, home) => {
+    const kind = nextKindFor(
+      nation.leaning,
+      fieldedKindsOf(divisions, nation.id)
+    );
+    if (!canRaise(economy, kind)) {
+      return { divisions: [], economy };
+    }
+    return {
+      divisions: [raisedAt(nation.id, home, kind)],
+      economy: paidForDivision(economy, kind),
+    };
+  };
 
 /**
  * The share of its manpower a nation of each leaning already has under arms
@@ -176,30 +348,46 @@ const OPENING_ARMY_SHARE = {
   army: 0.25,
   industry: 0.15,
   navy: 0.15,
-} satisfies Readonly<Record<Nation["leaning"], number>>;
-
-/** How many divisions a nation of `leaning` with `manpower` opens the world with. */
-export const openingDivisionCount = (
-  manpower: number,
-  leaning: Nation["leaning"]
-): number =>
-  Math.floor(
-    (manpower * OPENING_ARMY_SHARE[leaning]) / TEMPLATES.infantry.manpower
-  );
+} satisfies Readonly<Record<Leaning, number>>;
 
 /**
- * The economy with the men of `count` divisions raised before the world
- * opened called up. Their weapons were built before the world opened, so
- * they cost none of its equipment.
+ * The kinds of the divisions a nation of `leaning` with `manpower` opens the
+ * world with: as many as its opening share of the men raises, each the kind
+ * its mix is shortest of once the ones before it are raised.
+ */
+export const openingKindsOf = (
+  manpower: number,
+  leaning: Leaning
+): readonly DivisionKind[] => {
+  const kinds: DivisionKind[] = [];
+  const fielded = new Map<DivisionKind, number>();
+  let men = manpower * OPENING_ARMY_SHARE[leaning];
+  let kind = nextKindFor(leaning, fielded);
+  while (manpowerOf(kind) <= men) {
+    men -= manpowerOf(kind);
+    kinds.push(kind);
+    fielded.set(kind, (fielded.get(kind) ?? 0) + 1);
+    kind = nextKindFor(leaning, fielded);
+  }
+  return kinds;
+};
+
+/**
+ * The economy with the men of the divisions of `kinds` raised before the
+ * world opened called up. Their weapons were built before the world opened,
+ * so they cost none of its equipment.
  */
 export const calledUpFor = (
   economy: NationEconomy,
-  count: number
-): NationEconomy => ({
-  ...economy,
-  manpower: economy.manpower - menFor(count),
-  recruited: economy.recruited + menFor(count),
-});
+  kinds: readonly DivisionKind[]
+): NationEconomy => {
+  const men = kinds.reduce((total, kind) => total + manpowerOf(kind), 0);
+  return {
+    ...economy,
+    manpower: economy.manpower - men,
+    recruited: economy.recruited + men,
+  };
+};
 
 /** The men in a set of divisions, all of them together. */
 export const strengthOf = (divisions: readonly Division[]): number =>
@@ -207,7 +395,7 @@ export const strengthOf = (divisions: readonly Division[]): number =>
 
 /** How much of its full self a division still is, from 0 to 1. */
 const fitnessOf = (division: Division): number =>
-  division.strength / TEMPLATES[division.kind].manpower;
+  division.strength / manpowerOf(division.kind);
 
 /** What a division does in a battle: attack, or hold the ground it stands on. */
 type Role = "attack" | "defence";
@@ -224,30 +412,111 @@ export type InfantryEquipment = typeof InfantryEquipmentSchema.Type;
 
 export const INFANTRY_EQUIPMENT = InfantryEquipmentSchema.literals;
 
-/** What one generation of infantry equipment puts into a battle. */
-interface Weapons {
-  readonly softAttack: number;
-  readonly defence: number;
-}
-
 /** Hearts of Iron IV's infantry equipment, from the 1918 kit to the 1942 one. */
 const WEAPONS = {
   "basic-infantry-equipment": { defence: 20, softAttack: 3 },
   "infantry-equipment-1": { defence: 22, softAttack: 6 },
   "infantry-equipment-2": { defence: 28, softAttack: 9 },
   "infantry-equipment-3": { defence: 34, softAttack: 12 },
-} satisfies Readonly<Record<InfantryEquipment, Weapons>>;
+} satisfies Readonly<Record<InfantryEquipment, Arms>>;
 
-/** The equipment the template's attack and defence are set against. */
-const TEMPLATE_WEAPONS = WEAPONS["infantry-equipment-1"];
+/** What each role reads off the arms a battalion fights with. */
+const ROLE_STAT = {
+  attack: "softAttack",
+  defence: "defence",
+} satisfies Readonly<Record<Role, keyof Arms>>;
 
-/** The share of the template's worth in `role` that `equipment` gives a division. */
-const equipmentShare = (equipment: InfantryEquipment, role: Role): number => {
-  const weapons = WEAPONS[equipment];
-  if (role === "attack") {
-    return weapons.softAttack / TEMPLATE_WEAPONS.softAttack;
-  }
-  return weapons.defence / TEMPLATE_WEAPONS.defence;
+/**
+ * The share a division's attack loses while it fights off a beach, after
+ * Hearts of Iron IV's 50% penalty to a landing's attack, and the ground whose
+ * modifiers it fights on besides the terrain.
+ */
+const LANDING = {
+  landing: { grounds: ["amphibious"], penalty: 0.5 },
+  march: { grounds: [], penalty: 0 },
+} satisfies Readonly<
+  Record<
+    Arrival,
+    { readonly grounds: readonly Ground[]; readonly penalty: number }
+  >
+>;
+
+/**
+ * What the battalions of `kind` put into `role` fighting with `rifles` on
+ * every one of `grounds`, each battalion's arms raised by its modifiers
+ * there and cut by `penalty`, and never below nothing.
+ */
+const armedWorth = (
+  kind: DivisionKind,
+  rifles: Arms,
+  role: Role,
+  grounds: readonly Ground[],
+  penalty: number
+): number =>
+  summedOver(
+    kind,
+    (battalion) =>
+      armsOf(battalion, rifles)[ROLE_STAT[role]] *
+      Math.max(
+        0,
+        1 -
+          penalty +
+          grounds.reduce(
+            (total, ground) =>
+              total + groundModifierOf(battalion, ground)[role],
+            0
+          )
+      )
+  );
+
+/**
+ * What a full, supplied 1936 infantry division is worth in each role, which
+ * is what this world's battles were balanced on before a division's worth was
+ * read off its battalions.
+ */
+const INFANTRY_WORTH = {
+  attack: 6,
+  defence: 10,
+} satisfies Readonly<Record<Role, number>>;
+
+/** What that 1936 infantry division's battalions put into each role. */
+const INFANTRY_ARMED = {
+  attack: armedWorth(
+    "infantry",
+    WEAPONS["infantry-equipment-1"],
+    "attack",
+    [],
+    0
+  ),
+  defence: armedWorth(
+    "infantry",
+    WEAPONS["infantry-equipment-1"],
+    "defence",
+    [],
+    0
+  ),
+} satisfies Readonly<Record<Role, number>>;
+
+/**
+ * What a division of `kind` is worth in `role` on `terrain`, arriving by
+ * `arrival`, with `equipment` for its rifles, against a 1936 infantry
+ * division standing on open ground.
+ */
+const templateWorth = (
+  kind: DivisionKind,
+  equipment: InfantryEquipment,
+  role: Role,
+  terrain: Terrain,
+  arrival: Arrival
+): number => {
+  const landing = LANDING[arrival];
+  const penalty = landing.penalty * Number(role === "attack");
+  const grounds = [terrain, ...landing.grounds.filter(() => role === "attack")];
+  return (
+    (INFANTRY_WORTH[role] *
+      armedWorth(kind, WEAPONS[equipment], role, grounds, penalty)) /
+    INFANTRY_ARMED[role]
+  );
 };
 
 /**
@@ -291,47 +560,54 @@ const PLANNING_BY_ROLE = {
   defence: 0,
 } satisfies Readonly<Record<Role, number>>;
 
-/** What a division is worth in a day of battle in `role`. */
-const worthIn = (division: Division, backing: Backing, role: Role): number =>
+/** What a division is worth in a day of battle in `role` on `terrain`. */
+const worthIn = (
+  division: Division,
+  backing: Backing,
+  role: Role,
+  terrain: Terrain
+): number =>
   fitnessOf(division) *
   (1 + entrenchedShare(division)) *
   (1 + division.planning * PLANNING_BY_ROLE[role]) *
-  TEMPLATES[division.kind][role] *
-  equipmentShare(backing.equipment, role) *
+  templateWorth(
+    division.kind,
+    backing.equipment,
+    role,
+    terrain,
+    division.arrival
+  ) *
   (1 + backing.modifiers[role]) *
   suppliedWorth(backing.fill) *
   backing.air *
   (1 + backing.insight);
 
-/**
- * The share of its attack a division keeps while it fights off a beach, after
- * Hearts of Iron IV's 50% penalty to a landing's attack.
- */
-const ATTACK_KEPT_BY = {
-  landing: 0.5,
-  march: 1,
-} satisfies Readonly<Record<Arrival, number>>;
+/** What a division is worth in a day of one role on ground of `terrain`. */
+type Worth = (division: Division, backing: Backing, terrain: Terrain) => number;
 
-/** What a division is worth in a day of attacking. */
-export const attackOf = (division: Division, backing: Backing): number =>
-  worthIn(division, backing, "attack") * ATTACK_KEPT_BY[division.arrival];
+/** What a division is worth in a day of attacking into `terrain`. */
+export const attackOf: Worth = (division, backing, terrain) =>
+  worthIn(division, backing, "attack", terrain);
 
-/** What it is worth in a day of holding the ground it stands on. */
-export const defenceOf = (division: Division, backing: Backing): number =>
-  worthIn(division, backing, "defence");
+/** What it is worth in a day of holding ground of `terrain`. */
+export const defenceOf: Worth = (division, backing, terrain) =>
+  worthIn(division, backing, "defence", terrain);
 
 /**
- * The division with a day of rest behind it, up to its template's cohesion as
- * its nation's doctrine raises it, recovering as fast as the doctrine lets it
- * and only as far as its supply does: a division with none recovers nothing.
+ * The division with a day of rest behind it, up to its kind's cohesion as
+ * its nation's doctrine raises it, recovering as fast as its battalions and
+ * the doctrine let it and only as far as its supply does: a division with
+ * none recovers nothing.
  */
 export const rested = (division: Division, backing: Backing): Division => ({
   ...division,
   organisation: Math.min(
-    TEMPLATES[division.kind].organisation *
-      (1 + backing.modifiers.organisation),
+    organisationOf(division.kind) * (1 + backing.modifiers.organisation),
     division.organisation +
-      ORGANISATION_PER_DAY * (1 + backing.modifiers.recovery) * backing.fill
+      ORGANISATION_PER_DAY *
+        recoveryOf(division.kind) *
+        (1 + backing.modifiers.recovery) *
+        backing.fill
   ),
 });
 
@@ -344,7 +620,7 @@ export const worn = (division: Division, fill: number): Division => ({
   strength: Math.max(
     0,
     division.strength -
-      TEMPLATES[division.kind].manpower * ATTRITION_PER_DAY * (1 - fill)
+      manpowerOf(division.kind) * ATTRITION_PER_DAY * (1 - fill)
   ),
 });
 

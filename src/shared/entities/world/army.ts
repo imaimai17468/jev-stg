@@ -6,7 +6,8 @@ import type { Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
 import {
-  dailyLevy,
+  supplyUseOf,
+  dailyLevyBeside,
   marchDaysFor,
   raisedAt,
   regroupedEnough,
@@ -32,7 +33,7 @@ import { paceUnder } from "./skies";
 import { UNASSIGNED } from "./spread";
 import type { Stance } from "./stance";
 import { attackOddsFor, START_STANCE } from "./stance";
-import type { SupplyNetwork } from "./supply";
+import type { Post, SupplyNetwork } from "./supply";
 import { postOf, stackKey } from "./supply";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
@@ -183,6 +184,10 @@ const foughtEverywhere = (
   };
 };
 
+/** The first division of a stack, which names its nation and its province. */
+const firstOf = (stack: readonly Division[]): Division =>
+  itemAt(stack, 0, raisedAt(UNASSIGNED, UNASSIGNED, "infantry"));
+
 /**
  * Where a division stands after a day of walking toward `target`, slowed by
  * the air superiority its enemies hold over the ground it walks from.
@@ -203,7 +208,7 @@ const walkedToward = (
   }
   if (
     division.marched + pace <
-    marchDaysFor(provinceTerrain(line.world.provinces, target))
+    marchDaysFor(division.kind, provinceTerrain(line.world.provinces, target))
   ) {
     return { ...division, marched: division.marched + pace };
   }
@@ -244,18 +249,30 @@ interface Line {
 }
 
 /**
- * How many divisions `nation` posts to `province` on its front line: as many
- * as a battle on that ground holds, no more than its supply there keeps, and
- * always one to hold it.
+ * What `nation` posts to `province` on its front line: as many divisions as a
+ * battle on that ground holds, and no more supply than it keeps there.
  */
-const postingAt = (line: Line, nation: number, province: number): number =>
-  Math.max(
-    1,
-    Math.min(
-      combatWidth(provinceTerrain(line.world.provinces, province), 1),
-      Math.floor(postOf(line.supply, nation, province).capacity)
-    )
-  );
+interface Posting {
+  /** The most divisions it posts there. */
+  readonly width: number;
+  /** The supply it keeps there, counted in infantry divisions. */
+  readonly supply: number;
+}
+
+const postingAt = (line: Line, nation: number, province: number): Posting => ({
+  supply: postOf(line.supply, nation, province).capacity,
+  width: combatWidth(provinceTerrain(line.world.provinces, province), 1),
+});
+
+/**
+ * Whether a province posted `posting`, with `post` standing there, has room
+ * for another division: an empty one always, to hold it, and otherwise one
+ * under its width with the supply for another infantry division left.
+ */
+const hasRoom = (posting: Posting, post: Post): boolean =>
+  post.stationed === 0 ||
+  (post.stationed < posting.width &&
+    post.demand + supplyUseOf("infantry") <= posting.supply);
 
 /**
  * The divisions of a stack past its first, the garrison, that go into an
@@ -331,7 +348,7 @@ const attackTarget = (
   stack: readonly Division[],
   onTheLine: boolean
 ): number => {
-  const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
+  const { nation } = firstOf(stack);
   if (!onTheLine) {
     return province;
   }
@@ -385,18 +402,32 @@ interface Fields {
 }
 
 /**
- * The divisions of a stack that stay: the ones its province is posted, or the
- * whole stack where the way on leads nowhere but here.
+ * The divisions of a stack that stay: from the first, each one the province's
+ * posting still has room for once it counts in the ones kept before it, or
+ * the whole stack where the way on leads nowhere but here.
  */
 const heldBack = (
   stack: readonly Division[],
-  posted: number,
+  posting: Posting,
   nowhereToSend: boolean
 ): readonly Division[] => {
   if (nowhereToSend) {
     return stack;
   }
-  return stack.slice(0, posted);
+  const kept: Division[] = [];
+  let used = 0;
+  for (const division of stack) {
+    const use = supplyUseOf(division.kind);
+    if (
+      kept.length > 0 &&
+      (kept.length >= posting.width || used + use > posting.supply)
+    ) {
+      break;
+    }
+    kept.push(division);
+    used += use;
+  }
+  return kept;
 };
 
 /** One division before its orders for the day and after them. */
@@ -428,7 +459,7 @@ const orderedStack = (
   if (!onTheLine && open.room === "line" && onward !== province) {
     return stack.map((division) => sent(division, onward));
   }
-  const { nation } = itemAt(stack, 0, raisedAt(UNASSIGNED, province));
+  const { nation } = firstOf(stack);
   const staying = heldBack(
     stack,
     postingAt(line, nation, province),
@@ -549,8 +580,10 @@ const marchedEverywhere = (
       wars,
       nation.id,
       (province) =>
-        postOf(command.supply, nation.id, province).demand <
-        postingAt(line, nation.id, province)
+        hasRoom(
+          postingAt(line, nation.id, province),
+          postOf(command.supply, nation.id, province)
+        )
     ),
     plan: itemAt(plans, nation.id, NO_PLAN),
   }));
@@ -602,7 +635,7 @@ const marchedEverywhere = (
     free.filter((division) => division.task === "line"),
     world.nations.length
   ).values()) {
-    const first = itemAt(stack, 0, raisedAt(UNASSIGNED, UNASSIGNED));
+    const first = firstOf(stack);
     preparedAfter(
       orderedStack(
         line,
@@ -651,7 +684,12 @@ export const armiesAfterOneDay = (
   armies: Armies
 ): Armies => {
   const graph = graphOf(world.provinces);
-  const raised = musteredBy(world, armies.owners, armies.economies, dailyLevy);
+  const raised = musteredBy(
+    world,
+    armies.owners,
+    armies.economies,
+    dailyLevyBeside(armies.divisions)
+  );
   const fought = foughtEverywhere(
     world,
     {

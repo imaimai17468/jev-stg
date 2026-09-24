@@ -196,6 +196,7 @@ describe(paintWorld, () => {
       network: {
         capacity: [Float32Array.from([100, 100, 0]), new Float32Array(3)],
         demand: new Map(),
+        stationed: new Map(),
         nations: 2,
         upkeepMet: [1, 1],
       },
@@ -220,6 +221,7 @@ describe(paintWorld, () => {
       network: {
         capacity: [new Float32Array(3), new Float32Array(3)],
         demand: new Map([[0, 5]]),
+        stationed: new Map([[0, 5]]),
         nations: 2,
         upkeepMet: [1, 1],
       },

@@ -301,12 +301,14 @@ export const foughtOneDay = (
   const defenceLine = lineOf(defenders, width);
   const inLine = new Set([...attackLine, ...defenceLine]);
   const attack = attackLine.reduce(
-    (total, division) => total + attackOf(division, backingOf(division)),
+    (total, division) =>
+      total + attackOf(division, backingOf(division), province.terrain),
     0
   );
   const defence =
     defenceLine.reduce(
-      (total, division) => total + defenceOf(division, backingOf(division)),
+      (total, division) =>
+        total + defenceOf(division, backingOf(division), province.terrain),
       0
     ) * terrainDefenceOf(province.terrain);
   const toDefender =
