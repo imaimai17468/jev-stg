@@ -137,6 +137,20 @@ export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
   recruited: economy.recruited + TEMPLATES.infantry.manpower,
 });
 
+/** How many divisions a nation raises, and its economy after paying for them. */
+export interface Levy {
+  readonly count: number;
+  readonly economy: NationEconomy;
+}
+
+/** A day of the depots: one division where the nation can afford it, none where it cannot. */
+export const dailyLevy = (economy: NationEconomy): Levy => {
+  if (!canRaise(economy)) {
+    return { count: 0, economy };
+  }
+  return { count: 1, economy: paidForDivision(economy) };
+};
+
 /** The men in a set of divisions, all of them together. */
 export const strengthOf = (divisions: readonly Division[]): number =>
   divisions.reduce((total, division) => total + division.strength, 0);

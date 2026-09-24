@@ -4,6 +4,7 @@ import type { Backing } from "./divisions";
 import {
   attackOf,
   canRaise,
+  dailyLevy,
   defenceOf,
   fieldedBy,
   infantryEquipmentOf,
@@ -264,6 +265,24 @@ describe(fieldedBy, () => {
 describe(menFor, () => {
   it("should call up a full division's men for each division when several are raised", () => {
     expect(menFor(3)).toBe(60_000);
+  });
+});
+
+describe(dailyLevy, () => {
+  it("should raise one division and pay for it when the nation can afford one", () => {
+    expect(dailyLevy(ARMED)).toStrictEqual({
+      count: 1,
+      economy: paidForDivision(ARMED),
+    });
+  });
+
+  it("should raise nothing and leave the economy alone when the nation cannot afford a division", () => {
+    const short = { ...ARMED, equipment: 999 };
+
+    expect(dailyLevy(short)).toStrictEqual({
+      count: 0,
+      economy: short,
+    });
   });
 });
 
