@@ -6,15 +6,17 @@ import type { Clock } from "./clock";
 import type { Diplomacy } from "./diplomacy";
 import {
   allied,
+  answersToItself,
   commanderOf,
+  diplomacyOneDay,
   factionOf,
   NO_FACTION,
   sideOf,
-  standingOf,
 } from "./diplomacy";
 import { strengthOf } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Focuses } from "./focus";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { provincePeople } from "./industry";
@@ -24,6 +26,8 @@ import type { Settled, Settlement } from "./peace";
 import { settled } from "./peace";
 import { landProvinces } from "./provinces";
 import type { Random } from "./random";
+import { mayJustifyAt } from "./tension";
+import { justifiedTarget, warGoalOf } from "./war-goals";
 import { enemiesOf } from "./wars";
 
 /** How many factions the world opens with. */
@@ -32,8 +36,11 @@ const FOUNDING_FACTIONS = 3;
 /** How much stronger a side has to be before it counts as a threat or a prey. */
 const MENACE_ODDS = 1.5;
 
-/** The chance, each month, that a nation with a prey in reach declares on it. */
-const DECLARATION_CHANCE = 0.25;
+/**
+ * The chance, each month, that a nation with a prey in reach starts justifying
+ * a war goal on it.
+ */
+const JUSTIFICATION_CHANCE = 0.25;
 
 /** The share of its homeland's people a nation surrenders below. */
 const SURRENDER_SHARE = 0.25;
@@ -147,12 +154,6 @@ export const outmatches = (
   return theirs > 0 && theirs >= MENACE_ODDS * sideStrength(situation, nation);
 };
 
-/** Whether the nation makes its own choices, which a puppet does not. */
-export const answersToItself = (
-  diplomacy: Diplomacy,
-  nation: number
-): boolean => standingOf(diplomacy, nation).kind === "independent";
-
 /**
  * The faction an unaligned nation joins this month, if it joins one.
  *
@@ -198,35 +199,76 @@ export const factionToJoin = (
 };
 
 /**
- * The nation `nation` declares on this month, if it declares on one.
- *
- * Only an independent nation at peace goes looking, it looks at the weakest
- * nation within its reach outside its own side, and it declares when its side
- * outmatches that nation's and the month's draw falls its way.
+ * Whether `nation` may start justifying a war goal: it answers to itself, is
+ * at peace, holds no war goal already, and world tension has reached what the
+ * focuses it finished require.
+ */
+export const mayStartJustifying = (
+  diplomacy: Diplomacy,
+  focuses: Focuses,
+  nation: number
+): boolean =>
+  answersToItself(diplomacy, nation) &&
+  enemiesOf(diplomacy.wars, nation).length === 0 &&
+  Option.isNone(warGoalOf(diplomacy.warGoals, nation)) &&
+  mayJustifyAt(focuses, diplomacy.tension);
+
+/**
+ * The nations `nation` could justify a war goal on: every one within its
+ * reach outside its side that its side outmatches, the weakest first.
+ */
+export const preyOf = (
+  situation: Standoff,
+  nation: number
+): readonly number[] =>
+  strongestFirst(
+    situation,
+    withinReach(situation, nation).filter(
+      (other) =>
+        !allied(situation.diplomacy, nation, other) &&
+        outmatches(situation, nation, other)
+    )
+  ).toReversed();
+
+/**
+ * The nation `nation` starts justifying a war goal on this month, if it
+ * starts on one: the weakest of its prey, once it may start justifying and
+ * the month's draw falls its way.
+ */
+export const justificationTarget = (
+  situation: Standoff,
+  focuses: Focuses,
+  nation: number,
+  random: Random
+): Option.Option<number> => {
+  if (!mayStartJustifying(situation.diplomacy, focuses, nation)) {
+    return Option.none();
+  }
+  return Option.filter(
+    Option.fromIterable(preyOf(situation, nation)),
+    () => random.unit() < JUSTIFICATION_CHANCE
+  );
+};
+
+/**
+ * The nation `nation` declares on at `day`, if it declares on one: the target
+ * of its justified war goal, while it is at peace, the target is still within
+ * its reach, and its side outmatches the target's. A goal whose target has
+ * grown too strong waits, and expires where it stays so.
  */
 export const warTarget = (
   situation: Standoff,
   nation: number,
-  random: Random
+  day: number
 ): Option.Option<number> => {
-  const { diplomacy } = situation;
-  if (
-    !answersToItself(diplomacy, nation) ||
-    enemiesOf(diplomacy.wars, nation).length > 0
-  ) {
+  if (enemiesOf(situation.diplomacy.wars, nation).length > 0) {
     return Option.none();
   }
-  const prey = strongestFirst(
-    situation,
-    withinReach(situation, nation).filter(
-      (other) => !allied(diplomacy, nation, other)
-    )
-  ).toReversed();
   return Option.filter(
-    Option.fromIterable(prey),
+    justifiedTarget(situation.diplomacy.warGoals, nation, day),
     (target) =>
-      outmatches(situation, nation, target) &&
-      random.unit() < DECLARATION_CHANCE
+      withinReach(situation, nation).includes(target) &&
+      outmatches(situation, nation, target)
   );
 };
 
@@ -473,7 +515,8 @@ const talksClosed = (world: World, realm: Realm, day: number): Realm => {
 /**
  * One day of statecraft, on the day `clock` reads.
  *
- * A nation that has lost its homeland surrenders the same day and waits for
+ * War goals that no longer hold are dropped and world tension eases first. A
+ * nation that has lost its homeland surrenders the same day and waits for
  * its terms, and one whose terms have not come in time signs the rules'.
  * Everything a government decides month by month goes through the council.
  */
@@ -482,4 +525,12 @@ export const conductedOneDay = (
   clock: Clock,
   before: Realm
 ): Realm =>
-  talksOpened(world, talksClosed(world, before, clock.days), clock.days);
+  talksOpened(
+    world,
+    talksClosed(
+      world,
+      { ...before, diplomacy: diplomacyOneDay(before.diplomacy, clock.days) },
+      clock.days
+    ),
+    clock.days
+  );

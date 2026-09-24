@@ -234,6 +234,10 @@ describe(summaryOf, () => {
       ],
       trade: NO_TRADE,
       tree: advancementTreeOf(START_ADVANCEMENT),
+      warGoal: [
+        { label: "戦争目標", value: "なし" },
+        { label: "正当化に要る緊張度", value: "50%" },
+      ],
     });
   });
 
@@ -263,6 +267,7 @@ describe(summaryOf, () => {
       terrain: [],
       trade: [],
       tree: advancementTreeOf(START_ADVANCEMENT),
+      warGoal: [],
     });
   });
 

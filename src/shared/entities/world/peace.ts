@@ -1,6 +1,12 @@
 import type { Armies } from "./army";
 import type { Diplomacy, Standing } from "./diplomacy";
-import { INDEPENDENT, leftTheWar, peaceMade, puppetsOf } from "./diplomacy";
+import {
+  INDEPENDENT,
+  leftTheWar,
+  peaceMade,
+  puppetsOf,
+  tensionFrom,
+} from "./diplomacy";
 import { shareTransferred } from "./economy";
 import { valueAt } from "./grid";
 import type { World } from "./index";
@@ -109,7 +115,8 @@ const redrawnHomelands = (
  * Ground taken during the war was handed over the day it was taken, so ceding
  * keeps it where it is and ends the war, and the two harsher terms go further
  * from there. Every division the peace leaves on ground held by a nation it is
- * neither allied with nor fighting goes home.
+ * neither allied with nor fighting goes home, and world tension rises by what
+ * the terms took.
  */
 export const settled = (
   world: World,
@@ -117,9 +124,12 @@ export const settled = (
   loser: number,
   settlement: Settlement
 ): Settled => {
-  const diplomacy = puppetsSettled(
-    leftTheWar(before.diplomacy, loser, standingAfter(settlement)),
-    puppetsOf(before.diplomacy, loser),
+  const diplomacy = tensionFrom(
+    puppetsSettled(
+      leftTheWar(before.diplomacy, loser, standingAfter(settlement)),
+      puppetsOf(before.diplomacy, loser),
+      settlement.terms
+    ),
     settlement.terms
   );
   const armies = handedOver(before.armies, loser, settlement);

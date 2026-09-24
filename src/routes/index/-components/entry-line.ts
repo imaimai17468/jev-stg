@@ -120,6 +120,12 @@ const described = (
   if (decision.kind === "stance") {
     return { action: `攻撃姿勢 → ${STANCE_NAMES[decision.stance]}`, actor };
   }
+  if (decision.kind === "justify") {
+    return {
+      action: `${nameOf(decision.target)}への戦争目標の正当化を開始`,
+      actor,
+    };
+  }
   if (decision.kind === "declare") {
     return { action: `${nameOf(decision.target)}に宣戦布告`, actor };
   }

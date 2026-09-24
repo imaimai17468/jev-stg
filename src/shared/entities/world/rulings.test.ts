@@ -42,6 +42,34 @@ const withDiplomacy = (diplomacy: Diplomacy): Simulation => ({
   diplomacy,
 });
 
+/** `diplomacy` with `nation` holding a war goal on `target` justified on the first day. */
+const withGoal = (
+  diplomacy: Diplomacy,
+  nation: number,
+  target: number
+): Diplomacy => ({
+  ...diplomacy,
+  warGoals: [...diplomacy.warGoals, { nation, readyOn: 0, target }],
+});
+
+/** The row with each of `goals` justified on the first day. */
+const justifiedRow = (
+  ...goals: readonly (readonly [number, number])[]
+): Simulation =>
+  withDiplomacy({
+    ...ROW_SIMULATION.diplomacy,
+    warGoals: goals.map(([nation, target]) => ({ nation, readyOn: 0, target })),
+  });
+
+/** The row with nation 1 having finished militarism, which may justify at any tension. */
+const MILITARIST_ONE: Simulation = {
+  ...ROW_SIMULATION,
+  advancements: replacedAt(ROW_SIMULATION.advancements, 1, {
+    ...START_ADVANCEMENT,
+    focuses: { ...START_FOCUSES, done: ["political-effort", "militarism"] },
+  }),
+};
+
 /** Nation 2 a puppet of nation 3, and nation 1 annexed by nation 0. */
 const SUBJECTS: Simulation = withDiplomacy({
   ...ROW_SIMULATION.diplomacy,
@@ -204,7 +232,7 @@ describe(ruled, () => {
   it("should start the war when a nation declares on the lower-numbered neighbour it borders", () => {
     const after = ruled(
       ROW_WORLD,
-      ROW_SIMULATION,
+      justifiedRow([1, 0]),
       byRules({ kind: "declare", nation: 1, target: 0 })
     );
 
@@ -214,15 +242,106 @@ describe(ruled, () => {
   it("should start the war when a nation declares on the higher-numbered neighbour it borders", () => {
     const after = ruled(
       ROW_WORLD,
-      ROW_SIMULATION,
+      justifiedRow([1, 2]),
       byRules({ kind: "declare", nation: 1, target: 2 })
     );
 
     expect(enemiesOf(after.diplomacy.wars, 1)).toStrictEqual([2]);
   });
 
+  it("should spend the war goal and raise world tension when a nation declares", () => {
+    const after = ruled(
+      ROW_WORLD,
+      justifiedRow([1, 2]),
+      byRules({ kind: "declare", nation: 1, target: 2 })
+    );
+
+    expect({
+      tension: after.diplomacy.tension,
+      warGoals: after.diplomacy.warGoals,
+    }).toStrictEqual({ tension: 0.08, warGoals: [] });
+  });
+
+  it("should drop a declaration when the declarer holds no war goal on the target", () => {
+    const simulation = justifiedRow([1, 0]);
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        simulation,
+        byRules({ kind: "declare", nation: 1, target: 2 })
+      )
+    ).toBe(simulation);
+  });
+
+  it("should drop a declaration when the war goal is still being justified", () => {
+    const simulation = withDiplomacy({
+      ...ROW_SIMULATION.diplomacy,
+      warGoals: [{ nation: 1, readyOn: 1, target: 2 }],
+    });
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        simulation,
+        byRules({ kind: "declare", nation: 1, target: 2 })
+      )
+    ).toBe(simulation);
+  });
+
+  it("should start justifying a war goal and raise world tension when a militarist nation borders the target", () => {
+    const after = ruled(
+      ROW_WORLD,
+      MILITARIST_ONE,
+      byRules({ kind: "justify", nation: 1, target: 2 })
+    );
+
+    expect({
+      tension: after.diplomacy.tension,
+      warGoals: after.diplomacy.warGoals,
+    }).toStrictEqual({
+      tension: 0.03,
+      warGoals: [{ nation: 1, readyOn: 180, target: 2 }],
+    });
+  });
+
+  it("should drop a justification when world tension is under what the nation's focuses require", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        ROW_SIMULATION,
+        byRules({ kind: "justify", nation: 1, target: 2 })
+      )
+    ).toBe(ROW_SIMULATION);
+  });
+
+  it("should drop a justification when the nation does not reach the target", () => {
+    expect(
+      ruled(
+        ROW_WORLD,
+        MILITARIST_ONE,
+        byRules({ kind: "justify", nation: 1, target: 3 })
+      )
+    ).toBe(MILITARIST_ONE);
+  });
+
+  it("should drop a justification when the target is an ally", () => {
+    const allies: Simulation = {
+      ...MILITARIST_ONE,
+      diplomacy: joined(joined(ROW_SIMULATION.diplomacy, 1, 1), 2, 1),
+    };
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        allies,
+        byRules({ kind: "justify", nation: 1, target: 2 })
+      )
+    ).toBe(allies);
+  });
+
   it("should drop a declaration when the declarer does not border the target", () => {
-    const simulation = ROW_SIMULATION;
+    const simulation = justifiedRow([0, 2]);
 
     expect(
       ruled(
@@ -234,7 +353,9 @@ describe(ruled, () => {
   });
 
   it("should drop a declaration when the declarer is already at war", () => {
-    const fighting = withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 2, 3));
+    const fighting = withDiplomacy(
+      warDeclared(withGoal(ROW_SIMULATION.diplomacy, 2, 1), 2, 3)
+    );
 
     expect(
       ruled(
@@ -247,7 +368,7 @@ describe(ruled, () => {
 
   it("should drop a declaration when the target is an ally", () => {
     const allies = withDiplomacy(
-      joined(openingDiplomacy(ROW_OWNERS, 4, [0]), 1, 0)
+      withGoal(joined(openingDiplomacy(ROW_OWNERS, 4, [0]), 1, 0), 1, 0)
     );
 
     expect(
@@ -462,7 +583,10 @@ describe(ruled, () => {
   it("should start the war when a nation declares on one its fleet can reach across the sea", () => {
     const after = ruled(
       ISLES,
-      ISLE_SIMULATION,
+      {
+        ...ISLE_SIMULATION,
+        diplomacy: withGoal(ISLE_SIMULATION.diplomacy, 0, 1),
+      },
       byRules({ kind: "declare", nation: 0, target: 1 })
     );
 
@@ -472,7 +596,10 @@ describe(ruled, () => {
   it("should drop the declaration when a nation with no fleet declares on one whose fleet outmatches it across the sea", () => {
     const after = ruled(
       ISLES,
-      ISLE_SIMULATION,
+      {
+        ...ISLE_SIMULATION,
+        diplomacy: withGoal(ISLE_SIMULATION.diplomacy, 1, 0),
+      },
       byRules({ kind: "declare", nation: 1, target: 0 })
     );
 

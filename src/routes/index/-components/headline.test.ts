@@ -25,7 +25,7 @@ const ECONOMIES: readonly NationEconomy[] = [
 ];
 
 describe(headlineOf, () => {
-  it("should count the nations still standing and their wars when no nation is picked", () => {
+  it("should count the nations still standing, their wars and the world tension when no nation is picked", () => {
     const diplomacy = warDeclared(
       {
         ...openingDiplomacy(HELD_BY_TWO, 3, []),
@@ -39,6 +39,7 @@ describe(headlineOf, () => {
       stats: [
         { label: "国", value: "2" },
         { label: "戦争", value: "1" },
+        { label: "世界緊張度", value: "8%" },
         { label: "州", value: "3" },
         { label: "seed", value: "1" },
       ],

@@ -40,6 +40,12 @@ describe(entryLine, () => {
     ).toBe("攻撃姿勢 → 守勢");
   });
 
+  it("should name the target when a nation starts justifying a war goal", () => {
+    expect(lineOf({ kind: "justify", nation: 0, target: 1 }).action).toBe(
+      "国1への戦争目標の正当化を開始"
+    );
+  });
+
   it("should name the target when a nation declares war", () => {
     expect(lineOf({ kind: "declare", nation: 0, target: 1 }).action).toBe(
       "国1に宣戦布告"

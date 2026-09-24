@@ -26,11 +26,12 @@ import type {
 import {
   COUNTER_INTELLIGENCE_CHOICE,
   factionChoice,
+  justifyChoice,
   rivalChoice,
   spyChoice,
 } from "./consultation";
 import {
-  allied,
+  answersToItself,
   factionOf,
   NO_FACTION,
   sideOf,
@@ -40,7 +41,7 @@ import { menFor } from "./divisions";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
-import type { FocusId } from "./focus";
+import type { FocusId, Focuses } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
@@ -77,15 +78,16 @@ import type { Stance } from "./stance";
 import { START_STANCE, STANCES } from "./stance";
 import type { Standoff } from "./statecraft";
 import {
-  answersToItself,
   bordering,
   factionToJoin,
   homelandSplit,
+  justificationTarget,
+  mayStartJustifying,
   outmatches,
+  preyOf,
   sideStrength,
   strengthAmong,
   warTarget,
-  withinReach,
 } from "./statecraft";
 import type { SupplyNetwork } from "./supply";
 import { undersuppliedShare } from "./supply";
@@ -170,45 +172,61 @@ const spyTargetsOf = (
     ];
   });
 
+/** Each of `nations`, with what `nation` believes the men its side has in the field come to. */
+const rivalsAmong = (
+  standoff: Standoff,
+  dossier: Pick<Dossier, "intel" | "random">,
+  nation: number,
+  nations: readonly number[]
+): NationBrief["rivals"] =>
+  nations.map((other) => ({
+    nation: other,
+    strength: sightingOf(
+      "army",
+      forcesOf(
+        dossier.intel,
+        nation,
+        sideOf(standoff.diplomacy, other),
+        (member) => strengthAmong(standoff, new Set([member]))
+      ),
+      dossier.random
+    ),
+  }));
+
 /**
- * The nations `nation` may declare on: none while it is at war, and otherwise
- * every nation within its reach, over land or across the sea, outside its
- * side that its side outmatches. Offered every nation within reach, Jev declares on any
- * whose army has not formed yet, so the offer carries the rules' odds and Jev
- * decides which of those to fight, if any.
+ * The nations `nation` may declare on at `day`: the target of its justified
+ * war goal, while its side outmatches the target's. Offered a rival its side
+ * does not outmatch, Jev declares on one whose army has not formed yet, so the
+ * offer carries the rules' odds and Jev decides whether to fight.
  */
 const rivalsOf = (
   standoff: Standoff,
   dossier: Pick<Dossier, "intel" | "random">,
+  nation: number,
+  day: number
+): NationBrief["rivals"] =>
+  rivalsAmong(
+    standoff,
+    dossier,
+    nation,
+    Option.toArray(warTarget(standoff, nation, day))
+  );
+
+/**
+ * The nations `nation` may start justifying a war goal on: none unless it may
+ * start justifying, and otherwise its prey, under the same odds as a war.
+ */
+const justifiableOf = (
+  standoff: Standoff,
+  dossier: Pick<Dossier, "advancement" | "intel" | "random">,
   nation: number
-): NationBrief["rivals"] => {
-  const { diplomacy } = standoff;
-  if (enemiesOf(diplomacy.wars, nation).length > 0) {
+): NationBrief["justifiable"] => {
+  if (
+    !mayStartJustifying(standoff.diplomacy, dossier.advancement.focuses, nation)
+  ) {
     return [];
   }
-  return withinReach(standoff, nation).flatMap((other) => {
-    if (
-      allied(diplomacy, nation, other) ||
-      !outmatches(standoff, nation, other)
-    ) {
-      return [];
-    }
-    return [
-      {
-        nation: other,
-        strength: sightingOf(
-          "army",
-          forcesOf(
-            dossier.intel,
-            nation,
-            sideOf(standoff.diplomacy, other),
-            (member) => strengthAmong(standoff, new Set([member]))
-          ),
-          dossier.random
-        ),
-      },
-    ];
-  });
+  return rivalsAmong(standoff, dossier, nation, preyOf(standoff, nation));
 };
 
 /**
@@ -259,7 +277,8 @@ const offersOf = (advancement: Advancement): Offers => {
 const briefOf = (
   standoff: Standoff,
   dossier: Dossier,
-  nation: number
+  nation: number,
+  day: number
 ): NationBrief => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   const enemies = enemiesOf(standoff.diplomacy.wars, nation);
@@ -297,6 +316,7 @@ const briefOf = (
     factions: factionsOf(standoff, nation),
     fleet: fleetStrength(itemAt(dossier.navies, nation, NO_NAVY)),
     fuel: Math.min(1, economy.fuel / FUEL_CAPACITY),
+    justifiable: justifiableOf(standoff, dossier, nation),
     manpower: economy.manpower,
     militaryFactories: economy.militaryFactories,
     nation,
@@ -305,12 +325,13 @@ const briefOf = (
     planes: allPlanesOf(airForce),
     population: economy.population,
     posted: dossier.service.target !== HOME,
-    rivals: rivalsOf(standoff, dossier, nation),
+    rivals: rivalsOf(standoff, dossier, nation, day),
     shipDesigns: armoury.ships,
     shortage: dossier.shortage,
     skyLost: skyLostBy(dossier.skies, nation),
     spyTargets: spyTargetsOf(standoff, dossier.intel, nation),
     strength: sideStrength(standoff, nation),
+    tension: standoff.diplomacy.tension,
     undersupplied: undersuppliedShare(
       dossier.supply,
       standoff.armies.divisions,
@@ -373,7 +394,8 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
           skies: skiesOf(simulation),
           supply,
         },
-        nation
+        nation,
+        simulation.clock.days
       )
     ),
   };
@@ -435,13 +457,16 @@ const DRAFT_BELOW_DIVISIONS = 10;
  * What the rules decide for one nation this month. A nation at war turns its
  * plan one step further toward war each month, and calls up one law more only
  * when it is running out of men to call. A nation at peace keeps both. The
- * faction and the war come from the same rules the world ran on before any
- * government was consulted.
+ * faction comes from the same rules the world ran on before any government
+ * was consulted. A nation declares the war its justified goal allows on `day`,
+ * and one with no war to declare may start justifying one under the focuses
+ * it finished.
  */
 const decisionsByRules = (
   standoff: Standoff,
+  focuses: Focuses,
   nation: number,
-  random: Random
+  { day, random }: { readonly day: number; readonly random: Random }
 ): readonly Order[] => {
   const economy = itemAt(standoff.armies.economies, nation, NO_ECONOMY);
   const decisions: Order[] = [
@@ -464,8 +489,17 @@ const decisionsByRules = (
   for (const faction of Option.toArray(factionToJoin(standoff, nation))) {
     decisions.push({ faction, kind: "join", nation });
   }
-  for (const target of Option.toArray(warTarget(standoff, nation, random))) {
+  const war = warTarget(standoff, nation, day);
+  for (const target of Option.toArray(war)) {
     decisions.push({ kind: "declare", nation, target });
+  }
+  if (Option.isSome(war)) {
+    return decisions;
+  }
+  for (const target of Option.toArray(
+    justificationTarget(standoff, focuses, nation, random)
+  )) {
+    decisions.push({ kind: "justify", nation, target });
   }
   return decisions;
 };
@@ -796,7 +830,12 @@ export const ruledByRules = (
       world,
       current,
       [
-        ...decisionsByRules(standoffOf(world, current), nation, random),
+        ...decisionsByRules(
+          standoffOf(world, current),
+          itemAt(current.advancements, nation, START_ADVANCEMENT).focuses,
+          nation,
+          { day: current.clock.days, random }
+        ),
         ...tradeAndShipsByRules(current, nation),
         ...airByRules(current, nation),
         ...intelligenceByRules(current, standoffOf(world, current), nation),
@@ -862,6 +901,16 @@ const decisionOf = (
         brief.rivals.find((rival) => rivalChoice(rival.nation) === choice)
       ),
       (rival): Order => ({ kind: "declare", nation, target: rival.nation })
+    );
+  }
+  if (question === "justify") {
+    return Option.map(
+      Option.fromUndefinedOr(
+        brief.justifiable.find(
+          (rival) => justifyChoice(rival.nation) === choice
+        )
+      ),
+      (rival): Order => ({ kind: "justify", nation, target: rival.nation })
     );
   }
   if (question === "research") {
@@ -959,10 +1008,11 @@ const drawn = (
 };
 
 /**
- * The options a verdict settles on. A war is drawn with Jev's weights, so a
- * declaration Jev gives one chance in ten happens in about one month in ten
- * rather than never; a law, a plan or a stance changes only where Jev is sure
- * of it, which keeps them from flipping on a near tie month after month; a
+ * The options a verdict settles on. A war and a justification are drawn with
+ * Jev's weights, so a declaration Jev gives one chance in ten happens in
+ * about one month in ten rather than never; a law, a plan or a stance
+ * changes only where Jev is sure of it, which keeps them from flipping on a
+ * near tie month after month; a
  * faction, a focus and an agency's next project are the one Jev picked, since
  * each is taken once and the agency's many options leave no single one
  * likely enough to pass the bar a law has to; operatives still at home go
@@ -981,7 +1031,7 @@ const settledOn = (
     choice: verdict.choice,
     probability: verdict.probability,
   };
-  if (verdict.question === "war") {
+  if (verdict.question === "war" || verdict.question === "justify") {
     return Option.toArray(drawn(verdict.weights, random));
   }
   if (

@@ -8,6 +8,7 @@ import type { Diplomacy } from "./diplomacy";
 import {
   INDEPENDENT,
   joined,
+  justificationStarted,
   openingDiplomacy,
   standingOf,
   warDeclared,
@@ -15,6 +16,8 @@ import {
 import { ROW_OWNERS, ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Focuses } from "./focus";
+import { START_FOCUSES } from "./focus";
 import type { World } from "./index";
 import { neighbouringNations } from "./nations";
 import type { Province } from "./provinces";
@@ -25,6 +28,7 @@ import {
   conductedOneDay,
   factionFounders,
   factionToJoin,
+  justificationTarget,
   settlementFor,
   surrenders,
   warTarget,
@@ -65,6 +69,12 @@ const ROW_BORDERS = neighbouringNations(ROW_WORLD, ROW_OWNERS);
 /** A draw that always falls the declarer's way, and one that never does. */
 const LUCKY: Random = { below: () => 0, unit: () => 0 };
 const UNLUCKY: Random = { below: () => 0, unit: () => 0.99 };
+
+/** A government that finished militarism, which may justify at any tension. */
+const MILITARIST: Focuses = {
+  ...START_FOCUSES,
+  done: ["political-effort", "militarism"],
+};
 
 /** Nation 1's homeland stretched over the whole row, held as `owners` say. */
 const homelandOfOne = (owners: readonly number[]) => ({
@@ -253,7 +263,7 @@ describe(factionToJoin, () => {
   });
 });
 
-describe(warTarget, () => {
+describe(justificationTarget, () => {
   const situation = {
     armies: ARMED_THREE,
     borders: ROW_BORDERS,
@@ -262,32 +272,67 @@ describe(warTarget, () => {
     world: ROW_WORLD,
   };
 
-  it("should declare on its weaker neighbour when the draw falls its way", () => {
-    expect(warTarget(situation, 3, LUCKY)).toStrictEqual(Option.some(2));
+  it("should start justifying on its weaker neighbour when it is militarist and the draw falls its way", () => {
+    expect(justificationTarget(situation, MILITARIST, 3, LUCKY)).toStrictEqual(
+      Option.some(2)
+    );
   });
 
   it("should hold back when the draw goes against it", () => {
-    expect(warTarget(situation, 3, UNLUCKY)).toStrictEqual(Option.none());
+    expect(
+      justificationTarget(situation, MILITARIST, 3, UNLUCKY)
+    ).toStrictEqual(Option.none());
   });
 
   it("should hold back when it does not outmatch its neighbour", () => {
-    expect(warTarget(situation, 1, LUCKY)).toStrictEqual(Option.none());
+    expect(justificationTarget(situation, MILITARIST, 1, LUCKY)).toStrictEqual(
+      Option.none()
+    );
+  });
+
+  it("should hold back when it took no stand and world tension is under half", () => {
+    expect(
+      justificationTarget(situation, START_FOCUSES, 3, LUCKY)
+    ).toStrictEqual(Option.none());
+  });
+
+  it("should start justifying when it took no stand and world tension has reached half", () => {
+    expect(
+      justificationTarget(
+        { ...situation, diplomacy: { ...ROW_PEACE, tension: 0.5 } },
+        START_FOCUSES,
+        3,
+        LUCKY
+      )
+    ).toStrictEqual(Option.some(2));
+  });
+
+  it("should hold back when it already holds a war goal", () => {
+    const diplomacy = justificationStarted(
+      ROW_PEACE,
+      { nation: 3, target: 2 },
+      0
+    );
+
+    expect(
+      justificationTarget({ ...situation, diplomacy }, MILITARIST, 3, LUCKY)
+    ).toStrictEqual(Option.none());
   });
 
   it("should hold back when every neighbour is its ally", () => {
     const diplomacy = joined(joined(ROW_PEACE, 2, 3), 3, 3);
 
-    expect(warTarget({ ...situation, diplomacy }, 3, LUCKY)).toStrictEqual(
-      Option.none()
-    );
+    expect(
+      justificationTarget({ ...situation, diplomacy }, MILITARIST, 3, LUCKY)
+    ).toStrictEqual(Option.none());
   });
 
   it("should hold back when it is already at war", () => {
     const diplomacy = warDeclared(ROW_PEACE, 0, 1);
 
-    expect(warTarget({ ...situation, diplomacy }, 1, LUCKY)).toStrictEqual(
-      Option.none()
-    );
+    expect(
+      justificationTarget({ ...situation, diplomacy }, MILITARIST, 1, LUCKY)
+    ).toStrictEqual(Option.none());
   });
 
   it("should hold back when it answers to an overlord", () => {
@@ -301,7 +346,66 @@ describe(warTarget, () => {
       ],
     };
 
-    expect(warTarget({ ...situation, diplomacy }, 3, LUCKY)).toStrictEqual(
+    expect(
+      justificationTarget({ ...situation, diplomacy }, MILITARIST, 3, LUCKY)
+    ).toStrictEqual(Option.none());
+  });
+});
+
+describe(warTarget, () => {
+  /** Nation 3 holding a war goal on 2 that completes on day 100. */
+  const justifying: Diplomacy = {
+    ...ROW_PEACE,
+    warGoals: [{ nation: 3, readyOn: 100, target: 2 }],
+  };
+  const situation = {
+    armies: ARMED_THREE,
+    borders: ROW_BORDERS,
+    diplomacy: justifying,
+    overseas: [],
+    world: ROW_WORLD,
+  };
+
+  it("should declare on the target when its war goal is justified", () => {
+    expect(warTarget(situation, 3, 100)).toStrictEqual(Option.some(2));
+  });
+
+  it("should hold back when its war goal is still being justified", () => {
+    expect(warTarget(situation, 3, 99)).toStrictEqual(Option.none());
+  });
+
+  it("should hold back when it holds no war goal", () => {
+    expect(
+      warTarget({ ...situation, diplomacy: ROW_PEACE }, 3, 100)
+    ).toStrictEqual(Option.none());
+  });
+
+  it("should hold back when it no longer outmatches the target", () => {
+    const diplomacy: Diplomacy = {
+      ...ROW_PEACE,
+      warGoals: [{ nation: 2, readyOn: 100, target: 3 }],
+    };
+
+    expect(warTarget({ ...situation, diplomacy }, 2, 100)).toStrictEqual(
+      Option.none()
+    );
+  });
+
+  it("should hold back when the target is no longer within its reach", () => {
+    const diplomacy: Diplomacy = {
+      ...ROW_PEACE,
+      warGoals: [{ nation: 3, readyOn: 100, target: 0 }],
+    };
+
+    expect(warTarget({ ...situation, diplomacy }, 3, 100)).toStrictEqual(
+      Option.none()
+    );
+  });
+
+  it("should hold back when it is already at war", () => {
+    const diplomacy = warDeclared(justifying, 1, 3);
+
+    expect(warTarget({ ...situation, diplomacy }, 3, 100)).toStrictEqual(
       Option.none()
     );
   });

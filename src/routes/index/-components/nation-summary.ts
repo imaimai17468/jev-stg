@@ -51,6 +51,7 @@ import { occupationSummaryOf } from "./occupation-summary";
 import type { Stat } from "./stat";
 import { supplySummaryOf } from "./supply-summary";
 import { tradeSummaryOf } from "./trade-summary";
+import { warGoalSummaryOf } from "./war-goal-summary";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {
@@ -89,6 +90,8 @@ export interface NationSummary {
   readonly divisions: number;
   /** The nations it is fighting, by name. */
   readonly enemies: readonly string[];
+  /** Its war goal and the world tension it needs to justify one. */
+  readonly warGoal: readonly Stat[];
   readonly standing: StandingSummary;
   readonly faction: Option.Option<FactionSummary>;
   /** The nations that answer to it, by name. */
@@ -129,6 +132,7 @@ const EMPTY: NationSummary = {
   terrain: [],
   trade: [],
   tree: advancementTreeOf(START_ADVANCEMENT),
+  warGoal: [],
 };
 
 const terrainShares = (
@@ -311,5 +315,10 @@ export const summaryOf = (
       )
     ),
     tree: advancementTreeOf(advancement),
+    warGoal: warGoalSummaryOf(diplomacy.warGoals, advancement.focuses, {
+      day: simulation.clock.days,
+      nameOf,
+      nation,
+    }),
   };
 };

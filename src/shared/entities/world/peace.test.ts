@@ -4,7 +4,7 @@ import type { Diplomacy } from "./diplomacy";
 import { INDEPENDENT, standingOf, warDeclared } from "./diplomacy";
 import { ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_ECONOMY } from "./economy";
-import type { Settled } from "./peace";
+import type { PeaceTerms, Settled } from "./peace";
 import { settled } from "./peace";
 import { UNASSIGNED } from "./spread";
 import { enemiesOf } from "./wars";
@@ -46,6 +46,22 @@ const BEFORE: Settled = {
 };
 
 describe(settled, () => {
+  it.each([
+    { raised: 0.1, terms: "annex" },
+    { raised: 0.05, terms: "puppet" },
+    { raised: 0.02, terms: "cede" },
+  ] satisfies readonly {
+    readonly raised: number;
+    readonly terms: PeaceTerms;
+  }[])(
+    "should raise world tension by $raised when the loser signs $terms terms",
+    ({ raised, terms }) => {
+      const after = settled(ROW_WORLD, BEFORE, 1, { terms, victor: 0 });
+
+      expect(after.diplomacy.tension - WAR.tension).toBeCloseTo(raised);
+    }
+  );
+
   it("should hand the loser's ground to the victor when it is annexed", () => {
     const after = settled(ROW_WORLD, BEFORE, 1, { terms: "annex", victor: 0 });
 

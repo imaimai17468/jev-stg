@@ -2,9 +2,11 @@ import { describe, expect, it } from "vite-plus/test";
 import type { Diplomacy } from "./diplomacy";
 import {
   allied,
+  diplomacyOneDay,
   factionOf,
   INDEPENDENT,
   joined,
+  justificationStarted,
   leftTheWar,
   nationsStanding,
   NO_FACTION,
@@ -101,6 +103,116 @@ describe(warDeclared, () => {
 
   it("should change nothing when a nation declares on its own ally", () => {
     expect(warDeclared(BLOC, 0, 2)).toBe(BLOC);
+  });
+});
+
+describe("warDeclared with a war goal", () => {
+  it("should spend the attacker's war goal and raise world tension when it declares", () => {
+    const after = warDeclared(
+      { ...ROW_PEACE, warGoals: [{ nation: 0, readyOn: 0, target: 1 }] },
+      0,
+      1
+    );
+
+    expect({ tension: after.tension, warGoals: after.warGoals }).toStrictEqual({
+      tension: 0.08,
+      warGoals: [],
+    });
+  });
+});
+
+describe(joined, () => {
+  it("should raise world tension when a nation joins a faction", () => {
+    expect(joined(ROW_PEACE, 1, 1).tension).toBe(0.02);
+  });
+});
+
+describe(justificationStarted, () => {
+  it("should replace the goal with one ready after the tension's justifying days and raise tension when a nation starts justifying", () => {
+    const after = justificationStarted(
+      {
+        ...ROW_PEACE,
+        tension: 0.5,
+        warGoals: [{ nation: 0, readyOn: 5, target: 1 }],
+      },
+      { nation: 0, target: 3 },
+      10
+    );
+
+    expect({ tension: after.tension, warGoals: after.warGoals }).toStrictEqual({
+      tension: 0.53,
+      warGoals: [{ nation: 0, readyOn: 145, target: 3 }],
+    });
+  });
+});
+
+describe(diplomacyOneDay, () => {
+  /** Nation 0 holding a goal on 1 completing on day 10, and at 50% tension. */
+  const HOLDING: Diplomacy = {
+    ...ROW_PEACE,
+    tension: 0.5,
+    warGoals: [{ nation: 0, readyOn: 10, target: 1 }],
+  };
+
+  it("should keep the very list of war goals when every one still holds", () => {
+    expect(diplomacyOneDay(HOLDING, 20).warGoals).toBe(HOLDING.warGoals);
+  });
+
+  it("should drop a war goal when its justified days are past", () => {
+    expect(diplomacyOneDay(HOLDING, 70).warGoals).toStrictEqual([]);
+  });
+
+  it("should drop a war goal when its nation has become a puppet", () => {
+    const puppet: Diplomacy = {
+      ...HOLDING,
+      standings: [
+        { kind: "puppet", overlord: 2 },
+        INDEPENDENT,
+        INDEPENDENT,
+        INDEPENDENT,
+      ],
+    };
+
+    expect(diplomacyOneDay(puppet, 20).warGoals).toStrictEqual([]);
+  });
+
+  it("should drop a war goal when its target has been annexed", () => {
+    const gone: Diplomacy = {
+      ...HOLDING,
+      standings: [
+        INDEPENDENT,
+        { by: 2, kind: "annexed" },
+        INDEPENDENT,
+        INDEPENDENT,
+      ],
+    };
+
+    expect(diplomacyOneDay(gone, 20).warGoals).toStrictEqual([]);
+  });
+
+  it("should drop a war goal when its nation and its target stand on one side", () => {
+    const allies = joined(joined(HOLDING, 0, 0), 1, 0);
+
+    expect(diplomacyOneDay(allies, 20).warGoals).toStrictEqual([]);
+  });
+
+  it("should drop a war goal when an ally's call to arms has already put its nation at war with the target", () => {
+    const called = {
+      ...warDeclared(HOLDING, 0, 1),
+      warGoals: HOLDING.warGoals,
+    };
+
+    expect(diplomacyOneDay(called, 20).warGoals).toStrictEqual([]);
+  });
+
+  it("should ease world tension when nobody is fighting", () => {
+    expect(diplomacyOneDay(HOLDING, 20).tension).toBeCloseTo(0.4995);
+  });
+
+  it("should hold world tension when a war runs", () => {
+    const fighting = { ...warDeclared(HOLDING, 2, 3), tension: 0.5 };
+
+    expect(diplomacyOneDay(fighting, 20).tension).toBe(0.5);
   });
 });
 
