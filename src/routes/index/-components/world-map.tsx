@@ -33,7 +33,7 @@ import { frontsOf } from "./front-marks";
 import { paintWorld } from "./map-bitmap";
 import type { MapMode } from "./map-mode";
 import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
-import { CRATES } from "./map-palette";
+import { CRATES, FRONT_INKS, inkOf } from "./map-palette";
 import { MapZoomControls } from "./map-zoom-controls";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
@@ -160,9 +160,9 @@ const FILL_CRATE = {
   (pen: CanvasRenderingContext2D, left: number, top: number) => void
 >;
 /**
- * How a nation's lines are drawn, in screen pixels: its colour over a dark
- * casing, so a line keeps showing over land painted the same colour, the front
- * solid and the fallback line dashed so the two read apart without colour.
+ * How a nation's lines are drawn, in screen pixels: their ink over a dark
+ * casing, the front solid and the fallback line dashed so the two read apart
+ * without colour.
  */
 const LINE_CASING = "rgba(12, 14, 20, 0.85)";
 const LINE_STYLES = {
@@ -190,9 +190,6 @@ interface Counter {
   readonly y: number;
   readonly colour: Colour;
 }
-
-const inkOf = (colour: Colour): string =>
-  `rgb(${colour.red} ${colour.green} ${colour.blue})`;
 
 /**
  * Draws a counter's body with `frame` filled in the nation's colour and
@@ -305,7 +302,6 @@ const pathThrough = (points: readonly MapPoint[]): string =>
 const drawLines = (
   pen: CanvasRenderingContext2D,
   segments: readonly Segment[],
-  colour: Colour,
   kind: LineKind
 ): void => {
   const style = LINE_STYLES[kind];
@@ -321,7 +317,7 @@ const drawLines = (
   );
   pen.setLineDash(style.dash);
   pen.lineCap = "butt";
-  strokeCased(pen, path, colour, style);
+  strokeCased(pen, path, FRONT_INKS[kind], style);
   pen.setLineDash([]);
   pen.lineWidth = LABEL_OUTLINE_WIDTH;
   pen.strokeStyle = LABEL_OUTLINE;
@@ -336,8 +332,7 @@ const ORIGIN: MapPoint = { x: 0, y: 0 };
  */
 const drawArrow = (
   pen: CanvasRenderingContext2D,
-  points: readonly MapPoint[],
-  colour: Colour
+  points: readonly MapPoint[]
 ): void => {
   const tip = itemAt(points, points.length - 1, ORIGIN);
   const before = itemAt(points, points.length - 2, tip);
@@ -360,7 +355,7 @@ const drawArrow = (
   strokeCased(
     pen,
     new Path2D(pathThrough([...points.slice(0, -1), neck])),
-    colour,
+    FRONT_INKS.offensive,
     {
       casing: ARROW_CASING,
       width: ARROW_WIDTH,
@@ -374,7 +369,7 @@ const drawArrow = (
   pen.strokeStyle = LINE_CASING;
   pen.lineWidth = ARROW_CASING - ARROW_WIDTH;
   pen.stroke();
-  pen.fillStyle = inkOf(colour);
+  pen.fillStyle = inkOf(FRONT_INKS.offensive);
   pen.fill();
   pen.lineCap = "butt";
   pen.lineJoin = "miter";
@@ -586,11 +581,11 @@ const WorldMapSurface = ({
         counter: (value, x, y, colour, crate, symbol) => {
           drawCounter(pen, { colour, value, x, y }, crate, symbol);
         },
-        arrow: (points, colour) => {
-          drawArrow(pen, points, colour);
+        arrow: (points) => {
+          drawArrow(pen, points);
         },
-        lines: (segments, colour, kind) => {
-          drawLines(pen, segments, colour, kind);
+        lines: (segments, kind) => {
+          drawLines(pen, segments, kind);
         },
         fleet: (value, x, y, colour) => {
           drawFramed(pen, { colour, value, x, y }, FRAMES.sea, NO_SYMBOL);

@@ -4,8 +4,6 @@ import type { BattlePlan } from "@/shared/entities/world/battle-plan";
 import { battlePlansOf, NO_PLAN } from "@/shared/entities/world/battle-plan";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Colour } from "@/shared/entities/world/nations";
-import { NO_NATION } from "@/shared/entities/world/nations";
 import type { Province } from "@/shared/entities/world/provinces";
 import { graphOf } from "@/shared/entities/world/provinces";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
@@ -34,7 +32,6 @@ export interface Point {
 /** What the map draws of one nation's battle plan. */
 export interface FrontMark {
   readonly nation: number;
-  readonly colour: Colour;
   /** Where its ground meets an enemy's. */
   readonly front: readonly Edge[];
   /** The forward edge of its fallback line. */
@@ -306,7 +303,6 @@ export const frontMarks = (
       });
     return [
       {
-        colour: itemAt(world.nations, nation, NO_NATION).colour,
         fallback: drawn("fallback"),
         front: drawn("front"),
         nation,

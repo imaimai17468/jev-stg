@@ -55,13 +55,9 @@ export interface MapPen {
    */
   readonly wing: (value: string, x: number, y: number, colour: Colour) => void;
   /** Draws a nation's front or fallback line, every segment of it in one stroke. */
-  readonly lines: (
-    segments: readonly Segment[],
-    colour: Colour,
-    kind: LineKind
-  ) => void;
+  readonly lines: (segments: readonly Segment[], kind: LineKind) => void;
   /** Draws an offensive's arrow along the points, its head on the last of them. */
-  readonly arrow: (points: readonly Point[], colour: Colour) => void;
+  readonly arrow: (points: readonly Point[]) => void;
 }
 
 /** What the map draws over the painted world. */
@@ -127,14 +123,14 @@ export const drawMap = (
     };
   };
   for (const front of overlay.fronts) {
-    pen.lines(front.fallback.map(offsetOf), front.colour, "fallback");
+    pen.lines(front.fallback.map(offsetOf), "fallback");
   }
   for (const front of overlay.fronts) {
-    pen.lines(front.front.map(offsetOf), front.colour, "front");
+    pen.lines(front.front.map(offsetOf), "front");
   }
   for (const front of overlay.fronts) {
     for (const offensive of front.offensives) {
-      pen.arrow(offensive.map(toScreen), front.colour);
+      pen.arrow(offensive.map(toScreen));
     }
   }
   for (const label of overlay.labels) {
