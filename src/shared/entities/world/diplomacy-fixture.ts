@@ -14,6 +14,7 @@ import { noGleaned } from "./intel";
 import { NO_NATION } from "./nations";
 import { NO_NAVY } from "./navy";
 import { noNetworks } from "./networks";
+import { openingPlants } from "./plants";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
@@ -65,6 +66,7 @@ export const ROW_SIMULATION: Simulation = {
   negotiations: [],
   networks: noNetworks(ROW_WORLD.nations.length, ROW_WORLD.provinces.length),
   owners: ROW_OWNERS,
+  plants: openingPlants({ owners: ROW_OWNERS, world: ROW_WORLD }, []),
   quiet: noQuiet(ROW_WORLD.nations.length),
   services: openingServices(ROW_WORLD.nations.length),
   stances: ROW_WORLD.nations.map(() => START_STANCE),

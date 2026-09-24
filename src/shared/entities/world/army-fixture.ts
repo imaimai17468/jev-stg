@@ -8,6 +8,7 @@ import type { World } from "./index";
 import { NO_INSIGHT } from "./insight";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Nation } from "./nations";
+import type { Plants } from "./plants";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { NO_RESOURCES } from "./resources";
@@ -86,6 +87,13 @@ export const LINE_WORLD: World = worldOf(TWO_NATIONS, [
 export const LINE_OWNERS = Int32Array.from([0, 0, 1, 1, UNASSIGNED]);
 
 export const LINE_GRAPH: ProvinceGraph = graphOf(LINE_WORLD.provinces);
+
+/** One civilian factory in each land province of the line, and nothing else. */
+export const LINE_PLANTS: Plants = {
+  civilian: Uint16Array.from([1, 1, 1, 1, 0]),
+  dockyards: new Uint16Array(5),
+  military: new Uint16Array(5),
+};
 
 /** The two nations fighting each other. */
 export const AT_WAR: Wars = declared(noWars(2), { one: 0, other: 1 });

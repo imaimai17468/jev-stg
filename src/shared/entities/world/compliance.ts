@@ -1,6 +1,8 @@
 import { valueAt } from "./grid";
 import { holderSums, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
+import type { Plants } from "./plants";
+import { plantsIn } from "./plants";
 import type { Province } from "./provinces";
 
 /**
@@ -147,10 +149,19 @@ export const reachUnder = (occupancy: Occupancy): Reach => {
   };
 };
 
+/** `part` of `whole`, and all of it where there is no whole to take a part of. */
+const shareOf = (part: number, whole: number): number => {
+  if (whole === 0) {
+    return 1;
+  }
+  return part / whole;
+};
+
 /**
- * Each nation's reach, by nation id, weighing each province by its people,
- * with the share of each province's factories that sabotage keeps idle, by
- * province id, taken off.
+ * Each nation's reach, by nation id: its manpower weighing each province by
+ * its people, and its factories weighing each province by the factories and
+ * dockyards standing there, with the share of them that sabotage keeps idle,
+ * by province id, taken off.
  */
 export const reachByNation = (
   provinces: readonly Province[],
@@ -158,8 +169,13 @@ export const reachByNation = (
   compliance: Compliance,
   {
     nations,
+    plants,
     sabotage,
-  }: { readonly nations: number; readonly sabotage: Float32Array }
+  }: {
+    readonly nations: number;
+    readonly plants: Plants;
+    readonly sabotage: Float32Array;
+  }
 ): readonly Reach[] => {
   const summed = holderSums(provinces, owners, nations);
   const people = summed(provincePeople);
@@ -175,8 +191,9 @@ export const reachByNation = (
   );
   const workingShare = (id: number) =>
     itemAt(reaches, id, FULL_REACH).factories * (1 - valueAt(sabotage, id));
+  const standing = summed((province) => plantsIn(plants, province.id));
   const working = summed(
-    (province) => provincePeople(province) * workingShare(province.id)
+    (province) => plantsIn(plants, province.id) * workingShare(province.id)
   );
   return Array.from({ length: nations }, (_, nation): Reach => {
     const total = valueAt(people, nation);
@@ -184,7 +201,7 @@ export const reachByNation = (
       return FULL_REACH;
     }
     return {
-      factories: valueAt(working, nation) / total,
+      factories: shareOf(valueAt(working, nation), valueAt(standing, nation)),
       manpower: valueAt(recruitable, nation) / total,
     };
   });

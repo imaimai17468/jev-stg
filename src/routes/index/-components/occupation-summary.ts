@@ -7,6 +7,7 @@ import {
 } from "@/shared/entities/world/compliance";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
+import type { Plants } from "@/shared/entities/world/plants";
 import type { Stirred } from "@/shared/entities/world/unrest";
 import { averageLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";
@@ -16,6 +17,8 @@ export interface Occupation {
   /** Who holds each province now, by province id. */
   readonly owners: Int32Array;
   readonly compliance: Compliance;
+  /** The factories and the dockyards standing in each province. */
+  readonly plants: Plants;
   /** What the resistance work every nation's operatives have running does to each province. */
   readonly stirred: Stirred;
 }
@@ -38,7 +41,7 @@ const markedCount = (
  */
 export const occupationSummaryOf = (
   world: World,
-  { compliance, owners, stirred }: Occupation,
+  { compliance, owners, plants, stirred }: Occupation,
   nation: number
 ): readonly Stat[] => {
   const occupied = world.provinces.flatMap((province) => {
@@ -51,6 +54,7 @@ export const occupationSummaryOf = (
   const reach = itemAt(
     reachByNation(world.provinces, owners, compliance, {
       nations: world.nations.length,
+      plants,
       sabotage: stirred.sabotage,
     }),
     nation,

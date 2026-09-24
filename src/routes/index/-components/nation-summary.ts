@@ -290,6 +290,7 @@ export const summaryOf = (
       {
         compliance: simulation.compliance,
         owners,
+        plants: simulation.plants,
         stirred: stirredIn(simulation),
       },
       nation
