@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division } from "@/shared/entities/world/army-fixture";
+import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { supplySummaryOf } from "./supply-summary";
 
 /** Province 0 keeps one division supplied, province 1 two, and province 2 none. */

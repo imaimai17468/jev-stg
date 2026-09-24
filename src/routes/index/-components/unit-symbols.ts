@@ -1,4 +1,4 @@
-import type { DivisionKind } from "@/shared/entities/world/divisions";
+import type { DivisionKind } from "@/shared/entities/world/army/divisions";
 import type { Colour } from "@/shared/entities/world/geography/nations";
 import { itemAt } from "@/shared/entities/world/lookup";
 

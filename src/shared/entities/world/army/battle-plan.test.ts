@@ -8,10 +8,10 @@ import {
   nation,
   TWO_NATIONS,
   worldOf,
-} from "./army-fixture";
+} from "../army-fixture";
+import { graphOf } from "../provinces";
+import { noWars } from "../wars";
 import { battlePlanOf } from "./battle-plan";
-import { graphOf } from "./provinces";
-import { noWars } from "./wars";
 
 /**
  * Four provinces in a square, nation 0 holding the top two and nation 1 the

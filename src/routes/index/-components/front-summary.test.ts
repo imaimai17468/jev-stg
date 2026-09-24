@@ -7,7 +7,7 @@ import {
   LINE_WORLD,
   TWO_NATIONS,
 } from "@/shared/entities/world/army-fixture";
-import { battlePlanOf } from "@/shared/entities/world/battle-plan";
+import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
 import { noWars } from "@/shared/entities/world/wars";
 import { frontSummaryOf } from "./front-summary";
 

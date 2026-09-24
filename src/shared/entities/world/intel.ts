@@ -1,11 +1,11 @@
 import { Schema } from "effect";
 import type { Agency, AgencyModifiers } from "./agency";
 import { agencyModifiersOf, NO_AGENCY, NO_AGENCY_MODIFIERS } from "./agency";
+import type { Division } from "./army/divisions";
 import type { Ciphers } from "./cipher";
 import { cipherStrengthOf } from "./cipher";
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
-import type { Division } from "./divisions";
 import type { TradeLaw } from "./economy/trade";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";

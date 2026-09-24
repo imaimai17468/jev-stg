@@ -1,4 +1,4 @@
-import type { Division } from "./divisions";
+import type { Division } from "./army/divisions";
 import type { NationPair } from "./geography/nations";
 import { neighbouringNations } from "./geography/nations";
 import type { World } from "./geography/world";

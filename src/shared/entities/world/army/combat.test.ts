@@ -1,7 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { AirCover } from "./air-cover";
-import { NO_AIR_COVER } from "./air-cover";
-import { OPENING_ARMOURY } from "./armoury";
+import { OPENING_ARMOURY } from "../armoury";
 import {
   AT_WAR,
   division,
@@ -9,19 +7,21 @@ import {
   LINE_GRAPH,
   LINE_OWNERS,
   LINE_WORLD,
-} from "./army-fixture";
+} from "../army-fixture";
+import type { Insight } from "../insight";
+import { NO_INSIGHT } from "../insight";
+import { itemAt, replacedAt } from "../lookup";
+import { NO_MODIFIERS } from "../modifiers";
+import type { LandProvince } from "../provinces";
+import { landProvinces } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import type { Wars } from "../wars";
+import { declared, noWars } from "../wars";
+import type { AirCover } from "./air-cover";
+import { NO_AIR_COVER } from "./air-cover";
 import type { Battle, Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
-import type { Insight } from "./insight";
-import { NO_INSIGHT } from "./insight";
-import { itemAt, replacedAt } from "./lookup";
-import { NO_MODIFIERS } from "./modifiers";
-import type { LandProvince } from "./provinces";
-import { landProvinces } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import type { Wars } from "./wars";
-import { declared, noWars } from "./wars";
 
 const FALLBACK: LandProvince = {
   cells: 0,

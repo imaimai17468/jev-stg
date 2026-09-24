@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division } from "./army-fixture";
+import { musteringAt } from "./army/muster";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
 import type { Deal } from "./economy/trade";
@@ -10,7 +11,6 @@ import { itemAt } from "./lookup";
 import type { Coasts, Seas } from "./maritime";
 import { homeZonesOf, overseasRivals, seafaredOneDay } from "./maritime";
 import { NO_MODIFIERS } from "./modifiers";
-import { musteringAt } from "./muster";
 import type { FleetRole, Lane, Navy, TaskForce } from "./navy";
 import { NO_NAVY } from "./navy";
 import {

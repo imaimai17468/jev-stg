@@ -1,6 +1,20 @@
+import { OPENING_ARMOURY } from "../armoury";
+import type { NationEconomy } from "../economy/economy";
+import { shareTransferred } from "../economy/economy";
+import { industryByNation, provincePeople } from "../economy/industry";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { LandProvince, ProvinceGraph } from "../provinces";
+import { graphOf, landProvinces, provinceTerrain } from "../provinces";
+import { paceUnder } from "../skies";
+import { UNASSIGNED } from "../spread";
+import type { Stance } from "../stance";
+import { attackOddsFor, START_STANCE } from "../stance";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
-import { OPENING_ARMOURY } from "./armoury";
 import type { BattlePlan } from "./battle-plan";
 import { battlePlansOf, NO_PLAN, onItsFront } from "./battle-plan";
 import type { Theatre } from "./combat";
@@ -16,28 +30,14 @@ import {
   terrainDefenceOf,
   worn,
 } from "./divisions";
-import type { NationEconomy } from "./economy/economy";
-import { shareTransferred } from "./economy/economy";
-import { industryByNation, provincePeople } from "./economy/industry";
 import { deploymentOf, enemyNeighbours, frontField, stepToward } from "./front";
 import type { Deployment } from "./front";
 import { combatWidth } from "./frontage";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
 import { musteredBy } from "./muster";
 import type { Activity } from "./preparation";
 import { prepared } from "./preparation";
-import type { LandProvince, ProvinceGraph } from "./provinces";
-import { graphOf, landProvinces, provinceTerrain } from "./provinces";
-import { paceUnder } from "./skies";
-import { UNASSIGNED } from "./spread";
-import type { Stance } from "./stance";
-import { attackOddsFor, START_STANCE } from "./stance";
 import type { Post, SupplyNetwork } from "./supply";
 import { postOf, stackKey } from "./supply";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
 
 /** The armies of a world, the ground they hold, and what it all costs. */
 export interface Armies {

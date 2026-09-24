@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division, nation } from "./army-fixture";
+import { division, nation } from "../army-fixture";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import type { Leaning } from "../geography/leaning";
+import type { Terrain } from "../geography/terrain";
+import type { Modifiers } from "../modifiers";
+import { NO_MODIFIERS } from "../modifiers";
+import type { TechId } from "../techs";
+import { TECH_IDS } from "../techs";
 import type { Backing, DivisionKind } from "./divisions";
 import {
   attackOf,
@@ -25,14 +33,6 @@ import {
   unlockedKindsOf,
   worn,
 } from "./divisions";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import type { Leaning } from "./geography/leaning";
-import type { Terrain } from "./geography/terrain";
-import type { Modifiers } from "./modifiers";
-import { NO_MODIFIERS } from "./modifiers";
-import type { TechId } from "./techs";
-import { TECH_IDS } from "./techs";
 
 const ARMED: NationEconomy = {
   ...NO_ECONOMY,

@@ -1,3 +1,4 @@
+import { raisingNameOf } from "@/shared/entities/world/army/divisions";
 import { dateLabel } from "@/shared/entities/world/calendar";
 import type {
   Decision,
@@ -5,7 +6,6 @@ import type {
   Source,
 } from "@/shared/entities/world/chronicle";
 import { dateOnDay } from "@/shared/entities/world/clock";
-import { raisingNameOf } from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,

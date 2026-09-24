@@ -1,7 +1,7 @@
 import { Option } from "effect";
+import type { SupplyState } from "@/shared/entities/world/army/supply";
 import type { Colour } from "@/shared/entities/world/geography/nations";
 import type { Terrain } from "@/shared/entities/world/geography/terrain";
-import type { SupplyState } from "@/shared/entities/world/supply";
 import type { ComplianceLevel } from "./compliance-level";
 import type { LineKind } from "./draw-map";
 import type { NetworkLevel } from "./network-level";

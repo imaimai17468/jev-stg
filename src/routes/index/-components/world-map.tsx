@@ -7,7 +7,11 @@ import type {
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AirForce } from "@/shared/entities/world/air-force";
-import type { Division } from "@/shared/entities/world/divisions";
+import type { Division } from "@/shared/entities/world/army/divisions";
+import type {
+  SupplyNetwork,
+  SupplyState,
+} from "@/shared/entities/world/army/supply";
 import type { Compliance } from "@/shared/entities/world/economy/compliance";
 import type { Colour } from "@/shared/entities/world/geography/nations";
 import type { Networks } from "@/shared/entities/world/geography/networks";
@@ -18,10 +22,6 @@ import { watersOf } from "@/shared/entities/world/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Skies } from "@/shared/entities/world/skies";
 import { skiesBelow } from "@/shared/entities/world/skies";
-import type {
-  SupplyNetwork,
-  SupplyState,
-} from "@/shared/entities/world/supply";
 import type { Wars } from "@/shared/entities/world/wars";
 import { divisionMarks } from "./division-marks";
 import type { LineKind, Segment } from "./draw-map";

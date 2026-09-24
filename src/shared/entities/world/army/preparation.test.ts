@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
+import { division } from "../army-fixture";
 import type { Activity } from "./preparation";
 import {
   entrenchedShare,

@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import type { Raising } from "../divisions";
+import type { Raising } from "../army/divisions";
 import { FUEL_CAPACITY } from "../fuel";
 import { constructionSpeedAt } from "../geography/infrastructure";
 import type { World } from "../geography/world";

@@ -1,7 +1,7 @@
 import { Option } from "effect";
+import type { Arrival, Division } from "./army/divisions";
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
-import type { Arrival, Division } from "./divisions";
 import { valueAt } from "./grid";
 import type { ProvinceGraph } from "./provinces";
 import { isLand } from "./provinces";

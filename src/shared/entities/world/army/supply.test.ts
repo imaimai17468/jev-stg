@@ -5,14 +5,14 @@ import {
   LINE_GRAPH,
   LINE_OWNERS,
   LINE_WORLD,
-} from "./army-fixture";
-import type { Diplomacy } from "./diplomacy";
-import { joined, openingDiplomacy } from "./diplomacy";
-import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
-import type { World } from "./geography/world";
-import { NO_MODIFIERS } from "./modifiers";
-import { graphOf } from "./provinces";
-import { UNASSIGNED } from "./spread";
+} from "../army-fixture";
+import type { Diplomacy } from "../diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy";
+import { FULL_SUPPLY_LEVEL } from "../geography/infrastructure";
+import type { World } from "../geography/world";
+import { NO_MODIFIERS } from "../modifiers";
+import { graphOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
 import type { Lines } from "./supply";
 import {
   postOf,

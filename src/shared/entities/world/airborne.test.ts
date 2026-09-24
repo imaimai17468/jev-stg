@@ -12,7 +12,7 @@ import {
 import type { DropZone } from "./airborne";
 import { dropTargetFor, paradropsOneDay, transportsFor } from "./airborne";
 import { division } from "./army-fixture";
-import { paradropped } from "./divisions";
+import { paradropped } from "./army/divisions";
 import { declared } from "./wars";
 
 describe(transportsFor, () => {

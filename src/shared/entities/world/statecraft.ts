@@ -1,5 +1,6 @@
 import { Option } from "effect";
-import type { Armies } from "./army";
+import type { Armies } from "./army/army";
+import { strengthOf } from "./army/divisions";
 import type { Entry, Negotiation, Source } from "./chronicle";
 import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
@@ -13,7 +14,6 @@ import {
   NO_FACTION,
   sideOf,
 } from "./diplomacy";
-import { strengthOf } from "./divisions";
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";
 import { provincePeople } from "./economy/industry";

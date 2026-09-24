@@ -1,13 +1,16 @@
-import type { Division, DivisionKind } from "@/shared/entities/world/divisions";
+import type {
+  Division,
+  DivisionKind,
+} from "@/shared/entities/world/army/divisions";
+import type {
+  SupplyNetwork,
+  SupplyState,
+} from "@/shared/entities/world/army/supply";
+import { postOf, supplyStateOf } from "@/shared/entities/world/army/supply";
 import type { Colour } from "@/shared/entities/world/geography/nations";
 import { NO_NATION } from "@/shared/entities/world/geography/nations";
 import type { World } from "@/shared/entities/world/geography/world";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type {
-  SupplyNetwork,
-  SupplyState,
-} from "@/shared/entities/world/supply";
-import { postOf, supplyStateOf } from "@/shared/entities/world/supply";
 import type { UnitSymbol } from "./unit-symbols";
 import { dominantSymbol } from "./unit-symbols";
 

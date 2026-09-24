@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { SupplyState } from "@/shared/entities/world/supply";
+import type { SupplyState } from "@/shared/entities/world/army/supply";
 import { drawMap } from "./draw-map";
 import type { LineKind, MapPen, Segment } from "./draw-map";
 import type { FrontMark, Point } from "./front-marks";

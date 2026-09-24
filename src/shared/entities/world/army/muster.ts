@@ -1,16 +1,16 @@
-import type { Diplomacy } from "./diplomacy";
-import { allied } from "./diplomacy";
+import type { Diplomacy } from "../diplomacy";
+import { allied } from "../diplomacy";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import type { Nation } from "../geography/nations";
+import { NO_NATION } from "../geography/nations";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import { landProvinces } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { atWar } from "../wars";
 import type { Division, DivisionKind, Levied } from "./divisions";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import type { Nation } from "./geography/nations";
-import { NO_NATION } from "./geography/nations";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
-import { landProvinces } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import { atWar } from "./wars";
 
 /**
  * Where a nation musters, which is its capital while it still holds it and

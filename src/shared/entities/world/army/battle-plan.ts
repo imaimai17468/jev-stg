@@ -1,3 +1,10 @@
+import type { Nation } from "../geography/nations";
+import { valueAt } from "../grid";
+import type { Province, ProvinceGraph } from "../provinces";
+import { neighboursOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 import type { Division } from "./divisions";
 import {
   enemyContact,
@@ -5,13 +12,6 @@ import {
   heldGroundDistance,
   stepToward,
 } from "./front";
-import type { Nation } from "./geography/nations";
-import { valueAt } from "./grid";
-import type { Province, ProvinceGraph } from "./provinces";
-import { neighboursOf } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
 
 /**
  * How many provinces behind the front line the fallback line runs, where a

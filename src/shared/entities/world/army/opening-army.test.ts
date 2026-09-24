@@ -1,12 +1,12 @@
 import { describe, expect, it } from "vite-plus/test";
-import { land, nation, sea, worldOf } from "./army-fixture";
+import { land, nation, sea, worldOf } from "../army-fixture";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import type { Nation } from "../geography/nations";
+import { UNASSIGNED } from "../spread";
 import type { Division, DivisionKind, Task } from "./divisions";
 import { raisedAt } from "./divisions";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import type { Nation } from "./geography/nations";
 import { groundOf, openingLevyIn, openingPostsOf } from "./opening-army";
-import { UNASSIGNED } from "./spread";
 
 /** `count` infantry divisions' kinds. */
 const infantry = (count: number): readonly DivisionKind[] =>
