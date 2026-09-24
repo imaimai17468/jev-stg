@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import type { NationEconomy } from "./economy";
 import { lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import type { Nation } from "./nations";
 import { entrenchedShare } from "./preparation";
 import type { Terrain } from "./terrain";
 
@@ -149,6 +150,36 @@ export const dailyLevy = (economy: NationEconomy): Levy => {
     return { count: 0, economy };
   }
   return { count: 1, economy: paidForDivision(economy) };
+};
+
+/**
+ * The share of its manpower a nation of each leaning already has under arms
+ * when the world opens. The shares are this game's own.
+ */
+const OPENING_ARMY_SHARE = {
+  army: 0.25,
+  industry: 0.15,
+  navy: 0.15,
+} satisfies Readonly<Record<Nation["leaning"], number>>;
+
+/**
+ * The divisions a nation raised before the world opened, as many as its
+ * manpower and its leaning give it, with their men called up. Their weapons
+ * were built before the world opened, so they cost none of its equipment.
+ */
+export const openingLevy = (economy: NationEconomy, nation: Nation): Levy => {
+  const count = Math.floor(
+    (economy.manpower * OPENING_ARMY_SHARE[nation.leaning]) /
+      TEMPLATES.infantry.manpower
+  );
+  return {
+    count,
+    economy: {
+      ...economy,
+      manpower: economy.manpower - menFor(count),
+      recruited: economy.recruited + menFor(count),
+    },
+  };
 };
 
 /** The men in a set of divisions, all of them together. */

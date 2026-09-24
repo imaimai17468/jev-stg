@@ -32,7 +32,7 @@ import { compliedOneDay, reachByNation, startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
-import { fieldedBy } from "./divisions";
+import { fieldedBy, openingLevy } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy";
 import type { Service } from "./espionage";
@@ -57,7 +57,7 @@ import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import { homeZonesOf, seafaredOneDay } from "./maritime";
 import type { Modifiers } from "./modifiers";
-import { musteringAt } from "./muster";
+import { musteredBy, musteringAt } from "./muster";
 import { initialOwners, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
@@ -127,7 +127,13 @@ export interface Simulation {
 /** The world on its first day, before any of it has run. */
 export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
-  const economies = startEconomies(world, owners);
+  const armies = musteredBy(
+    world,
+    owners,
+    startEconomies(world, owners),
+    openingLevy
+  );
+  const { economies } = armies;
   const homes = homeZonesOf(world, owners);
   const advancements = world.nations.map((nation) =>
     openingAdvancementOf(nation.leaning)
@@ -157,7 +163,7 @@ export const startSimulation = (world: World): Simulation => {
       world.nations.length,
       factionFounders(economies)
     ),
-    divisions: [],
+    divisions: armies.divisions,
     economies,
     gleaned: noGleaned(world.nations.length),
     invasions: [],

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
+import { division, nation } from "./army-fixture";
 import type { Backing } from "./divisions";
 import {
   attackOf,
@@ -10,6 +10,7 @@ import {
   infantryEquipmentOf,
   marchDaysFor,
   menFor,
+  openingLevy,
   paidForDivision,
   raisedAt,
   regroupedEnough,
@@ -19,6 +20,7 @@ import {
 } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Leaning } from "./leaning";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 
@@ -284,6 +286,28 @@ describe(dailyLevy, () => {
       economy: short,
     });
   });
+});
+
+describe(openingLevy, () => {
+  it.each([
+    ["army", 5],
+    ["navy", 3],
+    ["industry", 3],
+  ] satisfies readonly (readonly [Leaning, number])[])(
+    "should call up a %s nation's share of 400,000 men as %i divisions without spending weapons when the world opens",
+    (leaning, count) => {
+      const economy = { ...ARMED, manpower: 400_000 };
+
+      expect(openingLevy(economy, { ...nation(0, 0), leaning })).toStrictEqual({
+        count,
+        economy: {
+          ...economy,
+          manpower: 400_000 - count * 20_000,
+          recruited: count * 20_000,
+        },
+      });
+    }
+  );
 });
 
 describe(marchDaysFor, () => {

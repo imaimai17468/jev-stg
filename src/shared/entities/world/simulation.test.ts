@@ -100,7 +100,7 @@ describe(startSimulation, () => {
     );
   });
 
-  it("should open with nothing in the field when a world opens", () => {
+  it("should open with nothing in the field when no nation has the men for a division", () => {
     expect(startSimulation(LINE_WORLD).divisions).toStrictEqual([]);
   });
 
