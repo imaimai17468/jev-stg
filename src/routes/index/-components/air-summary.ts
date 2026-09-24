@@ -1,11 +1,11 @@
-import { basesHeldBy } from "@/shared/entities/world/air-bases";
-import type { AirForce } from "@/shared/entities/world/air-force";
-import { flyingOf, planesOf } from "@/shared/entities/world/air-force";
+import { basesHeldBy } from "@/shared/entities/world/air/air-bases";
+import type { AirForce } from "@/shared/entities/world/air/air-force";
+import { flyingOf, planesOf } from "@/shared/entities/world/air/air-force";
 import type {
   Aircraft,
   AirframeModels,
-} from "@/shared/entities/world/aircraft";
-import { AIRCRAFT, airframeOf } from "@/shared/entities/world/aircraft";
+} from "@/shared/entities/world/air/aircraft";
+import { AIRCRAFT, airframeOf } from "@/shared/entities/world/air/aircraft";
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { FUEL_CAPACITY } from "@/shared/entities/world/fuel";
 import type { Superiority } from "@/shared/entities/world/skies";

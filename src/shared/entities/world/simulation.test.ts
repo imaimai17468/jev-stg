@@ -3,9 +3,9 @@ import { describe, expect, it } from "vite-plus/test";
 import { START_ADVANCEMENT } from "./advancement";
 import type { Agency } from "./agency";
 import { NO_AGENCY } from "./agency";
-import { openingAirBases } from "./air-bases";
-import { NO_AIR_FORCE } from "./air-force";
-import { airForceOf, flying, wing } from "./air-war-fixture";
+import { openingAirBases } from "./air/air-bases";
+import { NO_AIR_FORCE } from "./air/air-force";
+import { airForceOf, flying, wing } from "./air/air-war-fixture";
 import { noQuiet } from "./armistice";
 import { OPENING_ARMOURY } from "./armoury";
 import {

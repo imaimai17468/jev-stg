@@ -1,6 +1,6 @@
 import { Schema } from "effect";
 import { AgencyProjectSchema } from "./agency";
-import { AirframeModelsSchema } from "./aircraft";
+import { AirframeModelsSchema } from "./air/aircraft";
 import { DivisionKindSchema } from "./army/divisions";
 import { FocusIdSchema } from "./focus";
 import { MOST_INFRASTRUCTURE } from "./geography/infrastructure";

@@ -1,4 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Armoury } from "../armoury";
+import { OPENING_ARMOURY } from "../armoury";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import { replacedAt } from "../lookup";
+import type { Invasion } from "../navy/invasion";
+import type { Mission, Navy, TaskForce } from "../navy/navy";
+import { NO_NAVY } from "../navy/navy";
+import type { Ship } from "../navy/ships";
+import { launched } from "../navy/ships";
+import { UNASSIGNED } from "../spread";
+import { declared } from "../wars";
 import { foughtInTheAir } from "./air-combat";
 import type { AirForce, Wing } from "./air-force";
 import { NO_AIR_FORCE } from "./air-force";
@@ -14,18 +26,6 @@ import {
   flying,
   wing,
 } from "./air-war-fixture";
-import type { Armoury } from "./armoury";
-import { OPENING_ARMOURY } from "./armoury";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import { replacedAt } from "./lookup";
-import type { Invasion } from "./navy/invasion";
-import type { Mission, Navy, TaskForce } from "./navy/navy";
-import { NO_NAVY } from "./navy/navy";
-import type { Ship } from "./navy/ships";
-import { launched } from "./navy/ships";
-import { UNASSIGNED } from "./spread";
-import { declared } from "./wars";
 
 /** A level of air base on each province of the land, room for 200 planes each. */
 const ONE_LEVEL_EACH = Uint8Array.from([1, 1, 1, 1, 1, 0, 0]);

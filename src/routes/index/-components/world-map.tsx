@@ -6,7 +6,7 @@ import type {
   WheelEvent,
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { AirForce } from "@/shared/entities/world/air-force";
+import type { AirForce } from "@/shared/entities/world/air/air-force";
 import type { Division } from "@/shared/entities/world/army/divisions";
 import type {
   SupplyNetwork,

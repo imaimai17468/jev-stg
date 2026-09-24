@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import { LINE_WORLD, nation } from "../army-fixture";
+import { UNASSIGNED } from "../spread";
 import type { Basing } from "./air-bases";
 import {
   baseWanted,
@@ -11,8 +13,6 @@ import {
   stationedOf,
 } from "./air-bases";
 import type { Wing } from "./air-force";
-import { LINE_WORLD, nation } from "./army-fixture";
-import { UNASSIGNED } from "./spread";
 
 /** Nation 0's planes over bases of `levels` it holds where `owners` gives it the ground. */
 const basing = (

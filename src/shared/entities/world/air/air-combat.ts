@@ -1,8 +1,8 @@
+import { valueAt } from "../grid";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 import type { AirframeModel } from "./aircraft";
 import { airframeOf } from "./aircraft";
-import { valueAt } from "./grid";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
 
 /** A group of one nation's planes of one design in the sky over one region. */
 export interface Flight {

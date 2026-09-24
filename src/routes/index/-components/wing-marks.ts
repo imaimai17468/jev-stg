@@ -1,4 +1,4 @@
-import type { AirForce } from "@/shared/entities/world/air-force";
+import type { AirForce } from "@/shared/entities/world/air/air-force";
 import type { World } from "@/shared/entities/world/geography/world";
 import type { CounterMark } from "./counter-mark";
 import { leadingMark } from "./counter-mark";

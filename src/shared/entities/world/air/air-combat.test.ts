@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
+import { AT_WAR } from "../army-fixture";
+import { itemAt } from "../lookup";
+import { noWars } from "../wars";
 import type { Flight } from "./air-combat";
 import { destroyedIn, foughtInTheAir } from "./air-combat";
 import type { AirframeModel } from "./aircraft";
-import { AT_WAR } from "./army-fixture";
-import { itemAt } from "./lookup";
-import { noWars } from "./wars";
 
 /** `planes` of `model` flown by `nation` with all of them in the air. */
 const flight = (

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AIR_WORLD } from "./air-war-fixture";
+import { AIR_WORLD } from "./air/air-war-fixture";
 import type { Airspace } from "./airspace";
 import {
   airspaceOf,

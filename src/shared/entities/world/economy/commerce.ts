@@ -1,8 +1,8 @@
 import type { Option } from "effect";
-import { roomiestBase, stationedOf } from "../air-bases";
-import type { AirForce } from "../air-force";
-import { NO_AIR_FORCE, planesBuiltOneDay } from "../air-force";
-import { airframeOf, aviationShareOf } from "../aircraft";
+import { roomiestBase, stationedOf } from "../air/air-bases";
+import type { AirForce } from "../air/air-force";
+import { NO_AIR_FORCE, planesBuiltOneDay } from "../air/air-force";
+import { airframeOf, aviationShareOf } from "../air/aircraft";
 import type { Armoury } from "../armoury";
 import { OPENING_ARMOURY } from "../armoury";
 import type { Diplomacy } from "../diplomacy";

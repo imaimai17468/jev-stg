@@ -1,5 +1,5 @@
 import type { AgencyProject } from "./agency";
-import type { Aircraft, Aviation } from "./aircraft";
+import type { Aircraft, Aviation } from "./air/aircraft";
 import type { Raising } from "./army/divisions";
 import type { ConscriptionLaw, IndustryPlan } from "./economy/economy";
 import type { TradeLaw } from "./economy/trade";

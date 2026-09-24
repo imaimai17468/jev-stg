@@ -1,5 +1,5 @@
 import { START_ADVANCEMENT } from "./advancement";
-import { NO_AIR_FORCE } from "./air-force";
+import { NO_AIR_FORCE } from "./air/air-force";
 import { noQuiet } from "./armistice";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";

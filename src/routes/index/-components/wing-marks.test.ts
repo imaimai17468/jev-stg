@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { AirForce } from "@/shared/entities/world/air-force";
-import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
+import type { AirForce } from "@/shared/entities/world/air/air-force";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { wingMarks } from "./wing-marks";
 import { FIXTURE_WORLD } from "./world-fixture";
 

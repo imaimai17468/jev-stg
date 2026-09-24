@@ -6,11 +6,11 @@ import {
   START_ADVANCEMENT,
 } from "./advancement";
 import { factoriesTiedUp } from "./agency";
-import { openingAirBases } from "./air-bases";
-import type { AirForce } from "./air-force";
-import { NO_AIR_FORCE, openingAirForce } from "./air-force";
-import { airWarOneDay } from "./air-war";
-import { paradropsOneDay } from "./airborne";
+import { openingAirBases } from "./air/air-bases";
+import type { AirForce } from "./air/air-force";
+import { NO_AIR_FORCE, openingAirForce } from "./air/air-force";
+import { airWarOneDay } from "./air/air-war";
+import { paradropsOneDay } from "./air/airborne";
 import {
   armisticesDue,
   noQuiet,

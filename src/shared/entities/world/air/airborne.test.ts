@@ -1,5 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { division } from "../army-fixture";
+import { paradropped } from "../army/divisions";
+import { declared } from "../wars";
 import {
   AIR_GRAPH,
   AIR_OWNERS,
@@ -11,9 +14,6 @@ import {
 } from "./air-war-fixture";
 import type { DropZone } from "./airborne";
 import { dropTargetFor, paradropsOneDay, transportsFor } from "./airborne";
-import { division } from "./army-fixture";
-import { paradropped } from "./army/divisions";
-import { declared } from "./wars";
 
 describe(transportsFor, () => {
   it.each([

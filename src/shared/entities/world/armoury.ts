@@ -1,5 +1,5 @@
-import type { AirframeModels } from "./aircraft";
-import { airframeModelsOf } from "./aircraft";
+import type { AirframeModels } from "./air/aircraft";
+import { airframeModelsOf } from "./air/aircraft";
 import type { DivisionKind, InfantryEquipment } from "./army/divisions";
 import { infantryEquipmentOf, unlockedKindsOf } from "./army/divisions";
 import type { ShipClass, ShipDesigns } from "./navy/ships";
