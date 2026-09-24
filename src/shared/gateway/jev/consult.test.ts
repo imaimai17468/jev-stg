@@ -15,6 +15,7 @@ import {
   JevConsultationRate,
   JevEvaluations,
   JevUnreachable,
+  RequestDeadline,
 } from "./consult";
 import { evaluationFor } from "./questions";
 
@@ -423,7 +424,7 @@ describe(evaluate, () => {
     Effect.runPromise(
       Effect.flip(
         asking(Option.some("key-1"), neverAnswers).pipe(
-          Effect.provideService(ConsultationDeadline, "10 millis")
+          Effect.provideService(RequestDeadline, "10 millis")
         )
       )
     ).then((error) => {

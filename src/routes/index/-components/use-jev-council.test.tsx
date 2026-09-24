@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { cleanup, renderHook, waitFor } from "@testing-library/react";
+import { act, cleanup, renderHook, waitFor } from "@testing-library/react";
 import { Effect } from "effect";
 import type { Dispatch, ReactNode, SetStateAction } from "react";
 import { useState } from "react";
@@ -65,7 +65,7 @@ const councilOver = (start: Simulation, consult: Consult) => {
         setSimulation,
         consult
       );
-      return { simulation, voice };
+      return { setSimulation, simulation, voice };
     },
     { wrapper: withQueries }
   );
@@ -117,6 +117,28 @@ describe(useJevCouncil, () => {
 
     return waitFor(() => {
       expect(result.current.voice).toBe("rules");
+    });
+  });
+
+  it("should leave Jev unasked and decide the next month by the rules when the month before is still out", () => {
+    const consult = vi
+      .fn<Consult>()
+      .mockReturnValue(Effect.runPromise(Effect.never));
+    const { result } = councilOver(AT_WAR, consult);
+
+    act(() => {
+      result.current.setSimulation((current) => ({
+        ...current,
+        clock: { ...current.clock, days: 31 },
+      }));
+    });
+
+    return waitFor(() => {
+      expect({
+        asked: consult.mock.calls.length,
+        law: result.current.simulation.economies[0]?.conscription,
+        voice: result.current.voice,
+      }).toStrictEqual({ asked: 1, law: "limited", voice: "rules" });
     });
   });
 

@@ -38,6 +38,13 @@ const NOTHING_HEARD: Heard = { councilDay: -1, voice: "rules" };
 const UNREACHED: JevReply = { _tag: "unavailable" };
 
 /**
+ * What a council counts as when the one before it is still waiting on Jev. It
+ * is not sent, because Jev refuses more of its requests the more of them are
+ * in flight, and the rules decide its month at once.
+ */
+const STILL_CONSULTING: JevReply = { _tag: "busy" };
+
+/**
  * What has been heard once the reply for the month the council met on
  * `councilDay` is in. A reply for an earlier month than the latest heard lands
  * late and says nothing about who is deciding now, so it leaves `previous`.
@@ -89,18 +96,26 @@ export const useJevCouncil = (
 ): CouncilVoice => {
   const [heard, setHeard] = useState(NOTHING_HEARD);
   const asked = useRef(new Set<string>());
+  const councilOut = useRef(false);
   const consulting = useMutation({ mutationFn: consult });
 
   const convene = useEffectEvent((councilDay: number) => {
     const convened = { council: councilOf(world, simulation), day: councilDay };
+    const settle = (reply: JevReply) => {
+      setHeard((previous) => latestHeard(previous, councilDay, reply));
+      setSimulation((current) => afterCouncil(world, current, convened, reply));
+    };
+    if (councilOut.current) {
+      settle(STILL_CONSULTING);
+      return;
+    }
+    councilOut.current = true;
     void consulting
       .mutateAsync(convened.council)
       .catch(() => UNREACHED)
       .then((reply) => {
-        setHeard((previous) => latestHeard(previous, councilDay, reply));
-        setSimulation((current) =>
-          afterCouncil(world, current, convened, reply)
-        );
+        councilOut.current = false;
+        settle(reply);
       });
   });
 
