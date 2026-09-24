@@ -1,22 +1,22 @@
 import { describe, expect, it } from "vite-plus/test";
-import { airForceUnder, NO_AIR_FORCE } from "./air-force";
-import { airspaceOf } from "./airspace";
-import { OPENING_ARMOURY } from "./armoury";
+import { airForceUnder, NO_AIR_FORCE } from "../air-force";
+import { airspaceOf } from "../airspace";
+import { OPENING_ARMOURY } from "../armoury";
+import { openingDiplomacy } from "../diplomacy";
+import type { World } from "../geography/world";
+import { itemAt } from "../lookup";
+import { NO_MODIFIERS } from "../modifiers";
+import { fleetOf, NO_NAVY, withOrder } from "../navy";
+import { launched } from "../ships";
+import { UNASSIGNED } from "../spread";
+import { declared, noWars } from "../wars";
 import type { Stockpiles, Works } from "./commerce";
 import { commerceOneDay, ledgersOf, needOf, NO_LEDGER } from "./commerce";
 import { FULL_REACH, startCompliance } from "./compliance";
-import { openingDiplomacy } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import type { World } from "./geography/world";
-import { itemAt } from "./lookup";
-import { NO_MODIFIERS } from "./modifiers";
-import { fleetOf, NO_NAVY, withOrder } from "./navy";
 import { NO_RESOURCES } from "./resources";
-import { launched } from "./ships";
-import { UNASSIGNED } from "./spread";
 import type { Deal } from "./trade";
-import { declared, noWars } from "./wars";
 
 /**
  * A coastal mine of twenty steel a day held by nation 0, a barren coast held

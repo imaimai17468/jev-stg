@@ -2,6 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { division } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
+import type { Deal } from "./economy/trade";
 import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "./fuel";
 import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
 import type { Invasion } from "./invasion";
@@ -24,7 +25,6 @@ import { landmassesOf } from "./seas";
 import type { ShipClass } from "./ships";
 import { hullOf, launched } from "./ships";
 import { UNASSIGNED } from "./spread";
-import type { Deal } from "./trade";
 
 /** A patrolling task force of `role` in `zone` with one fresh 1936 ship of `shipClass`. */
 const force = (

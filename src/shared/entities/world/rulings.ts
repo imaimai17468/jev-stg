@@ -18,7 +18,7 @@ import {
   standsAlone,
   warDeclared,
 } from "./diplomacy";
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
 import {
   NO_ECONOMY,
   withBuildSite,
@@ -26,7 +26,7 @@ import {
   withPlan,
   withRaising,
   withTradeLaw,
-} from "./economy";
+} from "./economy/economy";
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
 import { availableFocuses, focusStarted } from "./focus";

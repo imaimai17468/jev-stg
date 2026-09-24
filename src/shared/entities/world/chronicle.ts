@@ -1,14 +1,14 @@
 import type { AgencyProject } from "./agency";
 import type { Aircraft, Aviation } from "./aircraft";
 import type { Raising } from "./divisions";
-import type { ConscriptionLaw, IndustryPlan } from "./economy";
+import type { ConscriptionLaw, IndustryPlan } from "./economy/economy";
+import type { TradeLaw } from "./economy/trade";
 import type { FocusId } from "./focus";
 import type { Operation } from "./operations";
 import type { Settlement } from "./peace";
 import type { ShipyardOrder } from "./ships";
 import type { Stance } from "./stance";
 import type { TechId } from "./techs";
-import type { TradeLaw } from "./trade";
 
 /** One thing a government decided. */
 export type Decision =

@@ -1,5 +1,5 @@
 import type { Diplomacy } from "./diplomacy";
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
 import type { Service } from "./espionage";
 import { NO_SERVICE } from "./espionage";
 import type { Networks } from "./geography/networks";

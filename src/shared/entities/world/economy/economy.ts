@@ -1,14 +1,14 @@
 import { Option } from "effect";
+import type { Raising } from "../divisions";
+import { FUEL_CAPACITY } from "../fuel";
+import { constructionSpeedAt } from "../geography/infrastructure";
+import type { World } from "../geography/world";
+import { itemAt } from "../lookup";
+import type { Modifiers } from "../modifiers";
+import { UNASSIGNED } from "../spread";
 import type { Reach } from "./compliance";
-import type { Raising } from "./divisions";
-import { FUEL_CAPACITY } from "./fuel";
-import { constructionSpeedAt } from "./geography/infrastructure";
-import type { World } from "./geography/world";
 import { industryByNation } from "./industry";
-import { itemAt } from "./lookup";
-import type { Modifiers } from "./modifiers";
 import type { PlantKind, Site } from "./plants";
-import { UNASSIGNED } from "./spread";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW } from "./trade";
 

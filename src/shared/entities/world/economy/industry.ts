@@ -1,8 +1,8 @@
-import type { Terrain } from "./geography/terrain";
-import { valueAt } from "./grid";
-import type { LandProvince, Province } from "./provinces";
-import { landProvinces } from "./provinces";
-import { UNASSIGNED } from "./spread";
+import type { Terrain } from "../geography/terrain";
+import { valueAt } from "../grid";
+import type { LandProvince, Province } from "../provinces";
+import { landProvinces } from "../provinces";
+import { UNASSIGNED } from "../spread";
 
 /** What one cell of a terrain is worth to the nation holding it. */
 interface Yield {

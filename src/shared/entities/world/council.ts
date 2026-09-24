@@ -14,7 +14,6 @@ import type { Negotiation, Order, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf } from "./clock";
-import { ledgersOf, NO_LEDGER } from "./commerce";
 import type {
   Council,
   JevReply,
@@ -41,7 +40,16 @@ import {
 } from "./diplomacy";
 import type { Raising } from "./divisions";
 import { menFor, MIXED } from "./divisions";
-import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
+import { ledgersOf, NO_LEDGER } from "./economy/commerce";
+import {
+  CONSCRIPTION_LAWS,
+  INDUSTRY_PLANS,
+  NO_ECONOMY,
+} from "./economy/economy";
+import type { Estate } from "./economy/plants";
+import { siteOptionsOf } from "./economy/plants";
+import type { TradeLaw } from "./economy/trade";
+import { START_TRADE_LAW, TRADE_LAWS } from "./economy/trade";
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
 import type { FocusId, Focuses } from "./focus";
@@ -59,8 +67,6 @@ import { overseasRivals } from "./maritime";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
-import type { Estate } from "./plants";
-import { siteOptionsOf } from "./plants";
 import { graphOf } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
@@ -100,8 +106,6 @@ import type { SupplyNetwork } from "./supply";
 import { undersuppliedShare } from "./supply";
 import type { TechCategory, TechId } from "./techs";
 import { categoryOf, techOf } from "./techs";
-import type { TradeLaw } from "./trade";
-import { START_TRADE_LAW, TRADE_LAWS } from "./trade";
 import { enemiesOf } from "./wars";
 
 /**

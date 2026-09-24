@@ -1,5 +1,6 @@
 import { Option } from "effect";
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { lawBonusOf } from "./economy/trade";
 import type { Focuses } from "./focus";
 import {
   focusBonuses,
@@ -18,7 +19,6 @@ import {
   researchedOneDay,
   START_RESEARCH,
 } from "./research";
-import { lawBonusOf } from "./trade";
 
 /** What one nation has researched and how far along its focus tree it is. */
 export interface Advancement {

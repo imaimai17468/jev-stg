@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division } from "@/shared/entities/world/army-fixture";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import type { Navy } from "@/shared/entities/world/navy";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { SHIPS_1936 } from "@/shared/entities/world/sea-fixture";

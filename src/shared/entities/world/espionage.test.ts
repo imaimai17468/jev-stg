@@ -6,10 +6,10 @@ import type { Agency, AgencyUpgrade } from "./agency";
 import { NO_AGENCY } from "./agency";
 import { AT_WAR, LINE_GRAPH, LINE_OWNERS } from "./army-fixture";
 import { noCiphers } from "./cipher";
-import { startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
-import { NO_ECONOMY } from "./economy";
+import { startCompliance } from "./economy/compliance";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Assignment, Plotted, Scene, Service } from "./espionage";
 import {
   centerIn,

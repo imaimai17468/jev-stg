@@ -1,5 +1,6 @@
 import { Option } from "effect";
-import { occupancyOf } from "@/shared/entities/world/compliance";
+import { occupancyOf } from "@/shared/entities/world/economy/compliance";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import type { Colour, Nation } from "@/shared/entities/world/geography/nations";
 import { NO_NATION } from "@/shared/entities/world/geography/nations";
 import type { World } from "@/shared/entities/world/geography/world";
@@ -7,7 +8,6 @@ import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { complianceLevelOf } from "./compliance-level";
 import type { Tint } from "./map-mode";

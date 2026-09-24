@@ -9,7 +9,7 @@ import { raisingNameOf } from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,
-} from "@/shared/entities/world/economy";
+} from "@/shared/entities/world/economy/economy";
 import { focusOf } from "@/shared/entities/world/focus";
 import { NO_NATION } from "@/shared/entities/world/geography/nations";
 import type { World } from "@/shared/entities/world/geography/world";

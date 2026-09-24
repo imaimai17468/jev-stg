@@ -5,23 +5,23 @@ import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
 import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
-import { startCompliance } from "@/shared/entities/world/compliance";
 import {
   INDEPENDENT,
   openingDiplomacy,
   warDeclared,
 } from "@/shared/entities/world/diplomacy";
-import type { NationEconomy } from "@/shared/entities/world/economy";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { startCompliance } from "@/shared/entities/world/economy/compliance";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
+import { openingPlants } from "@/shared/entities/world/economy/plants";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import { openingServices } from "@/shared/entities/world/espionage";
 import { FULL_SUPPLY_LEVEL } from "@/shared/entities/world/geography/infrastructure";
 import { noNetworks } from "@/shared/entities/world/geography/networks";
 import type { World } from "@/shared/entities/world/geography/world";
 import { noGleaned } from "@/shared/entities/world/intel";
 import { NO_NAVY } from "@/shared/entities/world/navy";
-import { openingPlants } from "@/shared/entities/world/plants";
 import type { Province } from "@/shared/entities/world/provinces";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { supplyOf } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";

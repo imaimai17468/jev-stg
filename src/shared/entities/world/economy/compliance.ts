@@ -1,9 +1,9 @@
-import { valueAt } from "./grid";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { Province } from "../provinces";
 import { holderSums, provincePeople } from "./industry";
-import { itemAt } from "./lookup";
 import type { Plants } from "./plants";
 import { plantsIn } from "./plants";
-import type { Province } from "./provinces";
 
 /**
  * How far the people of each province go along with whoever holds it, from 0

@@ -1,6 +1,10 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { airspaceOf } from "./airspace";
+import { airspaceOf } from "../airspace";
+import { FUEL_CAPACITY } from "../fuel";
+import type { World } from "../geography/world";
+import { NO_MODIFIERS } from "../modifiers";
+import { UNASSIGNED } from "../spread";
 import type { Reach } from "./compliance";
 import { FULL_REACH } from "./compliance";
 import type { Footing, NationEconomy } from "./economy";
@@ -18,11 +22,7 @@ import {
   withPlan,
   withTradeLaw,
 } from "./economy";
-import { FUEL_CAPACITY } from "./fuel";
-import type { World } from "./geography/world";
-import { NO_MODIFIERS } from "./modifiers";
 import { NO_RESOURCES } from "./resources";
-import { UNASSIGNED } from "./spread";
 
 /** Thirty factories' worth of inland plains with nothing to dig, held by one nation. */
 const PROVINCES: World["provinces"] = [

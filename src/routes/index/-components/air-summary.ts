@@ -6,7 +6,7 @@ import type {
   AirframeModels,
 } from "@/shared/entities/world/aircraft";
 import { AIRCRAFT, airframeOf } from "@/shared/entities/world/aircraft";
-import type { NationEconomy } from "@/shared/entities/world/economy";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { FUEL_CAPACITY } from "@/shared/entities/world/fuel";
 import type { Superiority } from "@/shared/entities/world/skies";
 import { countLabel, percentLabel } from "./count-label";

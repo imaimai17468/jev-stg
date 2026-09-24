@@ -1,6 +1,9 @@
+import type {
+  Resource,
+  ResourceNeed,
+} from "@/shared/entities/world/economy/resources";
+import { RESOURCES } from "@/shared/entities/world/economy/resources";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Resource, ResourceNeed } from "@/shared/entities/world/resources";
-import { RESOURCES } from "@/shared/entities/world/resources";
 
 /** What the resource map paints a province: its richest resource, or none. */
 export type ResourceLevel = Resource | "none";

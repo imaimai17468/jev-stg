@@ -1,15 +1,15 @@
 import { apportioned } from "./apportion";
 import type { Division, DivisionKind, Levied, Task } from "./divisions";
 import { calledUpFor, openingKindsOf, raisedAt } from "./divisions";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
+import { onTheCoast, provincePeople } from "./economy/industry";
 import { fieldFrom } from "./front";
 import type { Leaning } from "./geography/leaning";
 import type { Nation } from "./geography/nations";
 import { nationsBeside } from "./geography/nations";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
-import { onTheCoast, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces } from "./provinces";

@@ -1,7 +1,7 @@
 import { Schema } from "effect";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
-import type { Bonus } from "./modifiers";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { Bonus } from "../modifiers";
 import type { Resource, ResourceNeed } from "./resources";
 import { NO_RESOURCES, RESOURCES } from "./resources";
 

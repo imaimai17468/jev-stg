@@ -16,14 +16,14 @@ import {
   terrainDefenceOf,
   worn,
 } from "./divisions";
-import type { NationEconomy } from "./economy";
-import { shareTransferred } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { shareTransferred } from "./economy/economy";
+import { industryByNation, provincePeople } from "./economy/industry";
 import { deploymentOf, enemyNeighbours, frontField, stepToward } from "./front";
 import type { Deployment } from "./front";
 import { combatWidth } from "./frontage";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
-import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
 import { musteredBy } from "./muster";
 import type { Activity } from "./preparation";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { startCompliance } from "@/shared/entities/world/compliance";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
+import { startCompliance } from "@/shared/entities/world/economy/compliance";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Readings } from "./map-mode";
 import { airTintOf, resourceTintOf, tintFor } from "./map-mode";

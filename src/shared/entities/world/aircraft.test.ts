@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { Aviation } from "./aircraft";
 import { airframeModelsOf, airframeOf, aviationShareOf } from "./aircraft";
-import { NO_RESOURCES } from "./resources";
+import { NO_RESOURCES } from "./economy/resources";
 
 describe(airframeOf, () => {
   it("should give the 1936 fighter's figures when the model is fighter-1", () => {

@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import type { Arms, Battalion, Ground } from "./battalions";
 import { armsOf, battalionOf, groundModifierOf } from "./battalions";
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
 import type { Leaning } from "./geography/leaning";
 import type { Nation } from "./geography/nations";
 import type { Terrain } from "./geography/terrain";

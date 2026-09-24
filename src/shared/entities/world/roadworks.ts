@@ -1,4 +1,4 @@
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
 import {
   constructionSpeedAt,
   INFRASTRUCTURE_COST,

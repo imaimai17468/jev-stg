@@ -1,6 +1,6 @@
 import type { Division } from "@/shared/entities/world/divisions";
-import type { NationEconomy } from "@/shared/entities/world/economy";
-import { upkeepOf } from "@/shared/entities/world/economy";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
+import { upkeepOf } from "@/shared/entities/world/economy/economy";
 import { MOST_INFRASTRUCTURE } from "@/shared/entities/world/geography/infrastructure";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { isUndersupplied, postOf } from "@/shared/entities/world/supply";

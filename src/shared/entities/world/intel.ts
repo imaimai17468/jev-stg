@@ -6,11 +6,11 @@ import { cipherStrengthOf } from "./cipher";
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
 import type { Division } from "./divisions";
+import type { TradeLaw } from "./economy/trade";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
 import type { Navy } from "./navy";
 import type { Random } from "./random";
-import type { TradeLaw } from "./trade";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
 

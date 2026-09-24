@@ -1,25 +1,29 @@
 import type { Option } from "effect";
-import { roomiestBase, stationedOf } from "./air-bases";
-import type { AirForce } from "./air-force";
-import { NO_AIR_FORCE, planesBuiltOneDay } from "./air-force";
-import { airframeOf, aviationShareOf } from "./aircraft";
-import type { Armoury } from "./armoury";
-import { OPENING_ARMOURY } from "./armoury";
+import { roomiestBase, stationedOf } from "../air-bases";
+import type { AirForce } from "../air-force";
+import { NO_AIR_FORCE, planesBuiltOneDay } from "../air-force";
+import { airframeOf, aviationShareOf } from "../aircraft";
+import type { Armoury } from "../armoury";
+import { OPENING_ARMOURY } from "../armoury";
+import type { Diplomacy } from "../diplomacy";
+import { standsAlone } from "../diplomacy";
+import { oilWanted, refined } from "../fuel";
+import type { World } from "../geography/world";
+import { itemAt } from "../lookup";
+import type { Modifiers } from "../modifiers";
+import { NO_MODIFIERS } from "../modifiers";
+import type { Navy } from "../navy";
+import { builtOneDay, NO_NAVY } from "../navy";
+import { overlandBetween } from "../seas";
+import { orderOf } from "../ships";
+import { UNASSIGNED } from "../spread";
+import { atWar } from "../wars";
 import type { Compliance, Reach } from "./compliance";
 import { FULL_REACH } from "./compliance";
-import type { Diplomacy } from "./diplomacy";
-import { standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { outputOf, producedOneDay, wantedKindOf } from "./economy";
-import { oilWanted, refined } from "./fuel";
-import type { World } from "./geography/world";
 import type { Industry } from "./industry";
 import { industryByNation, NO_INDUSTRY } from "./industry";
-import { itemAt } from "./lookup";
-import type { Modifiers } from "./modifiers";
-import { NO_MODIFIERS } from "./modifiers";
-import type { Navy } from "./navy";
-import { builtOneDay, NO_NAVY } from "./navy";
 import type { Plants, Site } from "./plants";
 import { nextSiteOf } from "./plants";
 import type { ResourceNeed } from "./resources";
@@ -33,12 +37,8 @@ import {
   shortfall,
   splitByLine,
 } from "./resources";
-import { overlandBetween } from "./seas";
-import { orderOf } from "./ships";
-import { UNASSIGNED } from "./spread";
 import type { Balance, Deal, Trader } from "./trade";
 import { balancesOf, marketCleared, NO_BALANCE, NO_TRADER } from "./trade";
-import { atWar } from "./wars";
 
 /** What a day of trade and work reads. */
 export interface Works {

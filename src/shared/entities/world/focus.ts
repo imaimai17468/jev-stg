@@ -1,5 +1,5 @@
 import { Option, Schema } from "effect";
-import type { NationEconomy } from "./economy";
+import type { NationEconomy } from "./economy/economy";
 import type { Bonus } from "./modifiers";
 import type { TreeStanding } from "./tree-standing";
 

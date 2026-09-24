@@ -1,10 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
-import { airspaceOf } from "./airspace";
+import { airspaceOf } from "../airspace";
+import type { Terrain } from "../geography/terrain";
+import type { World } from "../geography/world";
+import { NO_MODIFIERS } from "../modifiers";
+import type { Province } from "../provinces";
+import { UNASSIGNED } from "../spread";
 import type { Compliance } from "./compliance";
-import type { Terrain } from "./geography/terrain";
-import type { World } from "./geography/world";
-import { NO_MODIFIERS } from "./modifiers";
-import type { Province } from "./provinces";
 import type { ResourceNeed } from "./resources";
 import {
   depositsOf,
@@ -17,7 +18,6 @@ import {
   splitByLine,
   totalOf,
 } from "./resources";
-import { UNASSIGNED } from "./spread";
 
 const land = (id: number, terrain: Terrain): Province => ({
   cells: 10,
