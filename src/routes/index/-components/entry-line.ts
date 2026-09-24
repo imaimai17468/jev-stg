@@ -139,6 +139,12 @@ const described = (
   if (decision.kind === "landing") {
     return { action: `${nameOf(decision.defender)}の海岸に上陸`, actor };
   }
+  if (decision.kind === "paradrop") {
+    return {
+      action: `${nameOf(decision.defender)}の州${decision.target}に空挺降下`,
+      actor,
+    };
+  }
   if (decision.kind === "conscription") {
     return { action: `徴兵法 → ${LAW_NAMES[decision.law]}`, actor };
   }

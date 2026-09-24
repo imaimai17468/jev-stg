@@ -11,6 +11,7 @@ import { supportOf } from "./air-cover";
 import type { AirForce } from "./air-force";
 import { NO_AIR_FORCE, openingAirForce } from "./air-force";
 import { airWarOneDay } from "./air-war";
+import { paradropsOneDay } from "./airborne";
 import {
   armisticesDue,
   noQuiet,
@@ -421,7 +422,7 @@ const settledAtSea = (
 const ESPIONAGE_STREAM = 17;
 const EXTRACTION_STREAM = 19;
 
-/** The chronicle with what the day's intelligence work did in it. */
+/** The chronicle with the day's own events in it, each put down to the rules. */
 const eventsChronicled = (
   chronicle: readonly Entry[],
   events: readonly Decision[],
@@ -437,29 +438,39 @@ const eventsChronicled = (
   return entries;
 };
 
-/** The chronicle with every landing that went ashore today in it. */
-const landingsChronicled = (
-  chronicle: readonly Entry[],
-  landings: readonly Invasion[],
-  owners: Int32Array,
-  day: number
-): readonly Entry[] => {
-  let entries = chronicle;
-  for (const landing of landings) {
-    entries = chronicled(entries, {
-      day,
-      ruling: {
-        decision: {
-          defender: valueAt(owners, landing.target),
-          kind: "landing",
-          nation: landing.nation,
-          target: landing.target,
-        },
-        source: BY_RULES,
-      },
+/** Stands in for a nation `skiesBelow` holds no reading for, whose enemies hold none of its sky. */
+const NO_SKY = new Float32Array(0);
+
+/** Something that went in against a province today: a landing or a paradrop. */
+interface Assault {
+  readonly nation: number;
+  readonly target: number;
+}
+
+/**
+ * Every landing that went ashore today and every paradrop that went in today
+ * as the chronicle records them, each against whoever held its target at
+ * dawn.
+ */
+const operationsOf = (
+  operations: {
+    readonly landings: readonly Assault[];
+    readonly drops: readonly Assault[];
+  },
+  owners: Int32Array
+): readonly Decision[] => {
+  const recorded =
+    (kind: "landing" | "paradrop") =>
+    (assault: Assault): Decision => ({
+      defender: valueAt(owners, assault.target),
+      kind,
+      nation: assault.nation,
+      target: assault.target,
     });
-  }
-  return entries;
+  return [
+    ...operations.landings.map(recorded("landing")),
+    ...operations.drops.map(recorded("paradrop")),
+  ];
 };
 
 /**
@@ -589,13 +600,25 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const economies = aloft.economies.map((economy, nation) =>
     burnt(economy, itemAt(seafaring.burned, nation, 0))
   );
+  const airborne = paradropsOneDay(
+    {
+      airspace: world.airspace,
+      enemySky: (nation, province) =>
+        valueAt(itemAt(below.enemy, nation, NO_SKY), province),
+      graph,
+      owners: simulation.owners,
+      wars: simulation.diplomacy.wars,
+    },
+    aloft.airForces,
+    seafaring.divisions
+  );
   const afloat: Simulation = {
     ...simulation,
     airBases: aloft.airBases,
     airForces: aloft.airForces,
     airPower: aloft.power,
     deals: exchange.deals,
-    divisions: seafaring.divisions,
+    divisions: airborne.divisions,
     economies,
     invasions: seafaring.invasions,
     navies: seafaring.navies,
@@ -707,13 +730,14 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       ...conducted,
       advancements: plotted.advancements,
       chronicle: eventsChronicled(
-        landingsChronicled(
-          conducted.chronicle,
-          seafaring.landings,
-          simulation.owners,
-          clock.days
-        ),
-        plotted.events,
+        conducted.chronicle,
+        [
+          ...operationsOf(
+            { drops: airborne.drops, landings: seafaring.landings },
+            simulation.owners
+          ),
+          ...plotted.events,
+        ],
         clock.days
       ),
       clock,
