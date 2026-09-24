@@ -1,6 +1,6 @@
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
-import type { Division, Levied } from "./divisions";
+import type { Division, DivisionKind, Levied } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { valueAt } from "./grid";
@@ -38,13 +38,14 @@ export interface Mustered {
 
 /**
  * Every nation's levy, which `levied` decides from the nation's economy, the
- * nation and the province it musters at: none for a nation with no ground,
- * whose economy stays as it was.
+ * nation, the province it musters at and the kinds `unlockedFor` gives it by
+ * id: none for a nation with no ground, whose economy stays as it was.
  */
 export const musteredBy = (
   world: World,
   owners: Int32Array,
   economies: readonly NationEconomy[],
+  unlockedFor: (nation: number) => readonly DivisionKind[],
   levied: Levied
 ): Mustered => {
   const divisions: Division[] = [];
@@ -54,7 +55,7 @@ export const musteredBy = (
     if (province === UNASSIGNED) {
       return economy;
     }
-    const levy = levied(economy, nation, province);
+    const levy = levied(economy, nation, province, unlockedFor(nation.id));
     divisions.push(...levy.divisions);
     return levy.economy;
   });

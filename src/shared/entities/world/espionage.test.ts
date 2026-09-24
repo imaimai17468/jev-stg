@@ -478,14 +478,14 @@ describe(plottedOneDay, () => {
     ]);
   });
 
-  it("should grant two vouchers for infantry, the second a year ahead, when military blueprints are stolen", () => {
+  it("should grant two vouchers for infantry and armour, the second a year ahead, when military blueprints are stolen", () => {
     const plotted = dayOf(finishing("steal-military-blueprints", FOUNDED));
 
     expect(
       itemAt(plotted.advancements, 0, START_ADVANCEMENT).research.vouchers
     ).toStrictEqual([
-      { ahead: 0, categories: ["infantry"], share: 3 },
-      { ahead: 1, categories: ["infantry"], share: 3 },
+      { ahead: 0, categories: ["infantry", "armour"], share: 3 },
+      { ahead: 1, categories: ["infantry", "armour"], share: 3 },
     ]);
   });
 

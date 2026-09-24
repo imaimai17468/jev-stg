@@ -106,6 +106,16 @@ describe(entryLine, () => {
       what: "a nation picks the province its factories go up in",
     },
     {
+      action: "師団の編成 → 中戦車",
+      decision: { division: "medium-armour", kind: "division-kind", nation: 0 },
+      what: "a nation picks the kind of division its depots raise",
+    },
+    {
+      action: "師団の編成 → 編成比率どおり",
+      decision: { division: "mix", kind: "division-kind", nation: 0 },
+      what: "a nation leaves its depots to its leaning's mix",
+    },
+    {
       action: "航空機 → 雷撃機",
       decision: { aircraft: "naval-bomber", kind: "aircraft", nation: 0 },
       what: "a nation turns its aircraft factories to a new plane",

@@ -109,8 +109,33 @@ describe("the opening research", () => {
 
 describe(openingResearchOf, () => {
   it.each([
-    ["army", ["improved-infantry-equipment-1"]],
-    ["industry", ["basic-machine-tools", "construction-1", "excavation-1"]],
+    [
+      "army",
+      [
+        "improved-infantry-equipment-1",
+        "great-war-tank",
+        "light-tank-1",
+        "light-tank-2",
+        "heavy-tank-1",
+        "early-truck",
+        "truck",
+        "mountain-infantry-1",
+      ],
+    ],
+    [
+      "industry",
+      [
+        "basic-machine-tools",
+        "construction-1",
+        "excavation-1",
+        "great-war-tank",
+        "light-tank-1",
+        "light-tank-2",
+        "heavy-tank-1",
+        "early-truck",
+        "truck",
+      ],
+    ],
     [
       "navy",
       [
@@ -118,6 +143,12 @@ describe(openingResearchOf, () => {
         "basic-medium-battery",
         "basic-heavy-battery",
         "magnetic-detonator",
+        "great-war-tank",
+        "light-tank-1",
+        "heavy-tank-1",
+        "early-truck",
+        "truck",
+        "marines-1",
       ],
     ],
   ] satisfies readonly (readonly [Leaning, readonly TechId[]])[])(
@@ -176,6 +207,11 @@ describe(availableTechs, () => {
   it("should offer each root and each technology a researched one leads to when the world opens", () => {
     expect(availableTechs(START_RESEARCH)).toStrictEqual([
       "improved-infantry-equipment-1",
+      "great-war-tank",
+      "early-truck",
+      "mountain-infantry-1",
+      "marines-1",
+      "paratroopers-1",
       "destroyer-3",
       "light-cruiser-3",
       "battleship-3",
@@ -201,6 +237,11 @@ describe(availableTechs, () => {
 
     expect(availableTechs(research)).toStrictEqual([
       "improved-infantry-equipment-1",
+      "great-war-tank",
+      "early-truck",
+      "mountain-infantry-1",
+      "marines-1",
+      "paratroopers-1",
       "destroyer-3",
       "light-cruiser-3",
       "battleship-3",
@@ -223,6 +264,11 @@ describe(availableTechs, () => {
   it("should offer both paths a technology opens when it is researched", () => {
     expect(availableTechs(MACHINE_TOOLS)).toStrictEqual([
       "improved-infantry-equipment-1",
+      "great-war-tank",
+      "early-truck",
+      "mountain-infantry-1",
+      "marines-1",
+      "paratroopers-1",
       "destroyer-3",
       "light-cruiser-3",
       "battleship-3",
@@ -261,6 +307,9 @@ describe(leadingTechs, () => {
   it("should offer one technology per line when the world opens", () => {
     expect(leadingTechs(START_RESEARCH)).toStrictEqual([
       "improved-infantry-equipment-1",
+      "great-war-tank",
+      "early-truck",
+      "mountain-infantry-1",
       "destroyer-3",
       "light-cruiser-3",
       "battleship-3",
@@ -311,6 +360,9 @@ describe(leadingTechs, () => {
     };
 
     expect(leadingTechs(research)).toStrictEqual([
+      "great-war-tank",
+      "early-truck",
+      "mountain-infantry-1",
       "destroyer-3",
       "light-cruiser-3",
       "battleship-3",

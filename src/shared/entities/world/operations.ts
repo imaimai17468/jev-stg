@@ -90,13 +90,13 @@ export const BLUEPRINT_THEFTS = BlueprintTheftSchema.literals;
 /**
  * The research categories each stolen blueprint speeds up, after Hearts of
  * Iron IV: the military one infantry, support, artillery and armour, of which
- * this world researches infantry alone; the naval and aviation ones their
+ * this world researches infantry and armour; the naval and aviation ones their
  * own; and the industrial one electronics and industry.
  */
 export const BLUEPRINT_CATEGORIES = {
   "steal-aviation-blueprints": ["air"],
   "steal-industrial-blueprints": ["industry", "electronics"],
-  "steal-military-blueprints": ["infantry"],
+  "steal-military-blueprints": ["infantry", "armour"],
   "steal-naval-blueprints": ["naval"],
 } satisfies Readonly<Record<BlueprintTheft, readonly TechCategory[]>>;
 

@@ -38,7 +38,8 @@ import {
   sideOf,
   standsAlone,
 } from "./diplomacy";
-import { menFor } from "./divisions";
+import type { Raising } from "./divisions";
+import { menFor, MIXED } from "./divisions";
 import { CONSCRIPTION_LAWS, INDUSTRY_PLANS, NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
@@ -313,6 +314,7 @@ const briefOf = (
     buildSites: siteOptionsOf(dossier.estate, nation, MOST_BUILD_SITES),
     civilianFactories: economy.civilianFactories,
     convoys: itemAt(dossier.navies, nation, NO_NAVY).convoys,
+    divisionKinds: armoury.kinds,
     dockyards: economy.dockyards,
     enemyFleet: sighted("navy", (enemy) =>
       fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY))
@@ -752,6 +754,7 @@ const intelligenceByRules = (
 /** The research categories that arm a nation's forces. */
 const MILITARY_CATEGORIES: ReadonlySet<TechCategory> = new Set([
   "infantry",
+  "armour",
   "naval",
   "air",
 ]);
@@ -984,6 +987,12 @@ const decisionOf = (
       kind: "aircraft",
       nation,
     }));
+  }
+  if (question === "division-kind") {
+    return Option.map(
+      pickOf<Raising>([MIXED, ...brief.divisionKinds], choice),
+      (division): Order => ({ division, kind: "division-kind", nation })
+    );
   }
   if (question === "aviation") {
     return Option.map(pickOf(AVIATIONS, choice), (aviation): Order => ({

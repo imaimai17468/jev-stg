@@ -21,6 +21,7 @@ const BRIEF: NationBrief = {
   buildSites: [],
   civilianFactories: 20,
   convoys: 12.4,
+  divisionKinds: OPENING_ARMOURY.kinds,
   dockyards: 0,
   enemyFleet: exactly(30.6),
   enemyPlanes: exactly(480.6),
@@ -119,6 +120,7 @@ describe(evaluationFor, () => {
       "n1_trade",
       "n1_aviation",
       "n1_aircraft",
+      "n1_division-kind",
       "n1_faction",
     ]);
   });
@@ -227,6 +229,28 @@ describe(evaluationFor, () => {
     });
   });
 
+  it("should offer each kind its research has unlocked with what a division costs and what it is good at when the division-kind question is asked", () => {
+    const raising: Council = {
+      ...COUNCIL,
+      nations: [{ ...BRIEF, divisionKinds: ["infantry", "light-armour"] }],
+    };
+
+    expect(
+      evaluationFor(raising).body.questions["n1_division-kind"]
+    ).toStrictEqual({
+      criteria: {
+        infantry:
+          "歩兵（1師団に兵員20,000人・装備1,000、最も安く、どの地形でも同じように戦う）",
+        "light-armour":
+          "軽戦車（1師団に兵員17,000人・装備6,175、軽戦車と自動車化歩兵の混成で速く攻撃が強いが、森では速さが落ち、組織力が低い）",
+        mix: "国柄の編成比率どおり（研究で編成できる兵種を、比率に足りない順に1つずつ編成する）",
+      },
+      instructions:
+        "国1は次にどの兵種の師団を編成しますか。選択肢は研究で編成できるようになった兵種です。選んだ兵種は変えるまで編成し続け、装備が足りない日は編成せずに貯めます。兵員が1師団分に足りないあいだは、国柄の編成比率どおりに編成します。",
+      type: "choice",
+    });
+  });
+
   it("should offer every trade law with what it sells and adds when the trade question is asked", () => {
     expect(evaluationFor(COUNCIL).body.questions.n1_trade).toStrictEqual({
       criteria: {
@@ -257,6 +281,7 @@ describe(evaluationFor, () => {
       "n1_trade",
       "n1_aviation",
       "n1_aircraft",
+      "n1_division-kind",
     ]);
   });
 
@@ -299,6 +324,7 @@ describe(evaluationFor, () => {
             "concentrated-industry-1",
             "small-caliber-semi-armor-piercing-shell",
             "basic-light-battery",
+            "truck",
           ],
         },
       ],
@@ -321,6 +347,8 @@ describe(evaluationFor, () => {
             "歩兵装備II（1939年の技術、研究220日、師団が新しい世代の装備で戦う）",
           "small-caliber-semi-armor-piercing-shell":
             "半徹甲弾（小口径）（1936年の技術、研究55日、駆逐艦の軽攻撃+5%・巡洋艦の軽攻撃+5%・戦艦の軽攻撃+5%・空母の軽攻撃+5%）",
+          truck:
+            "トラック（1936年の技術、研究220日、自動車化歩兵の師団を編成できるようになる）",
         },
         instructions:
           "国1には空いている研究枠が2つあります。次に研究する技術として最も良いものはどれですか。選択肢は分野ごとに今始められるいちばん早い年の技術です。今年より後の年の技術は、研究の速さが「1＋2×早い年数」分の1に落ちます。",

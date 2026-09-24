@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
-import type { Levy } from "./divisions";
+import type { DivisionKind, Levy } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
@@ -14,23 +14,46 @@ import { UNASSIGNED } from "./spread";
 const PEACE: Diplomacy = openingDiplomacy(LINE_OWNERS, 2, []);
 const WAR: Diplomacy = { ...PEACE, wars: AT_WAR };
 
-/** One division at home for each step of the nation's id and one more, each counted as recruited. */
-const byId = (economy: NationEconomy, nation: Nation, home: number): Levy => ({
+/**
+ * One division at home of the last kind it may raise for each step of the
+ * nation's id and one more, each counted as recruited.
+ */
+const byId = (
+  economy: NationEconomy,
+  nation: Nation,
+  home: number,
+  unlocked: readonly DivisionKind[]
+): Levy => ({
   divisions: Array.from({ length: nation.id + 1 }, () =>
-    raisedAt(nation.id, home, "infantry")
+    raisedAt(nation.id, home, unlocked.at(-1) ?? "infantry")
   ),
   economy: { ...economy, recruited: nation.id + 1 },
 });
 
+/** Infantry alone for the first nation, and cavalry besides for the second. */
+const UNLOCKED_BY_ID: readonly (readonly DivisionKind[])[] = [
+  ["infantry"],
+  ["infantry", "cavalry"],
+];
+
+const unlockedById = (nation: number): readonly DivisionKind[] =>
+  UNLOCKED_BY_ID.at(nation) ?? [];
+
 describe(musteredBy, () => {
-  it("should stand each nation's levy at its capital and keep what it paid when it holds ground", () => {
+  it("should stand each nation's levy of the kinds it may raise at its capital and keep what it paid when it holds ground", () => {
     expect(
-      musteredBy(LINE_WORLD, LINE_OWNERS, [NO_ECONOMY, NO_ECONOMY], byId)
+      musteredBy(
+        LINE_WORLD,
+        LINE_OWNERS,
+        [NO_ECONOMY, NO_ECONOMY],
+        unlockedById,
+        byId
+      )
     ).toStrictEqual({
       divisions: [
         raisedAt(0, 0, "infantry"),
-        raisedAt(1, 3, "infantry"),
-        raisedAt(1, 3, "infantry"),
+        raisedAt(1, 3, "cavalry"),
+        raisedAt(1, 3, "cavalry"),
       ],
       economies: [
         { ...NO_ECONOMY, recruited: 1 },
@@ -45,6 +68,7 @@ describe(musteredBy, () => {
         LINE_WORLD,
         Int32Array.from(LINE_WORLD.provinces, () => UNASSIGNED),
         [NO_ECONOMY, NO_ECONOMY],
+        unlockedById,
         byId
       )
     ).toStrictEqual({ divisions: [], economies: [NO_ECONOMY, NO_ECONOMY] });

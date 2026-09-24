@@ -9,6 +9,9 @@ import type { ShipClass } from "./ships";
  */
 const TechLineSchema = Schema.Literals([
   "infantry-weapons",
+  "armour",
+  "mobile-infantry",
+  "special-forces",
   "destroyers",
   "cruisers",
   "battleships",
@@ -34,12 +37,14 @@ export const TECH_LINES = TechLineSchema.literals;
  */
 export type TechCategory =
   | "infantry"
+  | "armour"
   | "naval"
   | "air"
   | "industry"
   | "electronics";
 
 const CATEGORIES = {
+  armour: "armour",
   battleships: "naval",
   carriers: "naval",
   "close-support": "air",
@@ -51,8 +56,10 @@ const CATEGORIES = {
   fuel: "industry",
   industry: "industry",
   "infantry-weapons": "infantry",
+  "mobile-infantry": "infantry",
   "naval-armament": "naval",
   "naval-bombers": "air",
+  "special-forces": "infantry",
   submarines: "naval",
 } satisfies Readonly<Record<TechLine, TechCategory>>;
 
@@ -67,6 +74,17 @@ export const TechIdSchema = Schema.Literals([
   "improved-infantry-equipment-2",
   "infantry-equipment-3",
   "improved-infantry-equipment-3",
+  "great-war-tank",
+  "light-tank-1",
+  "light-tank-2",
+  "medium-tank-1",
+  "heavy-tank-1",
+  "early-truck",
+  "truck",
+  "mechanized-equipment-1",
+  "mountain-infantry-1",
+  "marines-1",
+  "paratroopers-1",
   "destroyer-1",
   "destroyer-2",
   "destroyer-3",
@@ -224,7 +242,8 @@ const step = (
 
 /**
  * Hearts of Iron IV's technologies as the 1.16 wiki gives them, with the
- * naval and air trees of the game without Man the Guns and By Blood Alone.
+ * naval and air trees of the game without Man the Guns and By Blood Alone
+ * and the armour tree of the game without No Step Back.
  * A technology whose every effect acts on a unit, a building or a mechanic
  * this world lacks is left out, unless one that is in needs it.
  */
@@ -363,6 +382,7 @@ const TECHS = {
     ...step("分散工業V", "industry", 1943, 2, ["dispersed-industry-4"]),
     bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
   },
+  "early-truck": step("初期型トラック", "mobile-infantry", 1936, 1.5, []),
   "electronic-mechanical-engineering": {
     ...step("電子機械工学", "electronics", 1936, 1, []),
     bonus: { research: 0.03 },
@@ -411,6 +431,8 @@ const TECHS = {
     bonus: { refining: 0.2 },
   },
   "fuel-storage": step("燃料貯蔵", "fuel", 1936, 1, []),
+  "great-war-tank": step("第一次大戦型戦車", "armour", 1918, 2, []),
+  "heavy-tank-1": step("重戦車I", "armour", 1934, 2, ["great-war-tank"]),
   "improved-computing-machine": {
     ...step("改良計算機", "electronics", 1940, 2.5, ["computing-machine"]),
     bonus: { research: 0.08 },
@@ -469,6 +491,8 @@ const TECHS = {
   "light-cruiser-4": step("軽巡洋艦IV", "cruisers", 1944, 2, [
     "light-cruiser-3",
   ]),
+  "light-tank-1": step("軽戦車I", "armour", 1934, 2, ["great-war-tank"]),
+  "light-tank-2": step("軽戦車II", "armour", 1936, 2, ["light-tank-1"]),
   "magnetic-detonator": {
     ...step("磁気信管", "naval-armament", 1936, 2.5, ["basic-torpedo"]),
     upgrades: upgradesFor(
@@ -477,18 +501,24 @@ const TECHS = {
       0.2
     ),
   },
+  "marines-1": step("海兵隊I", "special-forces", 1936, 2, []),
   "mechanical-computing": {
     ...step("機械式計算", "electronics", 1936, 2.5, [
       "electronic-mechanical-engineering",
     ]),
     bonus: { research: 0.04 },
   },
+  "mechanized-equipment-1": step("機械化装備I", "mobile-infantry", 1940, 2, [
+    "truck",
+  ]),
   "medium-caliber-semi-armor-piercing-shell": {
     ...step("半徹甲弾（中口径）", "naval-armament", 1942, 0.5, [
       "improved-medium-battery",
     ]),
     upgrades: upgradesFor(["cruiser"], "light", 0.05),
   },
+  "medium-tank-1": step("中戦車I", "armour", 1938, 2, ["light-tank-2"]),
+  "mountain-infantry-1": step("山岳歩兵I", "special-forces", 1936, 2, []),
   "naval-bomber-1": step("雷撃機I", "naval-bombers", 1936, 2, [
     "interwar-fighter",
   ]),
@@ -499,6 +529,7 @@ const TECHS = {
     "naval-bomber-2",
   ]),
   "naval-gunnery": step("艦砲術", "naval-armament", 1922, 1, []),
+  "paratroopers-1": step("空挺部隊I", "special-forces", 1936, 2, []),
   "shell-dyes": {
     ...step("着色弾", "naval-armament", 1922, 2.5, ["ladder-shooting"]),
     upgrades: [
@@ -532,6 +563,7 @@ const TECHS = {
     ]),
     upgrades: upgradesFor(["battleship"], "heavy", 0.05),
   },
+  truck: step("トラック", "mobile-infantry", 1936, 2, ["early-truck"]),
 } satisfies Readonly<Record<TechId, Tech>>;
 
 export const techOf = (tech: TechId): Tech => TECHS[tech];

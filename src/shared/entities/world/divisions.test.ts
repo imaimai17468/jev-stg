@@ -9,6 +9,7 @@ import {
   defenceOf,
   fieldedBy,
   infantryEquipmentOf,
+  kindsUnlockedBy,
   marchDaysFor,
   menFor,
   nextKindFor,
@@ -19,6 +20,7 @@ import {
   rested,
   supplyUseOf,
   terrainDefenceOf,
+  unlockedKindsOf,
   worn,
 } from "./divisions";
 import type { NationEconomy } from "./economy";
@@ -26,6 +28,8 @@ import { NO_ECONOMY } from "./economy";
 import type { Leaning } from "./leaning";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
+import type { TechId } from "./techs";
+import { TECH_IDS } from "./techs";
 import type { Terrain } from "./terrain";
 
 const ARMED: NationEconomy = {
@@ -302,9 +306,14 @@ describe(menFor, () => {
   });
 });
 
+/** Every kind of division, as a nation that has researched them all may raise. */
+const EVERY_KIND: readonly DivisionKind[] = unlockedKindsOf(new Set(TECH_IDS));
+
 describe(dailyLevyBeside, () => {
   it("should raise one division of the kind its mix is shortest of at home and pay for it when the nation can afford one", () => {
-    expect(dailyLevyBeside([])(ARMED, nation(2, 7), 7)).toStrictEqual({
+    expect(
+      dailyLevyBeside([])(ARMED, nation(2, 7), 7, EVERY_KIND)
+    ).toStrictEqual({
       divisions: [raisedAt(2, 7, "infantry")],
       economy: paidForDivision(ARMED, "infantry"),
     });
@@ -313,7 +322,9 @@ describe(dailyLevyBeside, () => {
   it("should raise nothing and leave the economy alone when the nation cannot afford a division", () => {
     const short = { ...ARMED, equipment: 999 };
 
-    expect(dailyLevyBeside([])(short, nation(2, 7), 7)).toStrictEqual({
+    expect(
+      dailyLevyBeside([])(short, nation(2, 7), 7, EVERY_KIND)
+    ).toStrictEqual({
       divisions: [],
       economy: short,
     });
@@ -322,7 +333,9 @@ describe(dailyLevyBeside, () => {
   it("should save its weapons rather than raise infantry when the kind its mix is short of costs more than it has", () => {
     const infantry = Array.from({ length: 6 }, () => division({ nation: 2 }));
 
-    expect(dailyLevyBeside(infantry)(ARMED, nation(2, 7), 7)).toStrictEqual({
+    expect(
+      dailyLevyBeside(infantry)(ARMED, nation(2, 7), 7, EVERY_KIND)
+    ).toStrictEqual({
       divisions: [],
       economy: ARMED,
     });
@@ -332,32 +345,136 @@ describe(dailyLevyBeside, () => {
     const foreign = Array.from({ length: 6 }, () => division({ nation: 1 }));
 
     expect(
-      dailyLevyBeside(foreign)(ARMED, nation(2, 7), 7).divisions
+      dailyLevyBeside(foreign)(ARMED, nation(2, 7), 7, EVERY_KIND).divisions
+    ).toStrictEqual([raisedAt(2, 7, "infantry")]);
+  });
+
+  it("should raise the kind its government chose when its research has unlocked that kind", () => {
+    const chosen: NationEconomy = {
+      ...ARMED,
+      equipment: 2000,
+      raising: "marines",
+    };
+
+    expect(
+      dailyLevyBeside([])(chosen, nation(2, 7), 7, EVERY_KIND).divisions
+    ).toStrictEqual([raisedAt(2, 7, "marines")]);
+  });
+
+  it("should raise the kind its mix is shortest of when its free men fall short of a division of the kind its government chose", () => {
+    const chosen: NationEconomy = {
+      ...ARMED,
+      equipment: 10_000,
+      manpower: 21_000,
+      raising: "motorized",
+    };
+
+    expect(
+      dailyLevyBeside([])(chosen, nation(2, 7), 7, EVERY_KIND).divisions
+    ).toStrictEqual([raisedAt(2, 7, "infantry")]);
+  });
+
+  it("should raise the kind its mix is shortest of when the kind its government chose is not unlocked", () => {
+    const chosen: NationEconomy = { ...ARMED, raising: "heavy-armour" };
+
+    expect(
+      dailyLevyBeside([])(chosen, nation(2, 7), 7, ["infantry", "cavalry"])
+        .divisions
     ).toStrictEqual([raisedAt(2, 7, "infantry")]);
   });
 });
 
 describe(nextKindFor, () => {
   it.each([
-    { fielded: [], kind: "infantry", leaning: "army" },
-    { fielded: [["infantry", 6]], kind: "cavalry", leaning: "army" },
-    { fielded: [["infantry", 6]], kind: "marines", leaning: "navy" },
-    { fielded: [["infantry", 6]], kind: "motorized", leaning: "industry" },
+    { fielded: [], kind: "infantry", leaning: "army", unlocked: EVERY_KIND },
+    {
+      fielded: [["infantry", 6]],
+      kind: "cavalry",
+      leaning: "army",
+      unlocked: EVERY_KIND,
+    },
+    {
+      fielded: [["infantry", 6]],
+      kind: "marines",
+      leaning: "navy",
+      unlocked: EVERY_KIND,
+    },
+    {
+      fielded: [["infantry", 6]],
+      kind: "motorized",
+      leaning: "industry",
+      unlocked: EVERY_KIND,
+    },
+    {
+      fielded: [["infantry", 6]],
+      kind: "light-armour",
+      leaning: "navy",
+      unlocked: ["infantry", "cavalry", "light-armour"],
+    },
+    {
+      fielded: [["infantry", 6]],
+      kind: "infantry",
+      leaning: "army",
+      unlocked: [],
+    },
   ] satisfies readonly {
     fielded: readonly (readonly [DivisionKind, number])[];
     kind: DivisionKind;
     leaning: Leaning;
+    unlocked: readonly DivisionKind[];
   }[])(
-    "should raise $kind next when a $leaning nation fields $fielded",
-    ({ fielded, kind, leaning }) => {
-      expect(nextKindFor(leaning, new Map(fielded))).toBe(kind);
+    "should raise $kind next when a $leaning nation that may raise $unlocked fields $fielded",
+    ({ fielded, kind, leaning, unlocked }) => {
+      expect(nextKindFor(leaning, new Map(fielded), unlocked)).toBe(kind);
+    }
+  );
+});
+
+describe(unlockedKindsOf, () => {
+  it.each([
+    { kinds: ["infantry", "cavalry"], researched: [] },
+    {
+      kinds: ["infantry", "cavalry", "motorized", "marines"],
+      researched: ["early-truck", "truck", "marines-1"],
+    },
+  ] satisfies readonly {
+    kinds: readonly DivisionKind[];
+    researched: readonly TechId[];
+  }[])(
+    "should let the nation raise $kinds when it has researched $researched",
+    ({ kinds, researched }) => {
+      expect(unlockedKindsOf(new Set(researched))).toStrictEqual(kinds);
+    }
+  );
+});
+
+describe(kindsUnlockedBy, () => {
+  it.each([
+    { kinds: ["medium-armour"], tech: "medium-tank-1" },
+    { kinds: [], tech: "light-tank-1" },
+  ] satisfies readonly { kinds: readonly DivisionKind[]; tech: TechId }[])(
+    "should name $kinds as unlocked when $tech is researched",
+    ({ kinds, tech }) => {
+      expect(kindsUnlockedBy(tech)).toStrictEqual(kinds);
     }
   );
 });
 
 describe(openingKindsOf, () => {
   it("should raise its mix in turn until the next division needs more men than its share holds when the world opens", () => {
-    expect(openingKindsOf(400_000, "army")).toStrictEqual([
+    expect(openingKindsOf(400_000, "army", EVERY_KIND)).toStrictEqual([
+      "infantry",
+      "cavalry",
+      "infantry",
+      "motorized",
+    ]);
+  });
+
+  it("should raise only the kinds its research has unlocked when the world opens", () => {
+    expect(
+      openingKindsOf(400_000, "army", ["infantry", "cavalry"])
+    ).toStrictEqual([
+      "infantry",
       "infantry",
       "infantry",
       "cavalry",

@@ -2,7 +2,7 @@ import { daysFromCivil } from "./calendar";
 import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
 import type { Bonus } from "./modifiers";
-import type { ShipUpgrade, TechCategory, TechId } from "./techs";
+import type { ShipUpgrade, TechCategory, TechId, TechLine } from "./techs";
 import { categoryOf, TECH_IDS, TECH_LINES, techOf } from "./techs";
 import type { TreeStanding } from "./tree-standing";
 
@@ -82,9 +82,23 @@ const OPENING_MODELS: ReadonlySet<TechId> = new Set<TechId>([
 /** The year the world opens in. */
 const OPENING_YEAR = 1936;
 
+/**
+ * The lines whose technologies unlock a kind of division. Hearts of Iron IV
+ * gives each nation its own of these in 1936, so no nation has one for its
+ * year alone, and each leaning's head start names the ones it opens with.
+ */
+const UNIT_LINES: ReadonlySet<TechLine> = new Set<TechLine>([
+  "armour",
+  "mobile-infantry",
+  "special-forces",
+]);
+
 export const START_RESEARCH: Research = {
   researched: TECH_IDS.filter(
-    (tech) => techOf(tech).year < OPENING_YEAR || OPENING_MODELS.has(tech)
+    (tech) =>
+      (techOf(tech).year < OPENING_YEAR &&
+        !UNIT_LINES.has(techOf(tech).line)) ||
+      OPENING_MODELS.has(tech)
   ),
   saved: [],
   studies: [],
@@ -93,16 +107,44 @@ export const START_RESEARCH: Research = {
 
 /**
  * The technologies each leaning researched between the wars on top of what
- * every nation has.
+ * every nation has. The tanks, trucks and special forces follow what Hearts
+ * of Iron IV's 1936 start gives Germany for the army, Britain for industry
+ * and Japan for the navy, leaving out the medium tank meant for 1938 that
+ * Britain and Japan are given.
  */
 const HEAD_STARTS = {
-  army: ["improved-infantry-equipment-1"],
-  industry: ["basic-machine-tools", "construction-1", "excavation-1"],
+  army: [
+    "improved-infantry-equipment-1",
+    "great-war-tank",
+    "light-tank-1",
+    "light-tank-2",
+    "heavy-tank-1",
+    "early-truck",
+    "truck",
+    "mountain-infantry-1",
+  ],
+  industry: [
+    "basic-machine-tools",
+    "construction-1",
+    "excavation-1",
+    "great-war-tank",
+    "light-tank-1",
+    "light-tank-2",
+    "heavy-tank-1",
+    "early-truck",
+    "truck",
+  ],
   navy: [
     "basic-light-battery",
     "basic-medium-battery",
     "basic-heavy-battery",
     "magnetic-detonator",
+    "great-war-tank",
+    "light-tank-1",
+    "heavy-tank-1",
+    "early-truck",
+    "truck",
+    "marines-1",
   ],
 } satisfies Readonly<Record<Leaning, readonly TechId[]>>;
 

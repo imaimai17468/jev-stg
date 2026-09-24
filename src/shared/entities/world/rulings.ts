@@ -24,6 +24,7 @@ import {
   withBuildSite,
   withConscription,
   withPlan,
+  withRaising,
   withTradeLaw,
 } from "./economy";
 import type { Service } from "./espionage";
@@ -181,17 +182,25 @@ const changedTo = <T, V>(
 };
 
 /**
- * The economy under the law or the plan decided, or building in the province
- * decided, or none where it already has it or no longer holds that province.
+ * The economy under the law or the plan decided, building in the province
+ * decided, or raising the kind of division decided, or none where it already
+ * has it or no longer holds that province.
  */
 const economyRuled = (
   simulation: Simulation,
   economy: NationEconomy,
   decision: Extract<
     Decision,
-    { kind: "conscription" | "plan" | "trade" | "build-site" }
+    {
+      kind: "conscription" | "plan" | "trade" | "build-site" | "division-kind";
+    }
   >
 ): Option.Option<NationEconomy> => {
+  if (decision.kind === "division-kind") {
+    return changedTo(economy.raising, decision.division, (raising) =>
+      withRaising(economy, raising)
+    );
+  }
   if (decision.kind === "build-site") {
     if (valueAt(simulation.owners, decision.province) !== decision.nation) {
       return Option.none();
@@ -332,7 +341,8 @@ const carriedOut = (
     decision.kind === "conscription" ||
     decision.kind === "plan" ||
     decision.kind === "trade" ||
-    decision.kind === "build-site"
+    decision.kind === "build-site" ||
+    decision.kind === "division-kind"
   ) {
     return replacedFor(
       simulation,
