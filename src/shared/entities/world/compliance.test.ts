@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_OWNERS, LINE_WORLD } from "./army-fixture";
+import { LINE_OWNERS, LINE_PLANTS, LINE_WORLD } from "./army-fixture";
 import type { Compliance } from "./compliance";
 import {
   compliedOneDay,
@@ -34,6 +34,7 @@ const lineReach = (
 ) =>
   reachByNation(LINE_WORLD.provinces, owners, compliance, {
     nations: 2,
+    plants: LINE_PLANTS,
     sabotage,
   });
 
@@ -131,7 +132,7 @@ describe(reachByNation, () => {
     const [occupier] = lineReach(OCCUPIED_OWNERS, OCCUPIED, CALM);
 
     expect(occupier).toStrictEqual({
-      factories: 0.8583333333333333,
+      factories: 0.8583333333333334,
       manpower: 0.7033333333333334,
     });
   });

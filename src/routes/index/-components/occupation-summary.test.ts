@@ -1,5 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_OWNERS, LINE_WORLD } from "@/shared/entities/world/army-fixture";
+import {
+  LINE_OWNERS,
+  LINE_PLANTS,
+  LINE_WORLD,
+} from "@/shared/entities/world/army-fixture";
 import type { Compliance } from "@/shared/entities/world/compliance";
 import { startCompliance } from "@/shared/entities/world/compliance";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
@@ -24,6 +28,7 @@ const CALM: Stirred = {
 const occupationUnder = (stirred: Stirred): Occupation => ({
   compliance: OCCUPIED,
   owners: Int32Array.from([0, 0, 0, 0, UNASSIGNED]),
+  plants: LINE_PLANTS,
   stirred,
 });
 
@@ -66,6 +71,7 @@ describe(occupationSummaryOf, () => {
         {
           compliance: startCompliance(LINE_OWNERS),
           owners: LINE_OWNERS,
+          plants: LINE_PLANTS,
           stirred: CALM,
         },
         0

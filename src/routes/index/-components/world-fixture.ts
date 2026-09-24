@@ -13,6 +13,7 @@ import { noGleaned } from "@/shared/entities/world/intel";
 import type { Nation } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { noNetworks } from "@/shared/entities/world/networks";
+import { openingPlants } from "@/shared/entities/world/plants";
 import type { Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -93,6 +94,7 @@ export const fixtureSimulation = (
   networks: noNetworks(2, 3),
   quiet: noQuiet(2),
   owners: HELD_BY_TWO,
+  plants: openingPlants({ owners: HELD_BY_TWO, world: FIXTURE_WORLD }, []),
   services: openingServices(2),
   stances: [START_STANCE, START_STANCE],
   unrest: [],

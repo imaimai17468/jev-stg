@@ -65,6 +65,8 @@ import { NO_NAVY, openingNavy } from "./navy";
 import type { Networks } from "./networks";
 import { noNetworks } from "./networks";
 import { groundOf, openingLevyIn } from "./opening-army";
+import type { Plants } from "./plants";
+import { countedFrom, openingPlants, placedGains } from "./plants";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
@@ -115,6 +117,11 @@ export interface Simulation {
   readonly airBases: Uint8Array;
   /** The level of the infrastructure in each province, by province id. */
   readonly infrastructure: Uint8Array;
+  /**
+   * The factories and the dockyards standing in each province, which each
+   * nation's economy counts at the end of every day over the ground it holds.
+   */
+  readonly plants: Plants;
   /** The air power each nation flew over each region today, by nation id and then region id. */
   readonly airPower: readonly Float32Array[];
   /** One intelligence service per nation, by nation id. */
@@ -184,6 +191,7 @@ export const startSimulation = (world: World): Simulation => {
     negotiations: [],
     networks: noNetworks(world.nations.length, world.provinces.length),
     owners,
+    plants: openingPlants({ owners, world }, economies),
     quiet: noQuiet(world.nations.length),
     services: openingServices(world.nations.length),
     stances: world.nations.map(() => START_STANCE),
@@ -440,11 +448,13 @@ const landingsChronicled = (
  * wings, their battles and their strikes on the enemy's ships; then the fleets, the battles at sea, the
  * landings and the convoys; then the supply those convoys leave, and the
  * infrastructure each nation builds where its divisions go shortest of supply;
- * then the armies; then the research and the national focuses; then the diplomacy;
- * then the agencies, the operatives and the codebreakers, and what the day's
+ * then the armies; then the research and the national focuses; then the diplomacy,
+ * and each nation's factories and dockyards counted again over the ground it
+ * then holds; then the agencies, the operatives and the codebreakers, and what the day's
  * fighting and the captured operatives told each nation; then the white
  * peaces between nations that no longer touch; and last each province's
- * compliance with whoever holds it once all that is done. So a nation
+ * compliance with whoever holds it once all that is done. A factory finished or handed over by a focus is put in a province the moment
+ * it comes, so a province taken that day takes it along. So a nation
  * surrenders the day its homeland falls, and a month's declarations read the
  * armies as that day left them. The economies and the armies work with what
  * the nation had researched and what it knew of its enemies when the day
@@ -490,6 +500,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       simulation.compliance,
       {
         nations: world.nations.length,
+        plants: simulation.plants,
         sabotage: stirred.sabotage,
       }
     ),
@@ -498,6 +509,11 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     ),
     world,
   });
+  const builtPlants = placedGains(
+    { owners: simulation.owners, plants: simulation.plants, world },
+    simulation.economies,
+    exchange.economies
+  );
   const aloft = airWarOneDay(
     {
       airBases: simulation.airBases,
@@ -605,12 +621,25 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     armies.economies,
     daysFromCivil(dateOf(clock))
   );
-  const conducted = fromRealm(
+  const grantedPlants = placedGains(
+    { owners: armies.owners, plants: builtPlants, world },
+    armies.economies,
+    advanced.economies
+  );
+  const settled = fromRealm(
     conductedOneDay(world, clock, {
       ...realmOf(afloat),
       armies: { ...armies, economies: advanced.economies },
     })
   );
+  const conducted = {
+    ...settled,
+    economies: countedFrom(
+      grantedPlants,
+      { owners: settled.owners, world },
+      settled.economies
+    ),
+  };
   const plotted = plottedOneDay(
     {
       networks: simulation.networks,
@@ -682,6 +711,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       done.owners,
       stirred.resistance
     ),
+    plants: grantedPlants,
   };
 };
 

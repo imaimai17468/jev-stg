@@ -19,6 +19,7 @@ import { FULL_SUPPLY_LEVEL } from "@/shared/entities/world/infrastructure";
 import { noGleaned } from "@/shared/entities/world/intel";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { noNetworks } from "@/shared/entities/world/networks";
+import { openingPlants } from "@/shared/entities/world/plants";
 import type { Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -118,6 +119,7 @@ const SIMULATION: Simulation = {
   ],
   economies: ECONOMIES,
   owners: OWNERS,
+  plants: openingPlants({ owners: OWNERS, world: WORLD }, ECONOMIES),
   diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
   gleaned: noGleaned(2),
   networks: noNetworks(2, 5),

@@ -482,44 +482,32 @@ export const upkept = (
   };
 };
 
-/** One nation's economy with a share of it taken out. */
+/** One nation's economy with a share of its people taken out. */
 const lightened = (economy: NationEconomy, share: number): NationEconomy => ({
   ...economy,
-  civilianFactories:
-    economy.civilianFactories - Math.round(economy.civilianFactories * share),
-  dockyards: economy.dockyards - Math.round(economy.dockyards * share),
-  militaryFactories:
-    economy.militaryFactories - Math.round(economy.militaryFactories * share),
   population: economy.population - economy.population * share,
 });
 
-/** One nation's economy with what another lost added to it. */
+/** One nation's economy with the people another lost added to it. */
 const enlarged = (
   economy: NationEconomy,
   lost: NationEconomy,
   keeping: NationEconomy
 ): NationEconomy => ({
   ...economy,
-  civilianFactories:
-    economy.civilianFactories +
-    (lost.civilianFactories - keeping.civilianFactories),
-  dockyards: economy.dockyards + (lost.dockyards - keeping.dockyards),
-  militaryFactories:
-    economy.militaryFactories +
-    (lost.militaryFactories - keeping.militaryFactories),
   population: economy.population + (lost.population - keeping.population),
 });
 
 /**
- * The economies after `share` of one nation's people and industry changed
- * hands.
+ * The economies after `share` of one nation's people changed hands.
  *
  * What the loser gives up is worked out first and the winner is handed exactly
  * that, so a province taken and retaken leaves the two of them holding between
  * them what they held before. Everyone the loser has called up stays counted
  * against the loser, and the winner reaches the people it takes only as far as
  * their compliance lets it; the equipment in the depots stays too, because it
- * marched away with the army.
+ * marched away with the army. The factories and the dockyards stand in the
+ * provinces, so they change hands with the ground rather than here.
  */
 export const shareTransferred = (
   economies: readonly NationEconomy[],

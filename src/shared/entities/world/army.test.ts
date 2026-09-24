@@ -343,7 +343,7 @@ describe(armiesAfterOneDay, () => {
     ).toStrictEqual([]);
   });
 
-  it("should take the last of the loser's people and factories when it loses all its ground in a day", () => {
+  it("should take the last of the loser's people and leave its factories to be counted from the ground when it loses all its ground in a day", () => {
     const loser: NationEconomy = {
       ...NO_ECONOMY,
       civilianFactories: 4,
@@ -360,12 +360,7 @@ describe(armiesAfterOneDay, () => {
 
     expect(
       armiesAfterOneDay(LINE_WORLD, WAR_COMMAND, overrun).economies.at(1)
-    ).toStrictEqual({
-      ...loser,
-      civilianFactories: 0,
-      militaryFactories: 0,
-      population: 0,
-    });
+    ).toStrictEqual({ ...loser, population: 0 });
   });
 
   it("should lose a division whose last men the day's attrition wears away when its supply does not reach it", () => {

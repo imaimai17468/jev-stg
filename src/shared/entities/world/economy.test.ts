@@ -455,22 +455,16 @@ describe(shareTransferred, () => {
     { ...NO_ECONOMY, population: 5 },
   ];
 
-  it("should move the share's people and factories to the winner when ground changes hands", () => {
+  it("should move the share's people to the winner and leave the factories where they are counted when ground changes hands", () => {
     expect(shareTransferred(HOLDERS, 0, 1, 0.25)).toStrictEqual([
       {
         ...NO_ECONOMY,
-        civilianFactories: 15,
-        dockyards: 3,
-        militaryFactories: 7,
+        civilianFactories: 20,
+        dockyards: 4,
+        militaryFactories: 10,
         population: 750_000,
       },
-      {
-        ...NO_ECONOMY,
-        civilianFactories: 5,
-        dockyards: 1,
-        militaryFactories: 3,
-        population: 250_000,
-      },
+      { ...NO_ECONOMY, population: 250_000 },
       { ...NO_ECONOMY, population: 5 },
     ]);
   });
@@ -489,9 +483,9 @@ describe(shareTransferred, () => {
   it("should move no more than the loser holds when the share runs over one", () => {
     expect(shareTransferred(HOLDERS, 0, 1, 3).at(0)).toStrictEqual({
       ...NO_ECONOMY,
-      civilianFactories: 0,
-      dockyards: 0,
-      militaryFactories: 0,
+      civilianFactories: 20,
+      dockyards: 4,
+      militaryFactories: 10,
       population: 0,
     });
   });

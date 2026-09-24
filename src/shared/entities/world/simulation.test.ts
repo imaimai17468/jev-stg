@@ -19,6 +19,7 @@ import {
 import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
+import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { openingServices, serviceFor } from "./espionage";
@@ -29,10 +30,25 @@ import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
 import { noNetworks } from "./networks";
+import { openingPlants } from "./plants";
 import { openingResearchOf, START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";
 import { UNASSIGNED } from "./spread";
+
+/** Six hundred thousand people and one civilian factory. */
+const OPENING_ECONOMY: NationEconomy = {
+  ...NO_ECONOMY,
+  civilianFactories: 1,
+  fuel: FUEL_CAPACITY,
+  manpower: 9000,
+  population: 600_000,
+};
+
+const OPENING_ECONOMIES: readonly NationEconomy[] = [
+  OPENING_ECONOMY,
+  OPENING_ECONOMY,
+];
 
 /** Two nations of six hundred thousand people each, and nothing in the field. */
 const OPENING: Simulation = {
@@ -46,22 +62,7 @@ const OPENING: Simulation = {
   deals: [],
   diplomacy: openingDiplomacy(LINE_OWNERS, 2, []),
   divisions: [],
-  economies: [
-    {
-      ...NO_ECONOMY,
-      civilianFactories: 1,
-      fuel: FUEL_CAPACITY,
-      manpower: 9000,
-      population: 600_000,
-    },
-    {
-      ...NO_ECONOMY,
-      civilianFactories: 1,
-      fuel: FUEL_CAPACITY,
-      manpower: 9000,
-      population: 600_000,
-    },
-  ],
+  economies: OPENING_ECONOMIES,
   gleaned: noGleaned(2),
   infrastructure: new Uint8Array(LINE_WORLD.provinces.length).fill(
     FULL_SUPPLY_LEVEL
@@ -71,6 +72,10 @@ const OPENING: Simulation = {
   negotiations: [],
   networks: noNetworks(2, LINE_WORLD.provinces.length),
   owners: LINE_OWNERS,
+  plants: openingPlants(
+    { owners: LINE_OWNERS, world: LINE_WORLD },
+    OPENING_ECONOMIES
+  ),
   quiet: noQuiet(2),
   services: openingServices(2),
   stances: ["balanced", "balanced"],
@@ -210,6 +215,33 @@ describe(ranOneDay, () => {
 
     expect(ranOneDay(LINE_WORLD, annexed).economies[1]?.civilianFactories).toBe(
       1
+    );
+  });
+
+  it("should count a province's factory for whoever holds it when the ground has changed hands", () => {
+    const taken: Simulation = {
+      ...OPENING,
+      owners: Int32Array.from([0, 0, 0, 1, UNASSIGNED]),
+    };
+
+    expect(
+      ranOneDay(LINE_WORLD, taken).economies.map(
+        (economy) => economy.civilianFactories
+      )
+    ).toStrictEqual([2, 0]);
+  });
+
+  it("should put a factory finished today in the builder's province with the fewest buildings when it holds several", () => {
+    const finishing: Simulation = {
+      ...OPENING,
+      economies: [
+        { ...OPENING_ECONOMY, construction: 10_799 },
+        OPENING_ECONOMY,
+      ],
+    };
+
+    expect(ranOneDay(LINE_WORLD, finishing).plants.military).toStrictEqual(
+      Uint16Array.from([0, 1, 0, 0, 0])
     );
   });
 
