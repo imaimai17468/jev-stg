@@ -4,6 +4,7 @@ import { drawMap } from "./draw-map";
 import type { LineKind, MapPen, Segment } from "./draw-map";
 import type { FrontMark, Point } from "./front-marks";
 import type { NationLabel } from "./nation-labels";
+import type { UnitSymbol } from "./unit-symbols";
 import { FIXTURE_WORLD } from "./world-fixture";
 
 interface Drawn {
@@ -14,6 +15,8 @@ interface Drawn {
   readonly counters: readonly (readonly number[])[];
   /** Each counter's supply, in the order they were drawn. */
   readonly crates: readonly SupplyState[];
+  /** Each counter's unit symbol, in the order they were drawn. */
+  readonly symbols: readonly UnitSymbol[];
   /** Each fleet counter as its number and the point it was centred on. */
   readonly fleets: readonly (readonly number[])[];
   /** Each wing counter as its number and the point it was centred on. */
@@ -37,6 +40,7 @@ const recorder = (): Recorder => {
   const texts: string[] = [];
   const counters: number[][] = [];
   const crates: SupplyState[] = [];
+  const symbols: UnitSymbol[] = [];
   const fleets: number[][] = [];
   const wings: number[][] = [];
   const lines: { kind: LineKind; segments: readonly Segment[] }[] = [];
@@ -49,6 +53,7 @@ const recorder = (): Recorder => {
       crates,
       fleets,
       lines,
+      symbols,
       texts,
       wings,
       worlds,
@@ -60,9 +65,10 @@ const recorder = (): Recorder => {
       clear: (width, height) => {
         cleared.push([width, height]);
       },
-      counter: (value, x, y, _colour, supply) => {
+      counter: (value, x, y, _colour, supply, symbol) => {
         counters.push([Number(value), x, y]);
         crates.push(supply);
+        symbols.push(symbol);
       },
       fleet: (value, x, y) => {
         fleets.push([Number(value), x, y]);
@@ -196,6 +202,7 @@ describe(drawMap, () => {
           count: 7,
           province: 0,
           supply: "supplied",
+          symbol: "infantry",
           x: 3,
           y: 5,
         },
@@ -216,6 +223,7 @@ describe(drawMap, () => {
           count: 3,
           province: 0,
           supply: "short",
+          symbol: "infantry",
           x: 3,
           y: 5,
         },
@@ -223,6 +231,27 @@ describe(drawMap, () => {
     });
 
     expect(drawn.crates).toStrictEqual(["short"]);
+  });
+
+  it("should hand the counter its unit symbol when divisions stand there", () => {
+    const { drawn, pen } = recorder();
+
+    drawMap(pen, FIXTURE_WORLD, VIEW, SURFACE, {
+      ...NOTHING_OVER,
+      marks: [
+        {
+          colour: { blue: 0, green: 0, red: 0 },
+          count: 2,
+          province: 0,
+          supply: "supplied",
+          symbol: "armour",
+          x: 3,
+          y: 5,
+        },
+      ],
+    });
+
+    expect(drawn.symbols).toStrictEqual(["armour"]);
   });
 
   it("should centre a fleet counter on its zone when warships are at sea there", () => {
