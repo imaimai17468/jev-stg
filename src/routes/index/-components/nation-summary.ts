@@ -27,6 +27,8 @@ import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { nationsBeside, NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
+import type { HeldSlots } from "@/shared/entities/world/plants";
+import { slotsHeldBy } from "@/shared/entities/world/plants";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import {
@@ -81,6 +83,8 @@ export interface NationSummary {
   readonly provinces: number;
   /** The nation's area, in map cells. */
   readonly cells: number;
+  /** The building slots its ground has, and how many of them stand taken. */
+  readonly slots: HeldSlots;
   /** Its terrain, the most of it first. */
   readonly terrain: readonly TerrainShare[];
   /** The nations it shares a land border with, by name. */
@@ -115,6 +119,7 @@ const EMPTY: NationSummary = {
   air: [],
   supply: [],
   cells: 0,
+  slots: { total: 0, used: 0 },
   divisions: 0,
   economy: NO_ECONOMY,
   enemies: [],
@@ -296,6 +301,7 @@ export const summaryOf = (
       nation
     ),
     provinces,
+    slots: slotsHeldBy({ owners, plants: simulation.plants, world }, nation),
     supply: supplySummaryOf(
       supply,
       simulation.divisions,

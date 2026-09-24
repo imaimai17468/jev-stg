@@ -1,9 +1,17 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { land, TWO_NATIONS, worldOf } from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Estate, Plants } from "./plants";
-import { countedFrom, openingPlants, placedGains, plantsIn } from "./plants";
+import {
+  countedFrom,
+  nextSiteOf,
+  openingPlants,
+  placedGains,
+  plantsIn,
+  buildingSlotsOf,
+} from "./plants";
 import { UNASSIGNED } from "./spread";
 
 /**
@@ -32,7 +40,12 @@ const plantsOf = (
 
 const NONE = plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]);
 
-const ESTATE: Estate = { owners: OWNERS, plants: NONE, world: WORLD };
+const ESTATE: Estate = {
+  infrastructure: new Uint8Array(4),
+  owners: OWNERS,
+  plants: NONE,
+  world: WORLD,
+};
 
 /** Nation 0 counting `counts` of each kind, and nation 1 counting nothing. */
 const counting = (
@@ -87,6 +100,17 @@ describe(placedGains, () => {
     ).toStrictEqual(plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 0]));
   });
 
+  it("should put a factory a focus hands over past the slots when every slot is taken", () => {
+    const estate = {
+      ...ESTATE,
+      plants: plantsOf([2, 4, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    };
+
+    expect(
+      placedGains(estate, counting(8, 0, 0), counting(9, 0, 0))
+    ).toStrictEqual(plantsOf([2, 5, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]));
+  });
+
   it("should place nothing when the nation that gained a factory holds no ground", () => {
     expect(
       placedGains(
@@ -130,5 +154,56 @@ describe(countedFrom, () => {
         militaryFactories: 1,
       },
     ]);
+  });
+});
+
+describe(buildingSlotsOf, () => {
+  it.each([
+    { cells: 3, slots: 0 },
+    { cells: 5, slots: 1 },
+    { cells: 10, slots: 2 },
+    { cells: 300, slots: 12 },
+  ])(
+    "should give $slots slots when a plains province is $cells cells across",
+    ({ cells, slots }) => {
+      expect(
+        buildingSlotsOf({
+          ...land(0, []),
+          cells,
+          kind: "land",
+          terrain: "plains",
+        })
+      ).toBe(slots);
+    }
+  );
+});
+
+describe(nextSiteOf, () => {
+  it("should build in the province with the highest infrastructure when several have room", () => {
+    const estate = { ...ESTATE, infrastructure: Uint8Array.from([1, 0, 4, 0]) };
+
+    expect(nextSiteOf(estate, 0, "civilian")).toStrictEqual(
+      Option.some({ infrastructure: 4, kind: "civilian", province: 2 })
+    );
+  });
+
+  it("should build a military factory when it wants a dockyard and its coast has no room", () => {
+    const estate = {
+      ...ESTATE,
+      plants: plantsOf([0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    };
+
+    expect(nextSiteOf(estate, 0, "dockyards")).toStrictEqual(
+      Option.some({ infrastructure: 0, kind: "military", province: 1 })
+    );
+  });
+
+  it("should build nothing when every slot it holds is taken", () => {
+    const estate = {
+      ...ESTATE,
+      plants: plantsOf([2, 4, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    };
+
+    expect(nextSiteOf(estate, 0, "civilian")).toStrictEqual(Option.none());
   });
 });

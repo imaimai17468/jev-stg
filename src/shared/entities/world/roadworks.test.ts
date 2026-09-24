@@ -102,12 +102,12 @@ describe(roadsWanted, () => {
 });
 
 describe(roadsBuiltOneDay, () => {
-  it("should raise the infrastructure, take its cost off the roadworks and keep building there when a level is wanted and paid for", () => {
+  it("should raise the infrastructure, take its cost at the speed its level 3 lends off the roadworks, and keep building there when a level is wanted and paid for", () => {
     const site = standing(SITE, [[0, 1, 9]]);
 
     expect(roadsBuiltOneDay(site, [WITH_ROADWORKS, NO_ECONOMY])).toStrictEqual({
       economies: [
-        { ...WITH_ROADWORKS, roadSite: 1, roadworks: 100 },
+        { ...WITH_ROADWORKS, roadSite: 1, roadworks: 2350 },
         NO_ECONOMY,
       ],
       infrastructure: Uint8Array.from([3, 4, 3, 3]),

@@ -80,7 +80,10 @@ const ECONOMIES: readonly NationEconomy[] = [
   { ...NO_ECONOMY, civilianFactories: 10, militaryFactories: 5 },
 ];
 
-/** The two nations at peace on two islands, nation 1's convoys carrying half its trade. */
+/**
+ * The two nations at peace on two islands, nation 1's convoys carrying half
+ * its trade, with every building slot on both islands free to build in.
+ */
 const WORKS: Works = {
   airBases: new Uint8Array(3),
   airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
@@ -89,11 +92,17 @@ const WORKS: Works = {
   diplomacy: openingDiplomacy(OWNERS, 2, []),
   economies: ECONOMIES,
   homes: [2, 2],
+  infrastructure: new Uint8Array(3),
   landmasses: Int32Array.from([0, 1, UNASSIGNED]),
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   musters: [0, 1],
   navies: [NO_NAVY, { ...NO_NAVY, traded: 0.5 }],
   owners: OWNERS,
+  plants: {
+    civilian: new Uint16Array(3),
+    dockyards: new Uint16Array(3),
+    military: new Uint16Array(3),
+  },
   reach: [FULL_REACH, FULL_REACH],
   tiedUp: [0, 0],
   world: WORLD,
@@ -207,6 +216,23 @@ describe(commerceOneDay, () => {
         (economy) => economy.construction
       )
     ).toStrictEqual([17.5, 22.5]);
+  });
+
+  it("should finish a dockyard when a coastal nation under a war plan has fewer dockyards than its coast asks for", () => {
+    const arming: NationEconomy = {
+      ...NO_ECONOMY,
+      civilianFactories: 10,
+      construction: 10_799,
+      militaryFactories: 2,
+      plan: "total-war",
+    };
+
+    expect(
+      commerceOneDay({
+        ...WORKS,
+        economies: [arming, ECONOMIES[1] ?? NO_ECONOMY],
+      }).economies.map((economy) => economy.dockyards)
+    ).toStrictEqual([1, 0]);
   });
 
   it("should turn out less equipment when a nation goes short of what its factories take", () => {

@@ -66,3 +66,13 @@ export const meanInfrastructureOf = (
   }
   return total / Math.max(1, held);
 };
+
+/** What each level of infrastructure adds to the speed of building in its province, after Hearts of Iron IV. */
+const CONSTRUCTION_SPEED_PER_LEVEL = 0.2;
+
+/**
+ * How much faster than on bare ground anything is built in a province whose
+ * infrastructure stands at `level`: twice as fast at level 5.
+ */
+export const constructionSpeedAt = (level: number): number =>
+  1 + CONSTRUCTION_SPEED_PER_LEVEL * level;

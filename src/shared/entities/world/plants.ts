@@ -9,7 +9,7 @@ import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
 
 /** Every kind of building a nation's industry is counted in. */
-type PlantKind = "civilian" | "military" | "dockyards";
+export type PlantKind = "civilian" | "military" | "dockyards";
 
 const PLANT_KINDS: readonly PlantKind[] = ["civilian", "military", "dockyards"];
 
@@ -37,9 +37,13 @@ interface Holdings {
   readonly owners: Int32Array;
 }
 
-/** What a placement reads: the world, who holds each province, and what stands there. */
+/**
+ * What a placement reads: the world, who holds each province, what stands
+ * there, and the level of the infrastructure in each province, by province id.
+ */
 export interface Estate extends Holdings {
   readonly plants: Plants;
+  readonly infrastructure: Uint8Array;
 }
 
 /** The land provinces `nation` holds where a building of `kind` can stand: a dockyard needs a coast. */
@@ -92,50 +96,155 @@ export const plantsIn = (plants: Plants, province: number): number =>
   );
 
 /**
- * The provinces a new building of `kind` may go in: where it can stand, or
- * anywhere `nation` holds where it holds nowhere it can.
+ * The shared building slots of each category of Hearts of Iron IV's states,
+ * from wasteland to megalopolis, and the fewest people, in millions, a
+ * province holds to count as that category. Hearts of Iron IV sets each
+ * state's category by hand, so the thresholds are this game's own.
  */
-const fallbackSites = (
-  holdings: Holdings,
-  nation: number,
-  kind: PlantKind
-): readonly LandProvince[] => {
-  const sites = sitesFor(holdings, nation, kind);
-  if (sites.length > 0) {
-    return sites;
-  }
-  return sitesFor(holdings, nation, "civilian");
+const SLOTS_BY_PEOPLE: readonly {
+  readonly millions: number;
+  readonly slots: number;
+}[] = [
+  { millions: 7, slots: 12 },
+  { millions: 5, slots: 10 },
+  { millions: 3.5, slots: 8 },
+  { millions: 2.5, slots: 6 },
+  { millions: 1.5, slots: 5 },
+  { millions: 0.8, slots: 4 },
+  { millions: 0.3, slots: 2 },
+  { millions: 0.1, slots: 1 },
+];
+
+const MILLION = 1_000_000;
+
+/** The factories, dockyards and other shared buildings `province` has room for. */
+export const buildingSlotsOf = (province: LandProvince): number =>
+  Math.max(
+    0,
+    ...SLOTS_BY_PEOPLE.filter(
+      (category) => provincePeople(province) >= category.millions * MILLION
+    ).map((category) => category.slots)
+  );
+
+/** The shared building slots a nation holds, and how many of them its buildings take. */
+export interface HeldSlots {
+  readonly used: number;
+  readonly total: number;
+}
+
+/** The building slots over the ground `nation` holds in `estate`. */
+export const slotsHeldBy = (
+  { owners, plants, world }: Omit<Estate, "infrastructure">,
+  nation: number
+): HeldSlots => {
+  const held = sitesFor({ owners, world }, nation, "civilian");
+  return {
+    total: held.reduce(
+      (total, province) => total + buildingSlotsOf(province),
+      0
+    ),
+    used: held.reduce(
+      (used, province) => used + plantsIn(plants, province.id),
+      0
+    ),
+  };
 };
+
+/** Whether `province` has room for one more building. */
+const hasRoom = (plants: Plants, province: LandProvince): boolean =>
+  plantsIn(plants, province.id) < buildingSlotsOf(province);
 
 /** How many buildings stand in `province` for each person living there, one more counted. */
 const crowdingOf = (plants: Plants, province: LandProvince): number =>
   (plantsIn(plants, province.id) + 1) / Math.max(1, provincePeople(province));
 
 /**
- * The province of its own `nation` puts a new building of `kind` in: the one
- * with the fewest buildings for the people living there, the first on a tie,
- * so a nation's industry spreads over its ground the way its people do. A
- * dockyard goes on a coast, and anywhere the nation holds where it holds no
- * coast. None where it holds no land at all.
+ * The one of `sites` a building goes up fastest in: the highest
+ * infrastructure, then the fewest buildings for the people living there, then
+ * the first.
  */
-const siteFor = (
+const bestOf = (
+  estate: Estate,
+  sites: readonly LandProvince[]
+): Option.Option<LandProvince> =>
+  Option.fromIterable(
+    sites.toSorted(
+      (one, other) =>
+        valueAt(estate.infrastructure, other.id) -
+          valueAt(estate.infrastructure, one.id) ||
+        crowdingOf(estate.plants, one) - crowdingOf(estate.plants, other)
+    )
+  );
+
+/** How a province of its own is picked for a nation's next building of a kind. */
+type SitePicker = (
   estate: Estate,
   nation: number,
   kind: PlantKind
-): Option.Option<LandProvince> =>
-  Option.fromIterable(
-    fallbackSites(estate, nation, kind).toSorted(
-      (one, other) =>
-        crowdingOf(estate.plants, one) - crowdingOf(estate.plants, other)
+) => Option.Option<LandProvince>;
+
+/** Where a nation builds next, what, and the level of the infrastructure there. */
+export interface Site {
+  readonly province: number;
+  readonly kind: PlantKind;
+  readonly infrastructure: number;
+}
+
+/**
+ * The province of its own with a free slot where `nation` builds a building
+ * of `kind`, or none where it holds no such province.
+ */
+const roomFor: SitePicker = (estate, nation, kind) =>
+  bestOf(
+    estate,
+    sitesFor(estate, nation, kind).filter((province) =>
+      hasRoom(estate.plants, province)
+    )
+  );
+
+/**
+ * Where `nation` builds the building its plan wants, `wanted`, and what: a
+ * military factory where it wants a dockyard and has no free slot on a coast,
+ * and none where it has no free slot anywhere, so no factory goes up until a
+ * slot frees.
+ */
+export const nextSiteOf = (
+  estate: Estate,
+  nation: number,
+  wanted: PlantKind
+): Option.Option<Site> => {
+  const site = (kind: PlantKind) =>
+    Option.map(roomFor(estate, nation, kind), (province) => ({
+      infrastructure: valueAt(estate.infrastructure, province.id),
+      kind,
+      province: province.id,
+    }));
+  if (wanted === "dockyards") {
+    return Option.orElse(site("dockyards"), () => site("military"));
+  }
+  return site(wanted);
+};
+
+/**
+ * The province of its own `nation` puts a new building of `kind` in: the best
+ * one with a free slot, or, where a focus hands it more than its slots have
+ * room for, the best one it holds where the building can stand, a dockyard
+ * going inland where it holds no coast. None where it holds no land at all.
+ */
+const siteFor: SitePicker = (estate, nation, kind) =>
+  Option.orElse(roomFor(estate, nation, kind), () =>
+    Option.orElse(bestOf(estate, sitesFor(estate, nation, kind)), () =>
+      bestOf(estate, sitesFor(estate, nation, "civilian"))
     )
   );
 
 /**
  * The buildings once every building each nation's economy gained between
  * `before` and `after`, by finishing a construction site or by a focus
- * handing it factories, has been put in a province of its own. A nation that
- * lost buildings between the two loses none here, because what it held is
- * counted again from the provinces at the end of the day.
+ * handing it factories, has been put in a province of its own. A finished
+ * one lands where `nextSiteOf` had it built, as long as `estate` is what the
+ * day's construction read. A nation that lost buildings between the two loses
+ * none here, because what it held is counted again from the provinces.
  */
 export const placedGains = (
   estate: Estate,

@@ -34,6 +34,7 @@ const SUMMARY: NationSummary = {
   occupation: [],
   provinces: 61,
   puppets: [],
+  slots: { total: 120, used: 45 },
   standing: { kind: "independent" },
   supply: [],
   terrain: [
@@ -46,11 +47,12 @@ const SUMMARY: NationSummary = {
 };
 
 describe(territoryOf, () => {
-  it("should read the provinces, the area and the people when a nation is picked", () => {
+  it("should read the provinces, the area, the people and the building slots taken when a nation is picked", () => {
     expect(territoryOf(SUMMARY)).toStrictEqual([
       { label: "州", value: "61" },
       { label: "面積", value: "6943" },
       { label: "人口", value: "125,166,336" },
+      { label: "建設枠", value: "45 / 120" },
     ]);
   });
 });

@@ -14,11 +14,15 @@ const TERRAIN_LABELS = {
   tundra: "ツンドラ",
 } satisfies Readonly<Record<Terrain, string>>;
 
-/** The ground a nation holds and the people on it. */
+/** The ground a nation holds, the people on it, and the building slots it has. */
 export const territoryOf = (summary: NationSummary): readonly Stat[] => [
   { label: "州", value: String(summary.provinces) },
   { label: "面積", value: String(summary.cells) },
   { label: "人口", value: countLabel(summary.economy.population) },
+  {
+    label: "建設枠",
+    value: `${summary.slots.used} / ${summary.slots.total}`,
+  },
 ];
 
 /** What that ground is made of, the most of it first. */

@@ -1,9 +1,12 @@
+import { Option } from "effect";
 import type { Reach } from "./compliance";
 import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
 import { industryByNation } from "./industry";
+import { constructionSpeedAt } from "./infrastructure";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import type { PlantKind, Site } from "./plants";
 import { UNASSIGNED } from "./spread";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW } from "./trade";
@@ -85,8 +88,8 @@ const PLAN_SHARES = {
 
 /**
  * What a nation works with beyond its economy: what it has researched and
- * pursued, how much of what it holds it can draw on, and what its trade and
- * its coast leave it.
+ * pursued, how much of what it holds it can draw on, what its trade leaves
+ * it, and where it builds.
  */
 export interface Footing {
   readonly modifiers: Modifiers;
@@ -105,8 +108,8 @@ export interface Footing {
   readonly tiedUp: number;
   /** The share of its military factories on planes, from 0 to 1. */
   readonly aviation: number;
-  /** The share of its people who live on the coast, from 0 to 1. */
-  readonly coastal: number;
+  /** Where it builds its next factory, or none where it has no free slot to build in. */
+  readonly site: Option.Option<Site>;
 }
 
 /** What a nation's economy holds on one day. */
@@ -168,8 +171,9 @@ const CONSTRUCTION_PER_FACTORY = 5;
  * What one new factory costs, in construction.
  *
  * Forty civilian factories under the civilian plan, which puts 35% of them on
- * consumer goods, finish one in eighty-three days, which is seven seconds at
- * the fastest speed and three minutes at the slowest.
+ * consumer goods, finish one in eighty-three days on ground with no
+ * infrastructure, which is seven seconds at the fastest speed and three
+ * minutes at the slowest, and in half that where it stands at level 5.
  */
 const FACTORY_COST = 10_800;
 
@@ -257,10 +261,20 @@ const constructionPerDay = (
  */
 const ROADWORKS_SHARE = 0.25;
 
-/** The share of today's construction that goes into `economy`'s road site. */
-const roadworksShareOf = (economy: NationEconomy): number => {
+/**
+ * The share of today's construction that goes into `economy`'s road site:
+ * none without one, all of it where the nation has no free slot for a
+ * factory, and a quarter otherwise.
+ */
+const roadworksShareOf = (
+  economy: NationEconomy,
+  site: Option.Option<Site>
+): number => {
   if (economy.roadSite === UNASSIGNED) {
     return 0;
+  }
+  if (Option.isNone(site)) {
+    return 1;
   }
   return ROADWORKS_SHARE;
 };
@@ -283,13 +297,6 @@ const freeManpower = (
       economy.recruited
   );
 
-/** How the factories finished today divide between the kinds. */
-interface Built {
-  readonly civilian: number;
-  readonly military: number;
-  readonly dockyards: number;
-}
-
 /**
  * The share of the factories a war plan arms that a nation puts into
  * dockyards for each share of its people on the coast. Hearts of Iron IV
@@ -298,7 +305,8 @@ interface Built {
 const DOCKYARDS_PER_COASTAL_SHARE = 0.3;
 
 /**
- * Which kind the factories finished today come out as.
+ * Which kind of building the nation's plan wants next, for a nation with
+ * `coastal` of its people on the coast.
  *
  * A nation builds toward the split its plan asks for, so a nation that has just
  * taken a war plan puts everything it finishes into weapons until the split is
@@ -306,26 +314,43 @@ const DOCKYARDS_PER_COASTAL_SHARE = 0.3;
  * they are behind the share its coast asks for, and to military factories
  * after that.
  */
-const splitBuilt = (
+export const wantedKindOf = (
   economy: NationEconomy,
-  built: number,
   coastal: number
-): Built => {
+): PlantKind => {
   const armed = economy.militaryFactories + economy.dockyards;
   const factories = economy.civilianFactories + armed;
   // A nation holding no factories at all would divide by zero, and it builds
   // nothing in any case, so the share it reads is the one that arms it first.
   if (armed / Math.max(1, factories) >= PLAN_SHARES[economy.plan].military) {
-    return { civilian: built, dockyards: 0, military: 0 };
+    return "civilian";
   }
   if (
     economy.dockyards / Math.max(1, armed) <
     coastal * DOCKYARDS_PER_COASTAL_SHARE
   ) {
-    return { civilian: 0, dockyards: built, military: 0 };
+    return "dockyards";
   }
-  return { civilian: 0, dockyards: 0, military: built };
+  return "military";
 };
+
+/** How much faster than on bare ground the nation builds at `site`, and not at all without one. */
+const siteSpeedOf = (site: Option.Option<Site>): number =>
+  Option.match(site, {
+    onNone: () => 0,
+    onSome: (open) => constructionSpeedAt(open.infrastructure),
+  });
+
+/** How many of `kind` `finished` buildings of the kind `site` builds make. */
+const finishedAs = (
+  site: Option.Option<Site>,
+  kind: PlantKind,
+  finished: number
+): number =>
+  Option.match(site, {
+    onNone: () => 0,
+    onSome: (open) => finished * Number(open.kind === kind),
+  });
 
 /**
  * The share of their full output the nation's military factories or
@@ -411,7 +436,10 @@ export const burnt = (
 
 /**
  * The economy after one day of work, which is the step the calendar takes,
- * a share of its construction going to its road site while it has one, with
+ * a share of its construction going to its road site while it has one, all
+ * of it where it has no free slot for a factory, and the rest to its factory
+ * site as fast as the infrastructure there lets it, one factory at most a
+ * day with what runs past it kept for the next, with
  * the nation's technologies and focuses speeding up its construction,
  * the equipment of the military factories it does not have on planes, and
  * the reach of its conscription law, a heavy law taking
@@ -424,18 +452,18 @@ export const producedOneDay = (
 ): NationEconomy => {
   const population = economy.population * (1 + POPULATION_GROWTH_PER_DAY);
   const constructed = constructionPerDay(economy, footing);
-  const onRoads = constructed * roadworksShareOf(economy);
-  const progressed = economy.construction + constructed - onRoads;
-  const built = splitBuilt(
-    economy,
-    Math.floor(progressed / FACTORY_COST),
-    footing.coastal
-  );
+  const onRoads = constructed * roadworksShareOf(economy, footing.site);
+  const progressed =
+    economy.construction + (constructed - onRoads) * siteSpeedOf(footing.site);
+  const finished = Math.min(1, Math.floor(progressed / FACTORY_COST));
   return {
     ...economy,
-    civilianFactories: economy.civilianFactories + built.civilian,
-    construction: progressed % FACTORY_COST,
-    dockyards: economy.dockyards + built.dockyards,
+    civilianFactories:
+      economy.civilianFactories +
+      finishedAs(footing.site, "civilian", finished),
+    construction: progressed - finished * FACTORY_COST,
+    dockyards:
+      economy.dockyards + finishedAs(footing.site, "dockyards", finished),
     equipment:
       economy.equipment +
       economy.militaryFactories *
@@ -448,7 +476,9 @@ export const producedOneDay = (
           footing.modifiers.production
         ),
     manpower: freeManpower(economy, population, footing),
-    militaryFactories: economy.militaryFactories + built.military,
+    militaryFactories:
+      economy.militaryFactories +
+      finishedAs(footing.site, "military", finished),
     population,
     roadworks: economy.roadworks + onRoads,
   };

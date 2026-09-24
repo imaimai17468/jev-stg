@@ -1,3 +1,4 @@
+import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { airspaceOf } from "./airspace";
 import type { Reach } from "./compliance";
@@ -12,6 +13,7 @@ import {
   outputOf,
   startEconomies,
   upkept,
+  wantedKindOf,
   withConscription,
   withPlan,
   withTradeLaw,
@@ -98,14 +100,15 @@ const OWNERS = Int32Array.from([0, UNASSIGNED]);
 
 /**
  * A nation with nothing researched, drawing on all it holds, short of no
- * resource, trading no factories away and living inland.
+ * resource, trading no factories away, and building a civilian factory on
+ * ground with no infrastructure.
  */
 const INLAND: Footing = {
   airSupplied: 1,
   aviation: 0,
-  coastal: 0,
   modifiers: NO_MODIFIERS,
   reach: FULL_REACH,
+  site: Option.some({ infrastructure: 0, kind: "civilian", province: 0 }),
   supplied: 1,
   tiedUp: 0,
   traded: 0,
@@ -265,6 +268,22 @@ describe(constructionProgress, () => {
   });
 });
 
+describe(wantedKindOf, () => {
+  const ARMING: NationEconomy = { ...INDUSTRY, plan: "total-war" };
+
+  it.each([
+    { coastal: 0, economy: INDUSTRY, kind: "civilian" },
+    { coastal: 0, economy: ARMING, kind: "military" },
+    { coastal: 1, economy: ARMING, kind: "dockyards" },
+    { coastal: 1, economy: { ...ARMING, dockyards: 5 }, kind: "military" },
+  ])(
+    "should want a $kind building when the plan is $economy.plan and $coastal of the people live on the coast",
+    ({ coastal, economy, kind }) => {
+      expect(wantedKindOf(economy, coastal)).toBe(kind);
+    }
+  );
+});
+
 describe(producedOneDay, () => {
   it("should turn out equipment and advance the site when a day passes", () => {
     expect(producedOneDay(INDUSTRY, INLAND)).toStrictEqual({
@@ -308,14 +327,15 @@ describe(producedOneDay, () => {
     });
   });
 
-  it("should finish a military factory when the nation holds less of them than its plan wants", () => {
-    const arming: NationEconomy = {
-      ...INDUSTRY,
-      construction: 10_705,
-      plan: "total-war",
-    };
+  it("should finish the kind its site builds when the construction runs past the cost", () => {
+    const arming: NationEconomy = { ...INDUSTRY, construction: 10_735 };
 
-    expect(producedOneDay(arming, INLAND)).toStrictEqual({
+    expect(
+      producedOneDay(arming, {
+        ...INLAND,
+        site: Option.some({ infrastructure: 0, kind: "military", province: 0 }),
+      })
+    ).toStrictEqual({
       ...arming,
       construction: 0,
       equipment: 50,
@@ -323,34 +343,41 @@ describe(producedOneDay, () => {
     });
   });
 
-  it("should finish a dockyard when the nation arms and its dockyards lag behind what its coast asks for", () => {
-    const arming: NationEconomy = {
-      ...INDUSTRY,
-      construction: 10_705,
-      plan: "total-war",
-    };
-
-    expect(producedOneDay(arming, { ...INLAND, coastal: 1 })).toStrictEqual({
-      ...arming,
-      construction: 0,
-      dockyards: 1,
-      equipment: 50,
-    });
+  it("should build as much faster as the infrastructure at its site lets it when that stands at level 5", () => {
+    expect(
+      producedOneDay(INDUSTRY, {
+        ...INLAND,
+        site: Option.some({ infrastructure: 5, kind: "civilian", province: 0 }),
+      }).construction
+    ).toBe(130);
   });
 
-  it("should finish a military factory when the nation arms and its dockyards already meet what its coast asks for", () => {
-    const arming: NationEconomy = {
-      ...INDUSTRY,
-      construction: 10_705,
-      dockyards: 5,
-      plan: "total-war",
-    };
+  it("should leave the construction where it stood when the nation has no free slot to build in", () => {
+    expect(
+      producedOneDay(
+        { ...INDUSTRY, construction: 500 },
+        { ...INLAND, site: Option.none() }
+      ).construction
+    ).toBe(500);
+  });
 
-    expect(producedOneDay(arming, { ...INLAND, coastal: 1 })).toStrictEqual({
-      ...arming,
-      construction: 0,
+  it("should put the whole day's construction into the roadworks when the nation has a road site and no free slot", () => {
+    expect(
+      producedOneDay(
+        { ...INDUSTRY, roadSite: 0 },
+        { ...INLAND, site: Option.none() }
+      ).roadworks
+    ).toBe(65);
+  });
+
+  it("should finish one factory and keep the rest for tomorrow when the construction runs past two", () => {
+    const flush: NationEconomy = { ...INDUSTRY, construction: 2 * 10_800 };
+
+    expect(producedOneDay(flush, INLAND)).toStrictEqual({
+      ...flush,
+      civilianFactories: 21,
+      construction: 10_865,
       equipment: 50,
-      militaryFactories: 11,
     });
   });
 
@@ -379,7 +406,7 @@ describe(producedOneDay, () => {
     ).toBe(0);
   });
 
-  it("should finish a civilian factory when the nation already holds the share its plan wants", () => {
+  it("should finish a civilian factory when its site builds one", () => {
     const building: NationEconomy = { ...INDUSTRY, construction: 10_735 };
 
     expect(producedOneDay(building, INLAND)).toStrictEqual({
