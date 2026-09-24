@@ -1,5 +1,5 @@
 import "@tanstack/react-start/server-only";
-import { Option } from "effect";
+import { Match, Option } from "effect";
 import type {
   AgencyModifiers,
   AgencyProject,
@@ -9,8 +9,13 @@ import {
   factoriesFor,
   upgradeTermsOf,
 } from "@/shared/entities/world/agency";
+import {
+  DROP_SUPERIORITY,
+  TRANSPORTS_PER_DIVISION,
+} from "@/shared/entities/world/airborne";
 import type {
   Aircraft,
+  AirframeModel,
   AirframeModels,
   Aviation,
 } from "@/shared/entities/world/aircraft";
@@ -221,7 +226,19 @@ const AIRCRAFT_WORDS = {
     `戦闘機（${name}、1機の費用${cost}、敵機を落として制空権を取る。敵に制空権を握られると陸戦の力が最大35%、行軍の速さが最大30%落ちる）`,
   "naval-bomber": (cost: number, name: string) =>
     `雷撃機（${name}、1機の費用${cost}、送られた海の敵艦を攻撃して沈める）`,
+  transport: (cost: number, name: string) =>
+    `輸送機（${name}、1機の費用${cost}、空挺師団を敵の後方に降下させる。1個師団に${TRANSPORTS_PER_DIVISION}機、降下する空域の制空権を${percentOf(DROP_SUPERIORITY)}以上握っているときだけ飛べる）`,
 } satisfies Readonly<Record<Aircraft, (cost: number, name: string) => string>>;
+
+/**
+ * What a plane design is called: its technology's name, or, for the transport
+ * no technology unlocks, the year Hearts of Iron IV dates it.
+ */
+const designNameOf = (model: AirframeModel): string =>
+  Match.value(model).pipe(
+    Match.when("transport-plane-1", () => "1933年型"),
+    Match.orElse((researched) => techOf(researched).name)
+  );
 
 /** What each plane does, in words, for factories building `models`. */
 const aircraftLabelsOf = (models: AirframeModels) =>
@@ -230,7 +247,7 @@ const aircraftLabelsOf = (models: AirframeModels) =>
       aircraft,
       AIRCRAFT_WORDS[aircraft](
         airframeOf(models[aircraft]).cost,
-        techOf(models[aircraft]).name
+        designNameOf(models[aircraft])
       ),
     ])
   );

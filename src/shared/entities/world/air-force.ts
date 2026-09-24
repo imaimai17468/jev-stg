@@ -10,7 +10,7 @@ import { UNASSIGNED } from "./spread";
 /**
  * What an air wing is doing: fighting for the sky over a region, striking the
  * divisions fighting below it, striking the ships at sea in it, or waiting at
- * its base.
+ * its base, which is where transport planes wait to drop paratroopers.
  */
 export type AirMission =
   | "superiority"
@@ -129,6 +129,7 @@ const OPENING_PLANES_PER_FACTORY = {
   "close-support": 3,
   fighter: 6,
   "naval-bomber": 1,
+  transport: 0,
 } satisfies Readonly<Record<Aircraft, number>>;
 
 /**
@@ -178,6 +179,8 @@ export const planesOf = (airForce: AirForce, aircraft: Aircraft): number =>
     .filter((wing) => aircraftOf(wing) === aircraft)
     .reduce((total, wing) => total + wing.planes, 0);
 
-/** How many planes the air force has of every kind. */
-export const allPlanesOf = (airForce: AirForce): number =>
-  airForce.wings.reduce((total, wing) => total + wing.planes, 0);
+/** How many planes the air force has that can fight, its unarmed transports left out. */
+export const combatPlanesOf = (airForce: AirForce): number =>
+  airForce.wings
+    .filter((wing) => aircraftOf(wing) !== "transport")
+    .reduce((total, wing) => total + wing.planes, 0);

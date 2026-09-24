@@ -79,6 +79,7 @@ const MISSION_OF = {
   "close-support": "close-support",
   fighter: "superiority",
   "naval-bomber": "naval-strike",
+  transport: "standby",
 } satisfies Readonly<Record<Aircraft, AirMission>>;
 
 /** What a nation has at stake over each region, by region id. */
@@ -193,12 +194,18 @@ const stakesOf = (
 const FLEET_STAKE = 2;
 const ENEMY_AIR_PER_STAKE = 10;
 
-/** How much a wing of `aircraft` is wanted over `region`. */
+/**
+ * How much a wing of `aircraft` is wanted over `region`: nowhere for a
+ * transport, which waits at its base for a drop.
+ */
 const scoreOf = (
   aircraft: Aircraft,
   stakes: Stakes,
   region: number
 ): number => {
+  if (aircraft === "transport") {
+    return 0;
+  }
   if (aircraft === "naval-bomber") {
     return valueAt(stakes.prey, region);
   }
@@ -368,6 +375,7 @@ const ordered = (
     "close-support": tasked("close-support"),
     fighter: tasked("fighter"),
     "naval-bomber": tasked("naval-bomber"),
+    transport: tasked("transport"),
   } satisfies Readonly<Record<Aircraft, Tasking>>;
   return {
     ...airForce,

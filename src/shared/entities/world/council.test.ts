@@ -229,6 +229,14 @@ const startedTechs = (simulation: Simulation) =>
 const briefOfFirst = (council: Council) =>
   council.nations.find((brief) => brief.nation === 0);
 
+/** A paratrooper division of nation 0 standing at its capital. */
+const PARATROOPER = division({
+  kind: "paratroopers",
+  nation: 0,
+  organisation: 70,
+  province: 0,
+});
+
 describe(councilOf, () => {
   it("should brief every government that decides for itself when the month turns", () => {
     expect(
@@ -463,19 +471,23 @@ describe(councilOf, () => {
     });
   });
 
-  it("should count its planes, its enemies' planes, its fuel and the skies it has lost when the nation is at war", () => {
+  it("should count its fighting planes, its enemies' fighting planes, its fuel and the skies it has lost when the nation is at war with transports on both sides", () => {
     const aloft: Simulation = {
       ...allKnown(withDiplomacy(warDeclared(ROW_SIMULATION.diplomacy, 0, 1))),
       airForces: replacedAt(
         replacedAt(
           ROW_SIMULATION.airForces,
           0,
-          airForceOf([wing({ base: 0, model: "fighter-1", planes: 30 })])
+          airForceOf([
+            wing({ base: 0, model: "fighter-1", planes: 30 }),
+            wing({ base: 0, model: "transport-plane-1", planes: 50 }),
+          ])
         ),
         1,
         airForceOf([
           wing({ base: 1, model: "fighter-1", planes: 20 }),
           wing({ base: 1, model: "close-air-support-1", planes: 5 }),
+          wing({ base: 1, model: "transport-plane-1", planes: 40 }),
         ])
       ),
       airPower: replacedAt(
@@ -870,6 +882,87 @@ describe(ruledByRules, () => {
       air: { aviation: "light", order: "close-support" },
       condition: "a nation at war holds the sky and the sea",
       simulation: atWar([]),
+    },
+    {
+      air: { aviation: "light", order: "transport" },
+      condition:
+        "a nation at peace with fighters enough fields paratroopers without the transports to drop them",
+      simulation: {
+        ...ROW_SIMULATION,
+        airForces: replacedAt(
+          ROW_SIMULATION.airForces,
+          0,
+          airForceOf([wing({ base: 0, model: "fighter-1", planes: 30 })])
+        ),
+        divisions: [PARATROOPER],
+      },
+    },
+    {
+      air: { aviation: "light", order: "fighter" },
+      condition:
+        "a nation at peace with no fighters fields paratroopers without transports",
+      simulation: { ...ROW_SIMULATION, divisions: [PARATROOPER] },
+    },
+    {
+      air: { aviation: "light", order: "close-support" },
+      condition:
+        "a nation at peace has two thirds of its fighting planes in fighters besides its transports",
+      simulation: {
+        ...ROW_SIMULATION,
+        airForces: replacedAt(
+          ROW_SIMULATION.airForces,
+          0,
+          airForceOf([
+            wing({ base: 0, model: "fighter-1", planes: 60 }),
+            wing({ base: 0, model: "close-air-support-1", planes: 30 }),
+            wing({ base: 0, model: "transport-plane-1", planes: 50 }),
+          ])
+        ),
+      },
+    },
+    {
+      air: { aviation: "light", order: "fighter" },
+      condition:
+        "a nation at peace has the transports to drop all its paratroopers",
+      simulation: {
+        ...ROW_SIMULATION,
+        airForces: replacedAt(
+          ROW_SIMULATION.airForces,
+          0,
+          airForceOf([
+            wing({ base: 0, model: "transport-plane-1", planes: 50 }),
+          ])
+        ),
+        divisions: [PARATROOPER],
+      },
+    },
+    {
+      air: { aviation: "heavy", order: "fighter" },
+      condition:
+        "a nation at war short of transports has lost a sky it flies over to its enemy",
+      simulation: {
+        ...atWar([]),
+        airPower: replacedAt(
+          replacedAt(ROW_SIMULATION.airPower, 0, Float32Array.from([2, 0])),
+          1,
+          Float32Array.from([10, 0])
+        ),
+        divisions: [PARATROOPER],
+      },
+    },
+    {
+      air: { aviation: "light", order: "fighter" },
+      condition:
+        "a nation at war short of transports has fewer fighters than its enemy",
+      simulation: {
+        ...atWar([]),
+        airForces: replacedAt(
+          ROW_SIMULATION.airForces,
+          1,
+          airForceOf([wing({ base: 1, model: "fighter-1", planes: 20 })])
+        ),
+        divisions: [PARATROOPER],
+      },
     },
   ])(
     "should put the air factories on $air.order at $air.aviation when $condition",

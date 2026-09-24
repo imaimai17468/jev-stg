@@ -26,6 +26,7 @@ describe(airframeModelsOf, () => {
       "close-support": "close-air-support-1",
       fighter: "interwar-fighter",
       "naval-bomber": "naval-bomber-1",
+      transport: "transport-plane-1",
     });
   });
 
@@ -44,6 +45,7 @@ describe(airframeModelsOf, () => {
       "close-support": "close-air-support-2",
       fighter: "fighter-2",
       "naval-bomber": "naval-bomber-3",
+      transport: "transport-plane-1",
     });
   });
 });

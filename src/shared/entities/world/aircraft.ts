@@ -8,6 +8,7 @@ const AircraftSchema = Schema.Literals([
   "fighter",
   "close-support",
   "naval-bomber",
+  "transport",
 ]);
 
 export type Aircraft = typeof AircraftSchema.Type;
@@ -49,6 +50,7 @@ const AirframeModelSchema = Schema.Literals([
   "naval-bomber-1",
   "naval-bomber-2",
   "naval-bomber-3",
+  "transport-plane-1",
 ]);
 
 export type AirframeModel = typeof AirframeModelSchema.Type;
@@ -59,7 +61,8 @@ export const AIRFRAME_MODELS = AirframeModelSchema.literals;
  * The planes of Hearts of Iron IV without By Blood Alone, from the inter-war
  * fighter to the 1944 models: their cost, their air attack, air defence,
  * agility and speed, their ground and naval attack, their fuel, and the
- * aluminium and rubber they take.
+ * aluminium and rubber they take. The transport plane is its 1.12 files' one,
+ * which every nation can build from the start without a technology.
  */
 const AIRFRAMES = {
   "close-air-support-1": {
@@ -182,6 +185,18 @@ const AIRFRAMES = {
     resources: { ...NO_RESOURCES, aluminium: 3, rubber: 1 },
     speed: 400,
   },
+  "transport-plane-1": {
+    agility: 10,
+    airAttack: 0,
+    airDefence: 20,
+    aircraft: "transport",
+    cost: 4,
+    fuel: 1,
+    groundAttack: 0,
+    navalAttack: 0,
+    resources: { ...NO_RESOURCES, aluminium: 3, rubber: 2 },
+    speed: 300,
+  },
 } satisfies Readonly<Record<AirframeModel, Airframe>>;
 
 export const airframeOf = (model: AirframeModel): Airframe => AIRFRAMES[model];
@@ -194,6 +209,7 @@ export const AirframeModelsSchema = Schema.Struct({
   "close-support": AirframeModelSchema,
   fighter: AirframeModelSchema,
   "naval-bomber": AirframeModelSchema,
+  transport: AirframeModelSchema,
 });
 
 export type AirframeModels = typeof AirframeModelsSchema.Type;
@@ -203,6 +219,7 @@ const FIRST_MODELS = {
   "close-support": "close-air-support-1",
   fighter: "interwar-fighter",
   "naval-bomber": "naval-bomber-1",
+  transport: "transport-plane-1",
 } satisfies AirframeModels;
 
 /** The newest researched design of one kind. */
@@ -218,6 +235,7 @@ export const airframeModelsOf = (
   "close-support": newest(researched, "close-support"),
   fighter: newest(researched, "fighter"),
   "naval-bomber": newest(researched, "naval-bomber"),
+  transport: newest(researched, "transport"),
 });
 
 /** How much of its military factories a nation puts on planes. */

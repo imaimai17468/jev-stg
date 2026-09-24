@@ -4,7 +4,8 @@ import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
 import type { AgencyProject } from "./agency";
 import { AGENCY_UPGRADES, agencyOptions } from "./agency";
 import type { AirForce } from "./air-force";
-import { allPlanesOf, NO_AIR_FORCE, planesOf } from "./air-force";
+import { combatPlanesOf, NO_AIR_FORCE, planesOf } from "./air-force";
+import { transportsFor } from "./airborne";
 import type { Aircraft, Aviation } from "./aircraft";
 import { AIRCRAFT, AVIATIONS } from "./aircraft";
 import { armouryOf } from "./armoury";
@@ -320,7 +321,7 @@ const briefOf = (
       fleetStrength(itemAt(dossier.navies, enemy, NO_NAVY))
     ),
     enemyPlanes: sighted("air", (enemy) =>
-      allPlanesOf(itemAt(dossier.airForces, enemy, NO_AIR_FORCE))
+      combatPlanesOf(itemAt(dossier.airForces, enemy, NO_AIR_FORCE))
     ),
     enemyStrength: sighted("army", (enemy) =>
       strengthAmong(standoff, new Set([enemy]))
@@ -335,7 +336,7 @@ const briefOf = (
     nation,
     operatives: dossier.service.operatives,
     planeModels: armoury.planes,
-    planes: allPlanesOf(airForce),
+    planes: combatPlanesOf(airForce),
     population: economy.population,
     posted: dossier.service.target !== HOME,
     rivals: rivalsOf(standoff, dossier, nation, day),
@@ -577,8 +578,10 @@ interface AirPicture {
   readonly skyLost: boolean;
   readonly outnumbered: boolean;
   readonly outgunnedAtSea: boolean;
-  /** The share of its planes that are fighters, from 0 to 1. */
+  /** The share of its fighting planes that are fighters, from 0 to 1. */
   readonly fighterShare: number;
+  /** Whether it has fewer transport planes than dropping all its paratroopers at once takes. */
+  readonly transportsShort: boolean;
 }
 
 /**
@@ -590,6 +593,14 @@ const PEACETIME_FIGHTERS = 2 / 3;
 const PEACETIME_AIRCRAFT: readonly Aircraft[] = ["fighter", "close-support"];
 
 const aircraftByRules = (picture: AirPicture): Aircraft => {
+  if (
+    picture.transportsShort &&
+    !picture.skyLost &&
+    !picture.outnumbered &&
+    (picture.atWar || picture.fighterShare >= PEACETIME_FIGHTERS)
+  ) {
+    return "transport";
+  }
   if (!picture.atWar) {
     return itemAt(
       PEACETIME_AIRCRAFT,
@@ -609,7 +620,10 @@ const aircraftByRules = (picture: AirPicture): Aircraft => {
 /**
  * What the rules put a nation's air factories on this month: some of its
  * military factories on planes always, and more of them while its enemies
- * hold the sky anywhere it fights; at peace, fighters until they make up two
+ * hold the sky anywhere it fights; transport planes while it has too few to
+ * drop all its paratroopers at once, its enemies neither hold any of the sky
+ * nor have more fighters than it does, and, at peace, fighters already make
+ * up two thirds of its fighting planes; otherwise, at peace, fighters until they make up two
  * thirds of its planes and close air support after that; at war, fighters
  * while its enemies hold any of the sky or have more fighters than it does,
  * otherwise naval bombers while its enemies outgun it at sea, and close air
@@ -633,10 +647,13 @@ const airByRules = (
     );
   const airForce = itemAt(simulation.airForces, nation, NO_AIR_FORCE);
   const aviation = itemAt(AVIATION_BY_SKY, Number(skyLost), "light");
+  const paratroopers = simulation.divisions.filter(
+    (division) => division.nation === nation && division.kind === "paratroopers"
+  ).length;
   const aircraft = aircraftByRules({
     atWar: enemies.length > 0,
     fighterShare:
-      planesOf(airForce, "fighter") / Math.max(1, allPlanesOf(airForce)),
+      planesOf(airForce, "fighter") / Math.max(1, combatPlanesOf(airForce)),
     outgunnedAtSea:
       enemyOf((navy) => fleetStrength(navy)) >
       fleetStrength(itemAt(simulation.navies, nation, NO_NAVY)),
@@ -644,6 +661,8 @@ const airByRules = (
       planesOf(airForce, "fighter") <
       enemyOf((_, enemy) => planesOf(enemy, "fighter")),
     skyLost,
+    transportsShort:
+      planesOf(airForce, "transport") < transportsFor(paratroopers),
   });
   return [
     { aviation, kind: "aviation", nation },
