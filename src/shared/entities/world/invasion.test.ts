@@ -235,6 +235,31 @@ describe(invasionOutcome, () => {
     });
   });
 
+  it("should leave the trenches behind when divisions that dug in at home go ashore", () => {
+    expect(
+      invasionOutcome(
+        {
+          ...LANDING,
+          divisions: [division({ entrenchment: 5, nation: 0, province: 0 })],
+        },
+        ISLES_OWNERS,
+        ISLES_WAR,
+        14,
+        clearSea
+      )
+    ).toStrictEqual({
+      divisions: [
+        division({
+          arrival: "landing",
+          movingTo: 2,
+          nation: 0,
+          province: 2,
+        }),
+      ],
+      kind: "landed",
+    });
+  });
+
   it("should put a transfer's divisions ashore on foot when it reaches a coast its side holds", () => {
     expect(
       invasionOutcome(TRANSFER, BEACHHEAD_OWNERS, ISLES_WAR, 14, clearSea)

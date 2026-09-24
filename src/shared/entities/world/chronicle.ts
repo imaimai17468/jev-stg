@@ -122,6 +122,14 @@ export type Decision =
       readonly defender: number;
     }
   | {
+      readonly kind: "paradrop";
+      readonly nation: number;
+      /** The province the paratroopers dropped onto. */
+      readonly target: number;
+      /** Whose province it was. */
+      readonly defender: number;
+    }
+  | {
       readonly kind: "white-peace";
       readonly one: number;
       readonly other: number;
@@ -130,12 +138,20 @@ export type Decision =
 /**
  * What a government decides month by month and a surrendered nation's victor
  * dictates, which is everything that goes through a ruling. A landing, a
- * white peace, an operation, a caught operative and a broken cipher come out
- * of the day's own step, so no ruling carries them out.
+ * paradrop, a white peace, an operation, a caught operative and a broken
+ * cipher come out of the day's own step, so no ruling carries them out.
  */
 export type Order = Exclude<
   Decision,
-  { kind: "landing" | "white-peace" | "operation" | "captured" | "cipher" }
+  {
+    kind:
+      | "landing"
+      | "paradrop"
+      | "white-peace"
+      | "operation"
+      | "captured"
+      | "cipher";
+  }
 >;
 
 /** Who made a decision: Jev, with how sure it was, or the built-in rules. */
@@ -192,6 +208,7 @@ const STRAND_OF = {
   justify: "diplomacy",
   landing: "operations",
   operation: "intelligence",
+  paradrop: "operations",
   peace: "diplomacy",
   plan: "policy",
   research: "advancement",

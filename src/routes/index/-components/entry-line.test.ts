@@ -131,6 +131,11 @@ describe(entryLine, () => {
       what: "a nation's divisions go ashore on an enemy coast",
     },
     {
+      action: "国1の州3に空挺降下",
+      decision: { defender: 1, kind: "paradrop", nation: 0, target: 3 },
+      what: "a nation's paratroopers drop onto an enemy province",
+    },
+    {
       action: "国1と白紙講和",
       decision: { kind: "white-peace", one: 0, other: 1 },
       what: "two nations that no longer touch sign a white peace",

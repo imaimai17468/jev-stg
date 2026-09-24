@@ -6,6 +6,7 @@ import {
   calledUpFor,
   canRaise,
   dailyLevyBeside,
+  dropWornOff,
   defenceOf,
   fieldedBy,
   infantryEquipmentOf,
@@ -14,6 +15,7 @@ import {
   menFor,
   nextKindFor,
   openingKindsOf,
+  paradropped,
   paidForDivision,
   raisedAt,
   regroupedEnough,
@@ -42,6 +44,7 @@ describe(raisedAt, () => {
   it("should stand a full division in the province when one is raised", () => {
     expect(raisedAt(2, 7, "infantry")).toStrictEqual({
       arrival: "march",
+      dropped: 0,
       entrenchment: 0,
       kind: "infantry",
       marched: 0,
@@ -667,5 +670,72 @@ describe("worn by kind", () => {
     expect(
       worn(division({ kind: "light-armour", strength: 17_000 }), 0.5).strength
     ).toBeCloseTo(16_957.5);
+  });
+});
+
+describe(paradropped, () => {
+  it("should stand the division on the target with two fifths of its kind's cohesion, five days of penalties and no trenches or plans when a full division that dug in at home drops", () => {
+    expect(
+      paradropped(
+        division({
+          entrenchment: 5,
+          kind: "paratroopers",
+          organisation: 70,
+          planning: 0.2,
+          province: 0,
+        }),
+        4
+      )
+    ).toStrictEqual(
+      division({
+        dropped: 5,
+        kind: "paratroopers",
+        movingTo: 4,
+        organisation: 28,
+        province: 4,
+      })
+    );
+  });
+
+  it("should keep its cohesion when the division drops with less than a paradrop leaves", () => {
+    expect(
+      paradropped(division({ kind: "paratroopers", organisation: 20 }), 4)
+        .organisation
+    ).toBe(20);
+  });
+});
+
+describe(dropWornOff, () => {
+  it.each([
+    { after: 4, before: 5 },
+    { after: 0, before: 0 },
+  ])(
+    "should leave $after days of penalties when the division had $before",
+    ({ after, before }) => {
+      expect(dropWornOff(division({ dropped: before })).dropped).toBe(after);
+    }
+  );
+});
+
+describe("attackOf after a paradrop", () => {
+  it.each([
+    { attack: 6 * 0.7, dropped: 5 },
+    { attack: 6 * 0.7, dropped: 4 },
+    { attack: 6, dropped: 3 },
+  ])(
+    "should be worth $attack when the division has $dropped days of its drop's penalties left",
+    ({ attack, dropped }) => {
+      expect(attackOf(division({ dropped }), SUPPLIED, "plains")).toBeCloseTo(
+        attack
+      );
+    }
+  );
+});
+
+describe("rested after a paradrop", () => {
+  it("should recover a fifth of a day's cohesion when the division is still under its drop's penalties", () => {
+    expect(
+      rested(division({ dropped: 1, organisation: 20 }), SUPPLIED).organisation
+    ).toBeCloseTo(20.6);
   });
 });

@@ -207,6 +207,8 @@ export interface Division {
   readonly entrenchment: number;
   /** The planning bonus its preparation has built, from 0 to `MOST_PLANNING`. */
   readonly planning: number;
+  /** The days left of the penalties its last paradrop put on it, 0 once they have worn off. */
+  readonly dropped: number;
 }
 
 /** The days it takes a division to walk into a province of each terrain. */
@@ -269,6 +271,7 @@ export const raisedAt = (
   kind: DivisionKind
 ): Division => ({
   arrival: "march",
+  dropped: 0,
   entrenchment: 0,
   kind,
   marched: 0,
@@ -666,6 +669,50 @@ const PLANNING_BY_ROLE = {
   defence: 0,
 } satisfies Readonly<Record<Role, number>>;
 
+/**
+ * The days a paradrop's penalties last, after Hearts of Iron IV's 120 hours of
+ * `PARACHUTE_ORG_REGAIN_PENALTY_DURATION` and 48 hours of `PARADROP_HOURS`,
+ * the share of its attack and defence a division loses for the second
+ * (`PARADROP_PENALTY`), the share of its recovery it loses for the first
+ * (`PARACHUTE_ORG_REGAIN_PENALTY_MULT`), and the share of its full cohesion
+ * it lands with (`PARACHUTE_COMPLETE_ORG`).
+ */
+const DROP_DAYS = 5;
+const DROP_COMBAT_DAYS = 2;
+const PARADROP_PENALTY = 0.3;
+const DROPPED_RECOVERY_PENALTY = 0.8;
+const DROPPED_ORGANISATION_SHARE = 0.4;
+
+/** Whether a division landed from the air recently enough to still fight at its paradrop's penalty. */
+const justDropped = (division: Division): boolean =>
+  division.dropped > DROP_DAYS - DROP_COMBAT_DAYS;
+
+/**
+ * The division dropped onto `target`: standing there, with no more of its
+ * cohesion than a paradrop leaves it and the days of its penalties ahead, and
+ * with the trenches and the plans it made where it waited left behind.
+ */
+export const paradropped = (division: Division, target: number): Division => ({
+  ...division,
+  arrival: "march",
+  dropped: DROP_DAYS,
+  entrenchment: 0,
+  marched: 0,
+  movingTo: target,
+  organisation: Math.min(
+    division.organisation,
+    organisationOf(division.kind) * DROPPED_ORGANISATION_SHARE
+  ),
+  planning: 0,
+  province: target,
+});
+
+/** The division a day further from its last paradrop. */
+export const dropWornOff = (division: Division): Division => ({
+  ...division,
+  dropped: Math.max(0, division.dropped - 1),
+});
+
 /** What a division is worth in a day of battle in `role` on `terrain`. */
 const worthIn = (
   division: Division,
@@ -684,6 +731,7 @@ const worthIn = (
     division.arrival
   ) *
   (1 + backing.modifiers[role]) *
+  (1 - PARADROP_PENALTY * Number(justDropped(division))) *
   suppliedWorth(backing.fill) *
   backing.air *
   (1 + backing.insight);
@@ -712,6 +760,7 @@ export const rested = (division: Division, backing: Backing): Division => ({
     division.organisation +
       ORGANISATION_PER_DAY *
         recoveryOf(division.kind) *
+        (1 - DROPPED_RECOVERY_PENALTY * Number(division.dropped > 0)) *
         (1 + backing.modifiers.recovery) *
         backing.fill
   ),

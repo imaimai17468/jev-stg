@@ -105,6 +105,7 @@ const SIMULATION: Simulation = {
   divisions: [
     {
       arrival: "march",
+      dropped: 0,
       entrenchment: 0,
       kind: "infantry",
       marched: 0,

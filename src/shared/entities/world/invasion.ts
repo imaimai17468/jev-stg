@@ -240,7 +240,8 @@ const CALLED_OFF: Outcome = { kind: "called-off" };
  * in each zone: it is called off once its target is no longer enemy ground or
  * it has waited too long for the sea, it goes in once it is ready and its side
  * holds more than half of every zone of the lane, and it waits otherwise. The
- * divisions go ashore on the target, still in the landing they made.
+ * divisions go ashore on the target, still in the landing they made and with
+ * the trenches they dug at home left behind.
  */
 export const invasionOutcome = (
   invasion: Invasion,
@@ -265,6 +266,7 @@ export const invasionOutcome = (
     divisions: invasion.divisions.map((division) => ({
       ...division,
       arrival: ARRIVAL_BY[invasion.crossing],
+      entrenchment: 0,
       marched: 0,
       movingTo: invasion.target,
       province: invasion.target,
