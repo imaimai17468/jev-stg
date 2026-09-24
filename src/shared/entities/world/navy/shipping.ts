@@ -1,10 +1,10 @@
-import type { Diplomacy } from "./diplomacy";
-import { itemAt } from "./lookup";
+import type { Diplomacy } from "../diplomacy";
+import { itemAt } from "../lookup";
+import type { ProvinceGraph } from "../provinces";
+import { atWar } from "../wars";
 import type { Lane, Navy } from "./navy";
 import { enemyHoldIn } from "./navy";
-import type { ProvinceGraph } from "./provinces";
 import { laneBetween } from "./seas";
-import { atWar } from "./wars";
 
 /** The convoys one lane asks for, and between which waters it runs. */
 export interface Voyage {

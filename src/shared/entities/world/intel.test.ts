@@ -15,10 +15,10 @@ import {
   NO_INTEL,
   noGleaned,
 } from "./intel";
-import type { Navy } from "./navy";
-import { NO_NAVY } from "./navy";
+import type { Navy } from "./navy/navy";
+import { NO_NAVY } from "./navy/navy";
+import { launched } from "./navy/ships";
 import type { Random } from "./random";
-import { launched } from "./ships";
 import { noWars } from "./wars";
 
 /** Two nations with nothing in the field, the sea or the air, at war with each other. */

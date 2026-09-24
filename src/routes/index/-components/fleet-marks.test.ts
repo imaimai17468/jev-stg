@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Navy } from "@/shared/entities/world/navy";
-import { NO_NAVY } from "@/shared/entities/world/navy";
-import { launched } from "@/shared/entities/world/ships";
+import type { Navy } from "@/shared/entities/world/navy/navy";
+import { NO_NAVY } from "@/shared/entities/world/navy/navy";
+import { launched } from "@/shared/entities/world/navy/ships";
 import { fleetMarks } from "./fleet-marks";
 import { FIXTURE_WORLD } from "./world-fixture";
 

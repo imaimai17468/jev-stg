@@ -6,7 +6,7 @@ import {
   touchedBetween,
 } from "./armistice";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
-import { ISLES_OWNERS, ISLES_WORLD } from "./sea-fixture";
+import { ISLES_OWNERS, ISLES_WORLD } from "./navy/sea-fixture";
 import { noWars } from "./wars";
 
 /** Two nations that never touched. */

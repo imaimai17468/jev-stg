@@ -1,8 +1,9 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Nation } from "./geography/nations";
-import { itemAt } from "./lookup";
-import { graphOf } from "./provinces";
+import type { Nation } from "../geography/nations";
+import { itemAt } from "../lookup";
+import { graphOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
 import { SEA_GRAPH, SEA_OWNERS, SEA_WORLD } from "./sea-fixture";
 import {
   overlandBetween,
@@ -18,7 +19,6 @@ import {
   stepAtSea,
   zonesOffshore,
 } from "./seas";
-import { UNASSIGNED } from "./spread";
 
 /** A nation that holds nothing, where the fixture names none. */
 const NOBODY: Nation = {

@@ -1,11 +1,11 @@
 import { Option } from "effect";
-import type { Armoury } from "./armoury";
-import type { Division } from "./army/divisions";
-import { musteringAt, sentToMuster } from "./army/muster";
-import type { Lines, SupplyReach } from "./army/supply";
-import { reachOf } from "./army/supply";
-import type { Diplomacy } from "./diplomacy";
-import type { Deal } from "./economy/trade";
+import type { Armoury } from "../armoury";
+import type { Division } from "../army/divisions";
+import { musteringAt, sentToMuster } from "../army/muster";
+import type { Lines, SupplyReach } from "../army/supply";
+import { reachOf } from "../army/supply";
+import type { Diplomacy } from "../diplomacy";
+import type { Deal } from "../economy/trade";
 import {
   COMBAT_FUEL_MULTIPLE,
   enginesKeptWith,
@@ -13,14 +13,18 @@ import {
   gunsKeptWith,
   makesWayOn,
   SHIP_FUEL_PER_DAY,
-} from "./fuel";
-import type { NationPair } from "./geography/nations";
-import { neighbouringNations } from "./geography/nations";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
+} from "../fuel";
+import type { NationPair } from "../geography/nations";
+import { neighbouringNations } from "../geography/nations";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { ProvinceGraph } from "../provinces";
+import { graphOf, isLand, neighboursOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { atWar } from "../wars";
 import type { Invasion, Muster } from "./invasion";
 import { invasionOutcome, invasionPlanned } from "./invasion";
-import { itemAt } from "./lookup";
 import type { SeaBattles } from "./naval-combat";
 import { foughtAtSea, foughtToday } from "./naval-combat";
 import type { Navy, Station, TaskForce } from "./navy";
@@ -33,8 +37,6 @@ import {
   enemyHoldIn,
   watersOf,
 } from "./navy";
-import type { ProvinceGraph } from "./provinces";
-import { graphOf, isLand, neighboursOf } from "./provinces";
 import type { HomePort } from "./seas";
 import {
   homePortOf,
@@ -45,8 +47,6 @@ import {
 import type { Sailings, Voyage, Waters } from "./shipping";
 import { idleConvoys, shippedOneDay } from "./shipping";
 import { hullOf } from "./ships";
-import { UNASSIGNED } from "./spread";
-import { atWar } from "./wars";
 
 /** Everything at sea, and the divisions a landing takes aboard or puts ashore. */
 export interface Seas {

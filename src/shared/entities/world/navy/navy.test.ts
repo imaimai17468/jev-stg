@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { joined } from "./diplomacy";
+import { joined } from "../diplomacy";
+import { UNASSIGNED } from "../spread";
 import type { Navy, Station, TaskForce } from "./navy";
 import {
   builtOneDay,
@@ -22,7 +23,6 @@ import { SEA_GRAPH, SHIPS_1936, ZERO_FIGHTS_ONE } from "./sea-fixture";
 import { seaDistanceFrom } from "./seas";
 import type { Ship, ShipClass } from "./ships";
 import { classOf, launched, supremacyOf } from "./ships";
-import { UNASSIGNED } from "./spread";
 
 /** A 1936 warship of `shipClass` fresh from the dockyard, with whatever a test needs changed. */
 const ship = (shipClass: ShipClass, patch: Partial<Ship> = {}): Ship => ({

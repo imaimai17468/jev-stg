@@ -1,21 +1,21 @@
 import { Option } from "effect";
-import type { Nation } from "./geography/nations";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
-import type { Province, ProvinceGraph } from "./provinces";
+import type { Nation } from "../geography/nations";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { Province, ProvinceGraph } from "../provinces";
 import {
   distanceOver,
   isLand,
   neighboursOf,
   overTheProvinces,
-} from "./provinces";
+} from "../provinces";
 import {
   distanceFrom,
   spreadFrom,
   UNASSIGNED,
   unassignedBuffer,
-} from "./spread";
+} from "../spread";
 
 /** The sea zones touching `province`, by province id. */
 export const coastOf = (

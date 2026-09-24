@@ -30,7 +30,7 @@ import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
 import { noNetworks } from "./geography/networks";
 import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
-import { NO_NAVY, openingNavy } from "./navy";
+import { NO_NAVY, openingNavy } from "./navy/navy";
 import { openingResearchOf, START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";

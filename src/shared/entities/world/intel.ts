@@ -9,7 +9,7 @@ import { allied } from "./diplomacy";
 import type { TradeLaw } from "./economy/trade";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
-import type { Navy } from "./navy";
+import type { Navy } from "./navy/navy";
 import type { Random } from "./random";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";

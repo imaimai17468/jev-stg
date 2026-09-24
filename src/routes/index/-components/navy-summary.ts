@@ -1,8 +1,15 @@
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
-import type { Invasion } from "@/shared/entities/world/invasion";
-import type { Navy } from "@/shared/entities/world/navy";
-import type { ShipClass, ShipDesigns } from "@/shared/entities/world/ships";
-import { classOf, orderOf, SHIP_CLASSES } from "@/shared/entities/world/ships";
+import type { Invasion } from "@/shared/entities/world/navy/invasion";
+import type { Navy } from "@/shared/entities/world/navy/navy";
+import type {
+  ShipClass,
+  ShipDesigns,
+} from "@/shared/entities/world/navy/ships";
+import {
+  classOf,
+  orderOf,
+  SHIP_CLASSES,
+} from "@/shared/entities/world/navy/ships";
 import { countLabel, percentLabel } from "./count-label";
 import { ORDER_NAMES } from "./naval-names";
 import type { Stat } from "./stat";

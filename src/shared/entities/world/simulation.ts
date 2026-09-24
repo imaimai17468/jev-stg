@@ -70,16 +70,16 @@ import {
   foughtOneDay as gleanedFromFighting,
   noGleaned,
 } from "./intel";
-import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
-import { homeZonesOf, seafaredOneDay } from "./maritime";
 import type { Modifiers } from "./modifiers";
-import type { Navy } from "./navy";
-import { NO_NAVY, openingNavy } from "./navy";
+import type { Invasion } from "./navy/invasion";
+import { homeZonesOf, seafaredOneDay } from "./navy/maritime";
+import type { Navy } from "./navy/navy";
+import { NO_NAVY, openingNavy } from "./navy/navy";
+import { landmassesOf } from "./navy/seas";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
-import { landmassesOf } from "./seas";
 import type { Skies } from "./skies";
 import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";

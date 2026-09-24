@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
+import { division } from "../army-fixture";
+import { UNASSIGNED } from "../spread";
 import type { Beachhead, Invasion, Muster } from "./invasion";
 import { invasionOutcome, invasionPlanned, landfallFor } from "./invasion";
 import {
@@ -9,7 +10,6 @@ import {
   ISLES_PEACE,
   ISLES_WAR,
 } from "./sea-fixture";
-import { UNASSIGNED } from "./spread";
 
 /** The islands at war with nobody standing anywhere. */
 const UNGUARDED: Beachhead = {

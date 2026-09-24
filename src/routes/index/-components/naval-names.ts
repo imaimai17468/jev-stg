@@ -1,6 +1,6 @@
 import type { Aircraft, Aviation } from "@/shared/entities/world/aircraft";
 import type { TradeLaw } from "@/shared/entities/world/economy/trade";
-import type { ShipyardOrder } from "@/shared/entities/world/ships";
+import type { ShipyardOrder } from "@/shared/entities/world/navy/ships";
 
 /** What the feed and the nation panel call each trade law. */
 export const TRADE_LAW_NAMES = {

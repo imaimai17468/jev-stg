@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import { lastWhere } from "./lookup";
 import type { Bonus } from "./modifiers";
-import type { ShipClass } from "./ships";
+import type { ShipClass } from "./navy/ships";
 
 /**
  * The line of the tree a technology sits on, which is what Jev compares one
