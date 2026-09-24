@@ -1,9 +1,19 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
-import type { Armies } from "./army/army";
-import type { Clock } from "./clock";
-import { START_CLOCK } from "./clock";
+import { division } from "../army-fixture";
+import type { Armies } from "../army/army";
+import type { Clock } from "../clock";
+import { START_CLOCK } from "../clock";
+import { ROW_OWNERS, ROW_PEACE, ROW_WORLD } from "../diplomacy-fixture";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import { neighbouringNations } from "../geography/nations";
+import type { World } from "../geography/world";
+import type { Province } from "../provinces";
+import type { Random } from "../random";
+import type { Focuses } from "../research/focus";
+import { START_FOCUSES } from "../research/focus";
+import { UNASSIGNED } from "../spread";
 import type { Diplomacy } from "./diplomacy";
 import {
   INDEPENDENT,
@@ -13,16 +23,6 @@ import {
   standingOf,
   warDeclared,
 } from "./diplomacy";
-import { ROW_OWNERS, ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import { neighbouringNations } from "./geography/nations";
-import type { World } from "./geography/world";
-import type { Province } from "./provinces";
-import type { Random } from "./random";
-import type { Focuses } from "./research/focus";
-import { START_FOCUSES } from "./research/focus";
-import { UNASSIGNED } from "./spread";
 import type { Realm } from "./statecraft";
 import {
   conductedOneDay,

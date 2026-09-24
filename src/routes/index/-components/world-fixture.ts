@@ -1,8 +1,8 @@
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
-import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
-import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
+import { noQuiet } from "@/shared/entities/world/diplomacy/armistice";
+import { openingDiplomacy } from "@/shared/entities/world/diplomacy/diplomacy";
 import { startCompliance } from "@/shared/entities/world/economy/compliance";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import { openingPlants } from "@/shared/entities/world/economy/plants";

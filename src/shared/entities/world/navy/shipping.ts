@@ -1,4 +1,4 @@
-import type { Diplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
 import { itemAt } from "../lookup";
 import type { ProvinceGraph } from "../provinces";
 import { atWar } from "../wars";

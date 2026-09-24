@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { joined } from "../diplomacy";
+import { joined } from "../diplomacy/diplomacy";
 import { UNASSIGNED } from "../spread";
 import type { Navy, Station, TaskForce } from "./navy";
 import {

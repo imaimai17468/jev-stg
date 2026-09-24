@@ -18,14 +18,14 @@ import {
   rulingsFrom,
   termsFrom,
 } from "./council";
-import type { Diplomacy } from "./diplomacy";
+import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import type { Diplomacy } from "./diplomacy/diplomacy";
 import {
   INDEPENDENT,
   openingDiplomacy,
   standingOf,
   warDeclared,
-} from "./diplomacy";
-import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+} from "./diplomacy/diplomacy";
 import { NO_ECONOMY } from "./economy/economy";
 import type { Service } from "./espionage";
 import { HOME, serviceFor } from "./espionage";

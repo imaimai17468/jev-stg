@@ -6,8 +6,8 @@ import {
   LINE_OWNERS,
   LINE_WORLD,
 } from "../army-fixture";
-import type { Diplomacy } from "../diplomacy";
-import { joined, openingDiplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy/diplomacy";
 import { FULL_SUPPLY_LEVEL } from "../geography/infrastructure";
 import type { World } from "../geography/world";
 import { NO_MODIFIERS } from "../modifiers";

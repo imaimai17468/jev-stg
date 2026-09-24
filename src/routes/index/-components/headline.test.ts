@@ -4,7 +4,7 @@ import {
   INDEPENDENT,
   openingDiplomacy,
   warDeclared,
-} from "@/shared/entities/world/diplomacy";
+} from "@/shared/entities/world/diplomacy/diplomacy";
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import { supplyOf } from "@/shared/entities/world/simulation";

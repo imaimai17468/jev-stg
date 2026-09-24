@@ -1,6 +1,6 @@
 import { Option } from "effect";
-import type { Diplomacy } from "@/shared/entities/world/diplomacy";
-import { nationsStanding } from "@/shared/entities/world/diplomacy";
+import type { Diplomacy } from "@/shared/entities/world/diplomacy/diplomacy";
+import { nationsStanding } from "@/shared/entities/world/diplomacy/diplomacy";
 import { constructionProgress } from "@/shared/entities/world/economy/economy";
 import type { World } from "@/shared/entities/world/geography/world";
 import { warCount } from "@/shared/entities/world/wars";

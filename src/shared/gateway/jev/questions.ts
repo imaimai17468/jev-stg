@@ -53,6 +53,11 @@ import {
   siteChoice,
   spyChoice,
 } from "@/shared/entities/world/consultation";
+import type { PeaceTerms } from "@/shared/entities/world/diplomacy/peace";
+import {
+  JUSTIFIED_DAYS,
+  justifyingDays,
+} from "@/shared/entities/world/diplomacy/war-goals";
 import type {
   ConscriptionLaw,
   IndustryPlan,
@@ -74,7 +79,6 @@ import {
   SHIP_DESIGNS,
   SHIPYARD_ORDERS,
 } from "@/shared/entities/world/navy/ships";
-import type { PeaceTerms } from "@/shared/entities/world/peace";
 import type { FocusId, Grants } from "@/shared/entities/world/research/focus";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/research/focus";
 import {
@@ -89,10 +93,6 @@ import type {
   TechId,
 } from "@/shared/entities/world/techs";
 import { techOf } from "@/shared/entities/world/techs";
-import {
-  JUSTIFIED_DAYS,
-  justifyingDays,
-} from "@/shared/entities/world/war-goals";
 
 /** One `choice` question as `/v1/evaluate` takes it. */
 interface ChoiceQuestion {

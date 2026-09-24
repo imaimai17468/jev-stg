@@ -39,7 +39,21 @@ import {
   NO_FACTION,
   sideOf,
   standsAlone,
-} from "./diplomacy";
+} from "./diplomacy/diplomacy";
+import { PEACE_TERMS } from "./diplomacy/peace";
+import type { Standoff } from "./diplomacy/statecraft";
+import {
+  bordering,
+  factionToJoin,
+  homelandSplit,
+  justificationTarget,
+  mayStartJustifying,
+  outmatches,
+  preyOf,
+  sideStrength,
+  strengthAmong,
+  warTarget,
+} from "./diplomacy/statecraft";
 import { ledgersOf, NO_LEDGER } from "./economy/commerce";
 import {
   CONSCRIPTION_LAWS,
@@ -65,7 +79,6 @@ import { overseasRivals } from "./navy/maritime";
 import type { Navy } from "./navy/navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy/navy";
 import { SHIPYARD_ORDERS } from "./navy/ships";
-import { PEACE_TERMS } from "./peace";
 import { graphOf } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
@@ -91,19 +104,6 @@ import type { Skies } from "./skies";
 import { skyLostBy } from "./skies";
 import type { Stance } from "./stance";
 import { START_STANCE, STANCES } from "./stance";
-import type { Standoff } from "./statecraft";
-import {
-  bordering,
-  factionToJoin,
-  homelandSplit,
-  justificationTarget,
-  mayStartJustifying,
-  outmatches,
-  preyOf,
-  sideStrength,
-  strengthAmong,
-  warTarget,
-} from "./statecraft";
 import type { TechCategory, TechId } from "./techs";
 import { categoryOf, techOf } from "./techs";
 import { enemiesOf } from "./wars";

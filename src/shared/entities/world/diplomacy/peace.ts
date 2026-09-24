@@ -1,5 +1,8 @@
-import type { Armies } from "./army/army";
-import { sentHome } from "./army/muster";
+import type { Armies } from "../army/army";
+import { sentHome } from "../army/muster";
+import { shareTransferred } from "../economy/economy";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
 import type { Diplomacy, Standing } from "./diplomacy";
 import {
   INDEPENDENT,
@@ -8,9 +11,6 @@ import {
   puppetsOf,
   tensionFrom,
 } from "./diplomacy";
-import { shareTransferred } from "./economy/economy";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
 
 /** What the victor takes from a nation that has surrendered. */
 export type PeaceTerms = "annex" | "puppet" | "cede";

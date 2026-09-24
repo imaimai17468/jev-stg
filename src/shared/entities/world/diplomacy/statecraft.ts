@@ -1,9 +1,20 @@
 import { Option } from "effect";
-import type { Armies } from "./army/army";
-import { strengthOf } from "./army/divisions";
-import type { Entry, Negotiation, Source } from "./chronicle";
-import { BY_RULES, chronicled } from "./chronicle";
-import type { Clock } from "./clock";
+import type { Armies } from "../army/army";
+import { strengthOf } from "../army/divisions";
+import type { Entry, Negotiation, Source } from "../chronicle";
+import { BY_RULES, chronicled } from "../chronicle";
+import type { Clock } from "../clock";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import { provincePeople } from "../economy/industry";
+import type { NationPair } from "../geography/nations";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import { landProvinces } from "../provinces";
+import type { Random } from "../random";
+import type { Focuses } from "../research/focus";
+import { enemiesOf } from "../wars";
 import type { Diplomacy } from "./diplomacy";
 import {
   allied,
@@ -14,21 +25,10 @@ import {
   NO_FACTION,
   sideOf,
 } from "./diplomacy";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import { provincePeople } from "./economy/industry";
-import type { NationPair } from "./geography/nations";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
 import type { Settled, Settlement } from "./peace";
 import { settled } from "./peace";
-import { landProvinces } from "./provinces";
-import type { Random } from "./random";
-import type { Focuses } from "./research/focus";
 import { mayJustifyAt } from "./tension";
 import { justifiedTarget, warGoalOf } from "./war-goals";
-import { enemiesOf } from "./wars";
 
 /** How many factions the world opens with. */
 const FOUNDING_FACTIONS = 3;

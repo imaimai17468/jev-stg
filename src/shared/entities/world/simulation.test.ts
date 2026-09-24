@@ -5,7 +5,6 @@ import { NO_AGENCY } from "./agency";
 import { openingAirBases } from "./air/air-bases";
 import { NO_AIR_FORCE } from "./air/air-force";
 import { airForceOf, flying, wing } from "./air/air-war-fixture";
-import { noQuiet } from "./armistice";
 import { OPENING_ARMOURY } from "./armoury";
 import {
   AT_WAR,
@@ -16,7 +15,8 @@ import {
   worldOf,
 } from "./army-fixture";
 import { START_CLOCK } from "./clock";
-import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
+import { noQuiet } from "./diplomacy/armistice";
+import { INDEPENDENT, openingDiplomacy } from "./diplomacy/diplomacy";
 import { startCompliance } from "./economy/compliance";
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";

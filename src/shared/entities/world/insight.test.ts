@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LINE_GRAPH, LINE_OWNERS } from "./army-fixture";
 import { noCiphers } from "./cipher";
-import { openingDiplomacy } from "./diplomacy";
+import { openingDiplomacy } from "./diplomacy/diplomacy";
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";
 import type { Service } from "./espionage";

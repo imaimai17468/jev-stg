@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division } from "../army-fixture";
 import { musteringAt } from "../army/muster";
-import type { Diplomacy } from "../diplomacy";
-import { joined, openingDiplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy/diplomacy";
 import type { Deal } from "../economy/trade";
 import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "../fuel";
 import { FULL_SUPPLY_LEVEL } from "../geography/infrastructure";

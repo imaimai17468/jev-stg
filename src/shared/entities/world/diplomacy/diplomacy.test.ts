@@ -1,4 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import { ROW_OWNERS, ROW_PEACE } from "../diplomacy-fixture";
+import { enemiesOf } from "../wars";
 import type { Diplomacy } from "./diplomacy";
 import {
   allied,
@@ -16,8 +18,6 @@ import {
   standingOf,
   warDeclared,
 } from "./diplomacy";
-import { ROW_OWNERS, ROW_PEACE } from "./diplomacy-fixture";
-import { enemiesOf } from "./wars";
 
 /** Nation 1 answering to nation 0, which leads a faction nation 2 has joined. */
 const BLOC: Diplomacy = {

@@ -2,13 +2,13 @@ import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
-import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";
+import { noQuiet } from "@/shared/entities/world/diplomacy/armistice";
 import {
   INDEPENDENT,
   openingDiplomacy,
   warDeclared,
-} from "@/shared/entities/world/diplomacy";
+} from "@/shared/entities/world/diplomacy/diplomacy";
 import { startCompliance } from "@/shared/entities/world/economy/compliance";
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";

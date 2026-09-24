@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { WarGoal } from "@/shared/entities/world/diplomacy/war-goals";
 import { START_FOCUSES } from "@/shared/entities/world/research/focus";
-import type { WarGoal } from "@/shared/entities/world/war-goals";
 import { warGoalSummaryOf } from "./war-goal-summary";
 
 /** Nation 1 justifying a war goal on nation 2 that completes on day 100. */

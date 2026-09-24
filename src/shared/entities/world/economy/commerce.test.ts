@@ -2,7 +2,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { airForceUnder, NO_AIR_FORCE } from "../air/air-force";
 import { airspaceOf } from "../airspace";
 import { OPENING_ARMOURY } from "../armoury";
-import { openingDiplomacy } from "../diplomacy";
+import { openingDiplomacy } from "../diplomacy/diplomacy";
 import type { World } from "../geography/world";
 import { itemAt } from "../lookup";
 import { NO_MODIFIERS } from "../modifiers";

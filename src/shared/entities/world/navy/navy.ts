@@ -1,6 +1,6 @@
 import { Option } from "effect";
-import type { Diplomacy } from "../diplomacy";
-import { allied } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { allied } from "../diplomacy/diplomacy";
 import { valueAt } from "../grid";
 import { itemAt, replacedAt } from "../lookup";
 import type { ProvinceGraph } from "../provinces";

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Focuses } from "./research/focus";
-import { START_FOCUSES } from "./research/focus";
+import type { Focuses } from "../research/focus";
+import { START_FOCUSES } from "../research/focus";
 import {
   justifyingThreshold,
   mayJustifyAt,

@@ -8,11 +8,14 @@ import type {
   Consultation,
   JevReply,
 } from "@/shared/entities/world/consultation";
-import { standingOf, warDeclared } from "@/shared/entities/world/diplomacy";
 import {
   ROW_SIMULATION,
   ROW_WORLD,
 } from "@/shared/entities/world/diplomacy-fixture";
+import {
+  standingOf,
+  warDeclared,
+} from "@/shared/entities/world/diplomacy/diplomacy";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { DriverFailed } from "@/test/defect";

@@ -1,11 +1,11 @@
-import type { Division } from "./army/divisions";
-import type { NationPair } from "./geography/nations";
-import { neighbouringNations } from "./geography/nations";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { UNASSIGNED } from "./spread";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
+import type { Division } from "../army/divisions";
+import type { NationPair } from "../geography/nations";
+import { neighbouringNations } from "../geography/nations";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { UNASSIGNED } from "../spread";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 
 /**
  * The days two nations at war can go without touching each other before they
