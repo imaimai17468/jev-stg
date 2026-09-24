@@ -227,6 +227,23 @@ export const buildNations = (
   }));
 };
 
+/** The nations other than `nation` holding a province beside `province`. */
+export const nationsBeside = (
+  owners: Int32Array,
+  province: Province,
+  nation: number
+): ReadonlySet<number> => {
+  const beside = new Set<number>();
+  for (const neighbour of province.neighbours) {
+    const owner = valueAt(owners, neighbour);
+    if (owner === nation || owner === UNASSIGNED) {
+      continue;
+    }
+    beside.add(owner);
+  }
+  return beside;
+};
+
 /** Two nations whose land touches, the lower id first. */
 export interface NationPair {
   readonly one: number;

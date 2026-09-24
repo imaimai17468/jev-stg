@@ -24,7 +24,7 @@ import { valueAt } from "@/shared/entities/world/grid";
 import { intelOf } from "@/shared/entities/world/insight";
 import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { NO_NATION } from "@/shared/entities/world/nations";
+import { nationsBeside, NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -36,7 +36,6 @@ import {
   stirredIn,
 } from "@/shared/entities/world/simulation";
 import { superiorityOf } from "@/shared/entities/world/skies";
-import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
@@ -221,11 +220,7 @@ export const summaryOf = (
     provinces += 1;
     cells += province.cells;
     counts.set(province.terrain, (counts.get(province.terrain) ?? 0) + 1);
-    for (const beside of province.neighbours) {
-      const owner = valueAt(owners, beside);
-      if (owner === nation || owner === UNASSIGNED) {
-        continue;
-      }
+    for (const owner of nationsBeside(owners, province, nation)) {
       neighbours.add(owner);
     }
   }
