@@ -185,10 +185,36 @@ describe(useJevCouncil, () => {
   });
 });
 
+/** What has been heard before any month is decided. */
+const NOTHING_YET: Heard = { councilDay: -1, voice: "rules" };
+
 describe(latestHeard, () => {
   it("should keep what was heard when a reply for an earlier month lands late", () => {
     const heard: Heard = { councilDay: 31, voice: "jev" };
 
     expect(latestHeard(heard, 0, { _tag: "unavailable" })).toBe(heard);
+  });
+
+  it.each<{ condition: string; reply: JevReply; voice: Heard["voice"] }>([
+    {
+      condition: "Jev answered for every government",
+      reply: { _tag: "answered", unanswered: [], verdicts: [] },
+      voice: "jev",
+    },
+    {
+      condition: "Jev left some governments unanswered",
+      reply: { _tag: "answered", unanswered: [0], verdicts: [] },
+      voice: "mixed",
+    },
+    {
+      condition: "Jev could not be reached",
+      reply: { _tag: "unavailable" },
+      voice: "rules",
+    },
+  ])("should say who decided the month when $condition", ({ reply, voice }) => {
+    expect(latestHeard(NOTHING_YET, 31, reply)).toStrictEqual({
+      councilDay: 31,
+      voice,
+    });
   });
 });

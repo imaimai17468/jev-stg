@@ -19,8 +19,11 @@ import type { Simulation } from "@/shared/entities/world/simulation";
 /** Asks Jev about one consultation. */
 export type Consult = (consultation: Consultation) => Promise<JevReply>;
 
-/** Who is deciding the governments' months: waiting on Jev, Jev, or the rules. */
-export type CouncilVoice = "consulting" | "jev" | "rules";
+/**
+ * Who is deciding the governments' months: waiting on Jev, Jev, Jev with the
+ * rules standing in for the governments it left unanswered, or the rules.
+ */
+export type CouncilVoice = "consulting" | "jev" | "mixed" | "rules";
 
 /** Who decided the latest month a reply came in for, and which month it was. */
 export interface Heard {
@@ -47,10 +50,13 @@ export const latestHeard = (
   if (councilDay < previous.councilDay) {
     return previous;
   }
-  if (reply._tag === "answered") {
-    return { councilDay, voice: "jev" };
+  if (reply._tag !== "answered") {
+    return { councilDay, voice: "rules" };
   }
-  return { councilDay, voice: "rules" };
+  if (reply.unanswered.length > 0) {
+    return { councilDay, voice: "mixed" };
+  }
+  return { councilDay, voice: "jev" };
 };
 
 /**
