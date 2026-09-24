@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
+import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "../army-fixture";
 import type { AirCover, Battlefield } from "./air-cover";
 import { coverOver, NO_AIR_COVER, supportOf } from "./air-cover";
-import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
 
 /**
  * Nation 0's enemies hold most of the sky over its second province, and it

@@ -1,7 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Division, DivisionKind } from "@/shared/entities/world/divisions";
-import { raisedAt } from "@/shared/entities/world/divisions";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
+import type {
+  Division,
+  DivisionKind,
+} from "@/shared/entities/world/army/divisions";
+import { raisedAt } from "@/shared/entities/world/army/divisions";
+import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import { divisionMarks } from "./division-marks";
 import { FIXTURE_WORLD } from "./world-fixture";
 

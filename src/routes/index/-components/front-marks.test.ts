@@ -7,7 +7,7 @@ import {
   nation,
   worldOf,
 } from "@/shared/entities/world/army-fixture";
-import { battlePlanOf } from "@/shared/entities/world/battle-plan";
+import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
 import type { World } from "@/shared/entities/world/geography/world";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Wars } from "@/shared/entities/world/wars";

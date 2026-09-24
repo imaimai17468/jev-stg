@@ -26,6 +26,15 @@ import {
   AVIATIONS,
   aviationShareOf,
 } from "@/shared/entities/world/aircraft";
+import type { DivisionKind } from "@/shared/entities/world/army/divisions";
+import {
+  raisingNameOf,
+  equipmentOf,
+  INFANTRY_EQUIPMENT,
+  kindsUnlockedBy,
+  manpowerOf,
+  MIXED,
+} from "@/shared/entities/world/army/divisions";
 import type {
   BuildSite,
   Consultation,
@@ -44,15 +53,6 @@ import {
   siteChoice,
   spyChoice,
 } from "@/shared/entities/world/consultation";
-import type { DivisionKind } from "@/shared/entities/world/divisions";
-import {
-  raisingNameOf,
-  equipmentOf,
-  INFANTRY_EQUIPMENT,
-  kindsUnlockedBy,
-  manpowerOf,
-  MIXED,
-} from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,

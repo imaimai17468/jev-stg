@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
-import type { Diplomacy } from "./diplomacy";
-import { joined, openingDiplomacy } from "./diplomacy";
+import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "../army-fixture";
+import type { Diplomacy } from "../diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import type { Nation } from "../geography/nations";
+import { UNASSIGNED } from "../spread";
 import type { DivisionKind, Levy } from "./divisions";
 import { raisedAt } from "./divisions";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import type { Nation } from "./geography/nations";
 import { musteredBy, sentHome } from "./muster";
-import { UNASSIGNED } from "./spread";
 
 /** The line's two nations at peace, and the same two at war. */
 const PEACE: Diplomacy = openingDiplomacy(LINE_OWNERS, 2, []);

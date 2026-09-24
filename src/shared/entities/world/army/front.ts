@@ -1,9 +1,9 @@
-import { valueAt } from "./grid";
-import type { LandProvince, Province, ProvinceGraph } from "./provinces";
-import { distanceOver, isLand, landIdsWhere, neighboursOf } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
+import { valueAt } from "../grid";
+import type { LandProvince, Province, ProvinceGraph } from "../provinces";
+import { distanceOver, isLand, landIdsWhere, neighboursOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 
 /** Whether the province is held by a nation that `accepts` names. */
 const heldBy = (

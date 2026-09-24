@@ -1,8 +1,8 @@
+import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import type { Compliance } from "@/shared/entities/world/economy/compliance";
 import type { ResourceNeed } from "@/shared/entities/world/economy/resources";
 import { totalOf } from "@/shared/entities/world/economy/resources";
 import type { Networks } from "@/shared/entities/world/geography/networks";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
 
 /** What the map colours its provinces by. */
 export type MapMode =

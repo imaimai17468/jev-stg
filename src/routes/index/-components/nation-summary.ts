@@ -2,7 +2,8 @@ import { Option } from "effect";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
-import { battlePlanOf } from "@/shared/entities/world/battle-plan";
+import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
+import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
   factionOf,
@@ -43,7 +44,6 @@ import {
   stirredIn,
 } from "@/shared/entities/world/simulation";
 import { superiorityOf } from "@/shared/entities/world/skies";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";

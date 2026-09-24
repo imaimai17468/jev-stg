@@ -9,6 +9,10 @@ import { transportsFor } from "./airborne";
 import type { Aircraft, Aviation } from "./aircraft";
 import { AIRCRAFT, AVIATIONS } from "./aircraft";
 import { armouryOf } from "./armoury";
+import type { Raising } from "./army/divisions";
+import { menFor, MIXED } from "./army/divisions";
+import type { SupplyNetwork } from "./army/supply";
+import { undersuppliedShare } from "./army/supply";
 import { dateLabel } from "./calendar";
 import type { Negotiation, Order, Ruling, Source } from "./chronicle";
 import { BY_RULES } from "./chronicle";
@@ -38,8 +42,6 @@ import {
   sideOf,
   standsAlone,
 } from "./diplomacy";
-import type { Raising } from "./divisions";
-import { menFor, MIXED } from "./divisions";
 import { ledgersOf, NO_LEDGER } from "./economy/commerce";
 import {
   CONSCRIPTION_LAWS,
@@ -102,8 +104,6 @@ import {
   strengthAmong,
   warTarget,
 } from "./statecraft";
-import type { SupplyNetwork } from "./supply";
-import { undersuppliedShare } from "./supply";
 import type { TechCategory, TechId } from "./techs";
 import { categoryOf, techOf } from "./techs";
 import { enemiesOf } from "./wars";

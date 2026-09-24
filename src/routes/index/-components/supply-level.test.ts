@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { SupplyNetwork } from "@/shared/entities/world/supply";
+import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import { supplyLevelOf } from "./supply-level";
 
 /** One nation over five provinces, each supplying and holding a different load. */

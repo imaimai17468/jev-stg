@@ -1,7 +1,10 @@
 import { Option } from "effect";
 import type { Armoury } from "./armoury";
+import type { Division } from "./army/divisions";
+import { musteringAt, sentToMuster } from "./army/muster";
+import type { Lines, SupplyReach } from "./army/supply";
+import { reachOf } from "./army/supply";
 import type { Diplomacy } from "./diplomacy";
-import type { Division } from "./divisions";
 import type { Deal } from "./economy/trade";
 import {
   COMBAT_FUEL_MULTIPLE,
@@ -18,7 +21,6 @@ import { valueAt } from "./grid";
 import type { Invasion, Muster } from "./invasion";
 import { invasionOutcome, invasionPlanned } from "./invasion";
 import { itemAt } from "./lookup";
-import { musteringAt, sentToMuster } from "./muster";
 import type { SeaBattles } from "./naval-combat";
 import { foughtAtSea, foughtToday } from "./naval-combat";
 import type { Navy, Station, TaskForce } from "./navy";
@@ -44,8 +46,6 @@ import type { Sailings, Voyage, Waters } from "./shipping";
 import { idleConvoys, shippedOneDay } from "./shipping";
 import { hullOf } from "./ships";
 import { UNASSIGNED } from "./spread";
-import type { Lines, SupplyReach } from "./supply";
-import { reachOf } from "./supply";
 import { atWar } from "./wars";
 
 /** Everything at sea, and the divisions a landing takes aboard or puts ashore. */

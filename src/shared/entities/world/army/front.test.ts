@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AT_WAR, LINE_GRAPH, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
+import { AT_WAR, LINE_GRAPH, LINE_OWNERS, LINE_WORLD } from "../army-fixture";
+import { declared, noWars } from "../wars";
 import { enemyNeighbours, frontField, stepToward } from "./front";
-import { declared, noWars } from "./wars";
 
 describe(frontField, () => {
   it("should count the steps to the line facing the enemy when a war is on", () => {

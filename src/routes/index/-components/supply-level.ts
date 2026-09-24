@@ -2,8 +2,8 @@ import { Option } from "effect";
 import type {
   SupplyNetwork,
   SupplyState,
-} from "@/shared/entities/world/supply";
-import { postOf, supplyStateOf } from "@/shared/entities/world/supply";
+} from "@/shared/entities/world/army/supply";
+import { postOf, supplyStateOf } from "@/shared/entities/world/army/supply";
 
 /**
  * How a province reads on the supply map, from its holder's side: plenty to

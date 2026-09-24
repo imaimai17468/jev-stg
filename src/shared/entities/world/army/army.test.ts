@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Armies, Command } from "./army";
-import { armiesAfterOneDay } from "./army";
 import {
   division,
   FULL_SUPPLY,
@@ -10,11 +8,13 @@ import {
   nation,
   WAR_COMMAND,
   worldOf,
-} from "./army-fixture";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import { itemAt } from "./lookup";
-import { noWars } from "./wars";
+} from "../army-fixture";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import { itemAt } from "../lookup";
+import { noWars } from "../wars";
+import type { Armies, Command } from "./army";
+import { armiesAfterOneDay } from "./army";
 
 /** Enough men and weapons for one division and change. */
 const ARMED: NationEconomy = {

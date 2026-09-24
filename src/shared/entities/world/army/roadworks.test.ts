@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { NationEconomy } from "./economy/economy";
-import { NO_ECONOMY } from "./economy/economy";
-import { INFRASTRUCTURE_COST } from "./geography/infrastructure";
+import type { NationEconomy } from "../economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
+import { INFRASTRUCTURE_COST } from "../geography/infrastructure";
+import { UNASSIGNED } from "../spread";
 import type { Worksite } from "./roadworks";
 import { roadsBuiltOneDay, roadsWanted } from "./roadworks";
-import { UNASSIGNED } from "./spread";
 import type { SupplyNetwork } from "./supply";
 import { stackKey } from "./supply";
 

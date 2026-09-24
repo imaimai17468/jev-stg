@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Armies } from "./army";
 import { division } from "./army-fixture";
+import type { Armies } from "./army/army";
 import type { Clock } from "./clock";
 import { START_CLOCK } from "./clock";
 import type { Diplomacy } from "./diplomacy";

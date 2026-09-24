@@ -1,10 +1,10 @@
-import type { Airspace } from "./airspace";
-import { regionOfProvince } from "./airspace";
+import type { Airspace } from "../airspace";
+import { regionOfProvince } from "../airspace";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import { atWar } from "../wars";
+import type { Wars } from "../wars";
 import type { Division } from "./divisions";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
-import { atWar } from "./wars";
-import type { Wars } from "./wars";
 
 /** What the planes overhead do to the divisions below them today. */
 export interface AirCover {

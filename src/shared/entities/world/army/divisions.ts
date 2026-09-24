@@ -1,14 +1,14 @@
 import { Schema } from "effect";
+import type { NationEconomy } from "../economy/economy";
+import type { Leaning } from "../geography/leaning";
+import type { Nation } from "../geography/nations";
+import type { Terrain } from "../geography/terrain";
+import { itemAt, lastWhere } from "../lookup";
+import type { Modifiers } from "../modifiers";
+import type { TechId } from "../techs";
 import type { Arms, Battalion, Ground } from "./battalions";
 import { armsOf, battalionOf, groundModifierOf } from "./battalions";
-import type { NationEconomy } from "./economy/economy";
-import type { Leaning } from "./geography/leaning";
-import type { Nation } from "./geography/nations";
-import type { Terrain } from "./geography/terrain";
-import { itemAt, lastWhere } from "./lookup";
-import type { Modifiers } from "./modifiers";
 import { entrenchedShare } from "./preparation";
-import type { TechId } from "./techs";
 
 /** Every kind of division a nation raises, named by the line battalions it is built around. */
 export const DivisionKindSchema = Schema.Literals([
