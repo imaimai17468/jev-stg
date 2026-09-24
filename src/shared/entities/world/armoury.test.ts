@@ -13,6 +13,7 @@ describe(armouryOf, () => {
         "close-support": "close-air-support-1",
         fighter: "interwar-fighter",
         "naval-bomber": "naval-bomber-1",
+        transport: "transport-plane-1",
       },
       ships: {
         battleship: "battleship-1",
@@ -55,6 +56,7 @@ describe(armouryOf, () => {
         "close-support": "close-air-support-1",
         fighter: "fighter-2",
         "naval-bomber": "naval-bomber-1",
+        transport: "transport-plane-1",
       },
       ships: {
         battleship: "battleship-1",
@@ -84,6 +86,7 @@ describe("the opening armoury", () => {
         "close-support": "close-air-support-1",
         fighter: "fighter-1",
         "naval-bomber": "naval-bomber-1",
+        transport: "transport-plane-1",
       },
       ships: {
         battleship: "battleship-2",

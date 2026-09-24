@@ -25,6 +25,7 @@ export const AIRCRAFT_NAMES = {
   "close-support": "近接航空支援機",
   fighter: "戦闘機",
   "naval-bomber": "雷撃機",
+  transport: "輸送機",
 } satisfies Readonly<Record<Aircraft, string>>;
 
 /** What the feed and the nation panel call each weight of aviation. */

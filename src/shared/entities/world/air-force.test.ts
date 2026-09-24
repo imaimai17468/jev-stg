@@ -3,7 +3,7 @@ import type { AirForce, Wing } from "./air-force";
 import {
   aircraftOf,
   airForceUnder,
-  allPlanesOf,
+  combatPlanesOf,
   flyingOf,
   planesBuiltOneDay,
   NO_AIR_FORCE,
@@ -18,6 +18,7 @@ const MODELS: AirframeModels = {
   "close-support": "close-air-support-1",
   fighter: "fighter-1",
   "naval-bomber": "naval-bomber-1",
+  transport: "transport-plane-1",
 };
 
 /** A wing of 1936 fighters waiting at `base` with `planes` in it. */
@@ -138,8 +139,20 @@ describe(planesOf, () => {
   });
 });
 
-describe(allPlanesOf, () => {
-  it("should add up the planes of every kind when the air force holds several", () => {
-    expect(allPlanesOf(MIXED)).toBe(160);
+describe(combatPlanesOf, () => {
+  it("should add up the planes of every fighting kind when the air force holds several", () => {
+    expect(combatPlanesOf(MIXED)).toBe(160);
+  });
+
+  it("should leave the transports out when the air force holds some", () => {
+    expect(
+      combatPlanesOf({
+        ...MIXED,
+        wings: [
+          ...MIXED.wings,
+          { ...fighters(50, 0), model: "transport-plane-1" },
+        ],
+      })
+    ).toBe(160);
   });
 });

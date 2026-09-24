@@ -149,6 +149,7 @@ const NO_PLANES = [
   { label: "戦闘機", value: "0（出撃中 0）" },
   { label: "近接航空支援機", value: "0（出撃中 0）" },
   { label: "雷撃機", value: "0（出撃中 0）" },
+  { label: "輸送機", value: "0（出撃中 0）" },
   { label: "航空基地", value: "5段階（1,000機分）" },
   { label: "燃料（昨日の消費）", value: "0%（0）" },
   { label: "制空権を握る空域", value: "0" },
