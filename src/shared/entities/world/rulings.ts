@@ -6,10 +6,13 @@ import type { AirForce } from "./air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air-force";
 import type { Decision, Order, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
+import type { Diplomacy } from "./diplomacy";
 import {
   allied,
+  answersToItself,
   factionOf,
   joined,
+  justificationStarted,
   NO_FACTION,
   sideOf,
   standsAlone,
@@ -35,21 +38,53 @@ import { availableTechs, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
 import { START_STANCE } from "./stance";
-import { answersToItself, peaceSigned } from "./statecraft";
+import { mayStartJustifying, peaceSigned } from "./statecraft";
+import { justifiedTarget } from "./war-goals";
 import { enemiesOf } from "./wars";
 
+/** A decision that turns one nation on another. */
+type Hostility = Extract<Order, { kind: "justify" | "declare" }>;
+
 /**
- * Whether `nation`, which answers to itself, may still declare on `target`
- * today: it is at peace, the target is outside its side, and their land still
- * touches or its fleet can still carry a war across the sea to it.
+ * Whether the nation that took `hostility` is ready for it today: at peace
+ * with a justified war goal on the target for a declaration, and free to
+ * start justifying for a justification.
  */
-const mayDeclare = (
+const readyFor = (simulation: Simulation, hostility: Hostility): boolean => {
+  const { diplomacy } = simulation;
+  if (hostility.kind === "justify") {
+    return mayStartJustifying(
+      diplomacy,
+      itemAt(simulation.advancements, hostility.nation, START_ADVANCEMENT)
+        .focuses,
+      hostility.nation
+    );
+  }
+  return (
+    enemiesOf(diplomacy.wars, hostility.nation).length === 0 &&
+    Option.contains(
+      justifiedTarget(
+        diplomacy.warGoals,
+        hostility.nation,
+        simulation.clock.days
+      ),
+      hostility.target
+    )
+  );
+};
+
+/**
+ * Whether `hostility`, taken by a nation that answers to itself, still holds
+ * today: its nation is ready for it, the target is outside its side, and its
+ * land still touches the target's or its fleet can still carry a war across
+ * the sea to it.
+ */
+const stillHolds = (
   world: World,
   simulation: Simulation,
-  nation: number,
-  target: number
+  hostility: Hostility
 ): boolean => {
-  const { diplomacy } = simulation;
+  const { nation, target } = hostility;
   const touching = neighbouringNations(world, simulation.owners).some(
     (pair) =>
       (pair.one === nation && pair.other === target) ||
@@ -58,12 +93,26 @@ const mayDeclare = (
   const overseas = overseasRivals(world, simulation).some(
     (pair) => pair.one === nation && pair.other === target
   );
-  const reachable = touching || overseas;
   return (
-    enemiesOf(diplomacy.wars, nation).length === 0 &&
-    !allied(diplomacy, nation, target) &&
-    reachable
+    readyFor(simulation, hostility) &&
+    !allied(simulation.diplomacy, nation, target) &&
+    (touching || overseas)
   );
+};
+
+/** The diplomacy once `hostility` has been carried out on the day `simulation` reads. */
+const hostilityCarried = (
+  simulation: Simulation,
+  hostility: Hostility
+): Diplomacy => {
+  if (hostility.kind === "justify") {
+    return justificationStarted(
+      simulation.diplomacy,
+      hostility,
+      simulation.clock.days
+    );
+  }
+  return warDeclared(simulation.diplomacy, hostility.nation, hostility.target);
 };
 
 /** Whether `nation`, which answers to itself, may still join `faction` today. */
@@ -312,14 +361,11 @@ const carriedOut = (
       (advancements) => ({ ...simulation, advancements })
     );
   }
-  if (decision.kind === "declare") {
-    if (!mayDeclare(world, simulation, decision.nation, decision.target)) {
+  if (decision.kind === "justify" || decision.kind === "declare") {
+    if (!stillHolds(world, simulation, decision)) {
       return simulation;
     }
-    return {
-      ...simulation,
-      diplomacy: warDeclared(diplomacy, decision.nation, decision.target),
-    };
+    return { ...simulation, diplomacy: hostilityCarried(simulation, decision) };
   }
   if (!mayJoin(simulation, decision.nation, decision.faction)) {
     return simulation;

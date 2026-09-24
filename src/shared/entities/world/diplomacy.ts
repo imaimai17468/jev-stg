@@ -1,7 +1,11 @@
 import { valueAt } from "./grid";
 import { itemAt, replacedAt } from "./lookup";
+import type { TensionCause } from "./tension";
+import { tensionEasedOneDay, tensionRaised } from "./tension";
+import type { WarGoal } from "./war-goals";
+import { justifyingDays, warGoalStanding, withoutGoalOf } from "./war-goals";
 import type { Wars } from "./wars";
-import { declared, noWars, peaceFor } from "./wars";
+import { atWar, declared, noWars, peaceFor, warCount } from "./wars";
 
 /** Whether a nation answers to itself, to another, or to nobody any more. */
 export type Standing =
@@ -33,6 +37,13 @@ export interface Diplomacy {
    * at home.
    */
   readonly cores: Int32Array;
+  /**
+   * How close the whole world stands to war, from 0 to 1, which gates who may
+   * justify a war goal and shortens the justifying.
+   */
+  readonly tension: number;
+  /** The war goal each nation justifies or has justified, at most one each. */
+  readonly warGoals: readonly WarGoal[];
 }
 
 /**
@@ -53,12 +64,20 @@ export const openingDiplomacy = (
     cores,
     factions,
     standings: Array.from({ length: nations }, () => INDEPENDENT),
+    tension: 0,
+    warGoals: [],
     wars: noWars(nations),
   };
 };
 
 export const standingOf = (diplomacy: Diplomacy, nation: number): Standing =>
   itemAt(diplomacy.standings, nation, INDEPENDENT);
+
+/** Whether the nation makes its own choices, which a puppet does not. */
+export const answersToItself = (
+  diplomacy: Diplomacy,
+  nation: number
+): boolean => standingOf(diplomacy, nation).kind === "independent";
 
 /** The nation whose wars and faction `nation` follows: its overlord or itself. */
 export const commanderOf = (diplomacy: Diplomacy, nation: number): number => {
@@ -113,11 +132,45 @@ export const sideOf = (
     return [other];
   });
 
+/** The diplomacy with world tension raised by `cause`. */
+export const tensionFrom = (
+  diplomacy: Diplomacy,
+  cause: TensionCause
+): Diplomacy => ({
+  ...diplomacy,
+  tension: tensionRaised(diplomacy.tension, cause),
+});
+
+/**
+ * The diplomacy after `nation` starts justifying a war goal on `target` on
+ * `day`, which replaces any goal it held and raises world tension.
+ */
+export const justificationStarted = (
+  diplomacy: Diplomacy,
+  goal: Omit<WarGoal, "readyOn">,
+  day: number
+): Diplomacy =>
+  tensionFrom(
+    {
+      ...diplomacy,
+      warGoals: [
+        ...withoutGoalOf(diplomacy.warGoals, goal.nation),
+        {
+          nation: goal.nation,
+          readyOn: day + justifyingDays(diplomacy.tension),
+          target: goal.target,
+        },
+      ],
+    },
+    "justify"
+  );
+
 /**
  * The diplomacy after `attacker` declares on `target`: everyone on the
  * attacker's side goes to war with everyone on the target's, which is the call
- * to arms a faction answers. Two allies never go to war with each other, so a
- * declaration between them changes nothing.
+ * to arms a faction answers, the attacker's war goal is spent, and world
+ * tension rises. Two allies never go to war with each other, so a declaration
+ * between them changes nothing.
  */
 export const warDeclared = (
   diplomacy: Diplomacy,
@@ -134,10 +187,17 @@ export const warDeclared = (
       wars = declared(wars, { one, other });
     }
   }
-  return { ...diplomacy, wars };
+  return tensionFrom(
+    {
+      ...diplomacy,
+      warGoals: withoutGoalOf(diplomacy.warGoals, attacker),
+      wars,
+    },
+    "declare"
+  );
 };
 
-/** The diplomacy with `nation` in `faction`. */
+/** The diplomacy with `nation` in `faction`, which raises world tension. */
 export const joined = (
   diplomacy: Diplomacy,
   nation: number,
@@ -145,7 +205,40 @@ export const joined = (
 ): Diplomacy => {
   const factions = Int32Array.from(diplomacy.factions);
   factions[nation] = faction;
-  return { ...diplomacy, factions };
+  return tensionFrom({ ...diplomacy, factions }, "join");
+};
+
+/**
+ * Whether `goal` still holds on `day`: it has not expired, its nation and its
+ * target both still stand, and they neither fight on one side nor are already
+ * at war, which a call to arms from an ally spends the goal on.
+ */
+const goalHolds = (diplomacy: Diplomacy, goal: WarGoal, day: number): boolean =>
+  warGoalStanding(goal, day) !== "expired" &&
+  answersToItself(diplomacy, goal.nation) &&
+  standsAlone(diplomacy, goal.target) &&
+  !allied(diplomacy, goal.nation, goal.target) &&
+  !atWar(diplomacy.wars, goal.nation, goal.target);
+
+/**
+ * The diplomacy after one day on `day`: war goals that no longer hold are
+ * dropped, and world tension eases unless a war runs somewhere.
+ */
+export const diplomacyOneDay = (
+  diplomacy: Diplomacy,
+  day: number
+): Diplomacy => {
+  const tension = tensionEasedOneDay(
+    diplomacy.tension,
+    warCount(diplomacy.wars) > 0
+  );
+  const held = diplomacy.warGoals.filter((goal) =>
+    goalHolds(diplomacy, goal, day)
+  );
+  if (held.length === diplomacy.warGoals.length) {
+    return { ...diplomacy, tension };
+  }
+  return { ...diplomacy, tension, warGoals: held };
 };
 
 /** The diplomacy with `nation` at peace with everyone and nothing else changed. */

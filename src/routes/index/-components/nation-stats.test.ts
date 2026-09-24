@@ -42,6 +42,7 @@ const SUMMARY: NationSummary = {
   ],
   trade: [],
   tree: { focuses: [], techs: [] },
+  warGoal: [],
 };
 
 describe(territoryOf, () => {

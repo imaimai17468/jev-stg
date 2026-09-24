@@ -30,6 +30,7 @@ const BRIEF: NationBrief = {
   focuses: [],
   freeSlots: 0,
   fuel: 0.726,
+  justifiable: [],
   manpower: 90_000.6,
   militaryFactories: 5,
   nation: 1,
@@ -45,6 +46,7 @@ const BRIEF: NationBrief = {
   spyTargets: [],
   strength: 20_000,
   techs: [],
+  tension: 0.12,
   undersupplied: 0.254,
 };
 
@@ -60,6 +62,7 @@ interface StatePatch {
 const stateWith = (patch: StatePatch) => ({
   各国: [
     {
+      世界緊張度: "12%",
       人口: 3_000_000,
       人的資源: 90_001,
       国: "国1",
@@ -74,6 +77,7 @@ const stateWith = (patch: StatePatch) => ({
       敵の兵力: "40,000人",
       敵の航空機: "481",
       敵の艦隊の強さ: "31",
+      正当化できる国: [],
       燃料の備蓄の割合: 0.73,
       自陣営の兵力: 20_000,
       航空機: 300,
@@ -116,6 +120,29 @@ describe(evaluationFor, () => {
       "n1_aircraft",
       "n1_faction",
     ]);
+  });
+
+  it("should offer justifying on each nation it may, or on nobody, with the days it takes when the justify question is asked", () => {
+    const justifying: Council = {
+      ...COUNCIL,
+      nations: [
+        {
+          ...BRIEF,
+          justifiable: [{ nation: 3, strength: exactly(10_000) }],
+          tension: 0.5,
+        },
+      ],
+    };
+
+    expect(evaluationFor(justifying).body.questions.n1_justify).toStrictEqual({
+      criteria: {
+        j3: "国3への戦争目標を正当化する（相手陣営の兵力 10,000人）",
+        none: "どの国にも戦争目標を正当化しない",
+      },
+      instructions:
+        "国1は今月、陸で接する国か、艦隊で海を渡れる国への戦争目標の正当化を始めますか。正当化には135日かかり、終わるまで宣戦できません。正当化を始めると世界緊張度が上がり、ほかの国も正当化を始めやすくなります。",
+      type: "choice",
+    });
   });
 
   it("should ask what the dockyards build next when the nation has dockyards", () => {
@@ -212,7 +239,7 @@ describe(evaluationFor, () => {
         none: "どこにも宣戦しない",
       },
       instructions:
-        "国1は今月、陸で接する国か、艦隊で海を渡れる国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。",
+        "国1は今月、戦争目標の正当化を終えた国に宣戦しますか。正当化した戦争目標は60日で失効します。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。宣戦すると世界緊張度が上がります。",
       type: "choice",
     });
   });

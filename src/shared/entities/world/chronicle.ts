@@ -27,6 +27,11 @@ export type Decision =
       readonly stance: Stance;
     }
   | {
+      readonly kind: "justify";
+      readonly nation: number;
+      readonly target: number;
+    }
+  | {
       readonly kind: "declare";
       readonly nation: number;
       readonly target: number;
@@ -169,6 +174,7 @@ const STRAND_OF = {
   espionage: "intelligence",
   focus: "advancement",
   join: "diplomacy",
+  justify: "diplomacy",
   landing: "operations",
   operation: "intelligence",
   peace: "diplomacy",

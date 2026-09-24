@@ -31,6 +31,9 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
       <PanelSection title="戦争">
         <NationList empty="どことも戦っていません" names={summary.enemies} />
       </PanelSection>
+      <PanelSection title="戦争目標">
+        <StatRows layout="column" stats={summary.warGoal} />
+      </PanelSection>
       <PanelSection title="戦線">
         <StatRows layout="column" stats={summary.front} />
       </PanelSection>

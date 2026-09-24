@@ -32,6 +32,7 @@ import type {
 import {
   COUNTER_INTELLIGENCE_CHOICE,
   factionChoice,
+  justifyChoice,
   NO_CHOICE,
   rivalChoice,
   spyChoice,
@@ -72,6 +73,10 @@ import type {
 import { techOf } from "@/shared/entities/world/techs";
 import type { TradeLaw } from "@/shared/entities/world/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
+import {
+  JUSTIFIED_DAYS,
+  justifyingDays,
+} from "@/shared/entities/world/war-goals";
 
 /** One `choice` question as `/v1/evaluate` takes it. */
 interface ChoiceQuestion {
@@ -452,20 +457,25 @@ const ratioTo = (strength: number, other: Sighting): number | string => {
   return Math.round((strength / other.estimate) * 100) / 100;
 };
 
+/** Each of `rivals` as Jev reads it, against the men `strength` counts on its own side. */
+const rivalRows = (strength: number, rivals: NationBrief["rivals"]) =>
+  rivals.map((rival) => ({
+    こちらとの兵力比: ratioTo(strength, rival.strength),
+    国: `国${rival.nation}`,
+    相手陣営の兵力: sightingWords(rival.strength, men),
+  }));
+
 /**
  * The numbers a government reads, as Jev reads them. What the nation has
  * already chosen stays out, because Jev shown its current law and plan picks
  * them again whatever the war does, so it is handed the situation alone.
  */
 const stateOf = (brief: NationBrief) => ({
+  世界緊張度: percentOf(brief.tension),
   人口: Math.round(brief.population),
   人的資源: Math.round(brief.manpower),
   国: `国${brief.nation}`,
-  宣戦できる国: brief.rivals.map((rival) => ({
-    こちらとの兵力比: ratioTo(brief.strength, rival.strength),
-    国: `国${rival.nation}`,
-    相手陣営の兵力: sightingWords(rival.strength, men),
-  })),
+  宣戦できる国: rivalRows(brief.strength, brief.rivals),
   工作員: brief.operatives,
   工場: { 民需: brief.civilianFactories, 軍需: brief.militaryFactories },
   戦争中: brief.atWar,
@@ -474,6 +484,7 @@ const stateOf = (brief: NationBrief) => ({
   敵の兵力: sightingWords(brief.enemyStrength, men),
   敵の航空機: sightingWords(brief.enemyPlanes, counted),
   敵の艦隊の強さ: sightingWords(brief.enemyFleet, counted),
+  正当化できる国: rivalRows(brief.strength, brief.justifiable),
   燃料の備蓄の割合: Math.round(brief.fuel * 100) / 100,
   自陣営の兵力: Math.round(brief.strength),
   航空機: Math.round(brief.planes),
@@ -521,10 +532,25 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
           `国${rival.nation}に宣戦する（相手陣営の兵力 ${sightingWords(rival.strength, men)}）`,
         ]),
       ]),
-      instructions: `${name}は今月、陸で接する国か、艦隊で海を渡れる国に宣戦しますか。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。`,
+      instructions: `${name}は今月、戦争目標の正当化を終えた国に宣戦しますか。正当化した戦争目標は${JUSTIFIED_DAYS}日で失効します。戦争は負ければ国を失う賭けで、相手を大きく上回る兵力があるときだけ割に合います。宣戦すると世界緊張度が上がります。`,
       key: keyOf(nation, "war"),
       nation,
       question: "war",
+    });
+  }
+  if (brief.justifiable.length > 0) {
+    asked.push({
+      criteria: Object.fromEntries([
+        [NO_CHOICE, "どの国にも戦争目標を正当化しない"],
+        ...brief.justifiable.map((rival): [string, string] => [
+          justifyChoice(rival.nation),
+          `国${rival.nation}への戦争目標を正当化する（相手陣営の兵力 ${sightingWords(rival.strength, men)}）`,
+        ]),
+      ]),
+      instructions: `${name}は今月、陸で接する国か、艦隊で海を渡れる国への戦争目標の正当化を始めますか。正当化には${justifyingDays(brief.tension)}日かかり、終わるまで宣戦できません。正当化を始めると世界緊張度が上がり、ほかの国も正当化を始めやすくなります。`,
+      key: keyOf(nation, "justify"),
+      nation,
+      question: "justify",
     });
   }
   asked.push({

@@ -31,7 +31,11 @@ import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { HOME, serviceFor } from "./espionage";
+import type { FocusId } from "./focus";
+import { START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
+import type { World } from "./index";
+import type { Leaning } from "./leaning";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
@@ -40,12 +44,44 @@ import { START_RESEARCH } from "./research";
 import type { Sighting } from "./sightings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
-import { enemiesOf, warCount } from "./wars";
+import { enemiesOf } from "./wars";
 
 const withDiplomacy = (diplomacy: Diplomacy): Simulation => ({
   ...ROW_SIMULATION,
   diplomacy,
 });
+
+/** Every focus outside the army's branch that the tree lists before the political stands. */
+const UP_TO_THE_STAND: readonly FocusId[] = [
+  "industrialisation",
+  "construction-effort",
+  "production-effort",
+  "total-mobilisation",
+  "research-bureau",
+  "technical-schools",
+  "secret-projects",
+  "political-effort",
+  "national-unity",
+];
+
+/** The row with nation 3 having finished militarism, which may justify at any tension. */
+const MILITARIST_THREE: Simulation = {
+  ...ROW_SIMULATION,
+  advancements: replacedAt(ROW_SIMULATION.advancements, 3, {
+    ...START_ADVANCEMENT,
+    focuses: { ...START_FOCUSES, done: ["political-effort", "militarism"] },
+  }),
+};
+
+/** Nation 3 armed and holding a war goal on 2 justified a month before 1936-03-01, on that day. */
+const JUSTIFIED_THREE: Simulation = {
+  ...withDiplomacy({
+    ...ROW_SIMULATION.diplomacy,
+    warGoals: [{ nation: 3, readyOn: 30, target: 2 }],
+  }),
+  clock: { ...ROW_SIMULATION.clock, days: 60 },
+  divisions: [division({ nation: 3, province: 3 })],
+};
 
 /** Every nation knowing everything of every other, from captives that told all. */
 const KNOWING: Simulation["gleaned"] = {
@@ -96,6 +132,7 @@ const BRIEF: NationBrief = {
   focuses: [],
   freeSlots: 0,
   fuel: 0,
+  justifiable: [{ nation: 0, strength: exactly(0) }],
   manpower: 0,
   militaryFactories: 0,
   nation: 1,
@@ -111,6 +148,7 @@ const BRIEF: NationBrief = {
   spyTargets: [],
   strength: 0,
   techs: [],
+  tension: 0,
   undersupplied: 0,
 };
 
@@ -196,9 +234,10 @@ describe(councilOf, () => {
     ).toStrictEqual([0, 1, 2]);
   });
 
-  it("should offer the neighbours it outmatches and the factions across its borders when a nation is unaligned and at peace", () => {
+  it("should offer the neighbours it outmatches to justify on and the factions across its borders when world tension has reached half", () => {
     const armed: Simulation = {
       ...ORDERED,
+      diplomacy: { ...ORDERED.diplomacy, tension: 0.5 },
       divisions: [division({ nation: 1, province: 1 })],
     };
     const brief = councilOf(ROW_WORLD, armed).nations.find(
@@ -207,18 +246,59 @@ describe(councilOf, () => {
 
     expect({
       factions: brief?.factions,
+      justifiable: brief?.justifiable,
       rivals: brief?.rivals,
     }).toStrictEqual({
       factions: [{ faction: 0, strength: 0 }],
-      rivals: [
-        { nation: 0, strength: UNSEEN_ONE },
+      justifiable: [
         { nation: 2, strength: { ...UNSEEN_ONE, unseen: 2 } },
+        { nation: 0, strength: UNSEEN_ONE },
       ],
+      rivals: [],
     });
   });
 
-  it("should offer no neighbour to declare on when the nation outmatches none of them", () => {
-    const brief = councilOf(ROW_WORLD, ORDERED).nations.find(
+  it("should offer nobody to justify on when world tension is under what the nation's focuses require", () => {
+    const armed: Simulation = {
+      ...ORDERED,
+      divisions: [division({ nation: 1, province: 1 })],
+    };
+    const brief = councilOf(ROW_WORLD, armed).nations.find(
+      (entry) => entry.nation === 1
+    );
+
+    expect(brief?.justifiable).toStrictEqual([]);
+  });
+
+  it("should offer the target of its justified war goal to declare on, and nobody to justify on, when it holds one", () => {
+    const armed: Simulation = {
+      ...ORDERED,
+      diplomacy: {
+        ...ORDERED.diplomacy,
+        tension: 0.5,
+        warGoals: [{ nation: 1, readyOn: 0, target: 2 }],
+      },
+      divisions: [division({ nation: 1, province: 1 })],
+    };
+    const brief = councilOf(ROW_WORLD, armed).nations.find(
+      (entry) => entry.nation === 1
+    );
+
+    expect({
+      justifiable: brief?.justifiable,
+      rivals: brief?.rivals,
+    }).toStrictEqual({
+      justifiable: [],
+      rivals: [{ nation: 2, strength: { ...UNSEEN_ONE, unseen: 2 } }],
+    });
+  });
+
+  it("should offer no neighbour to declare on when the nation no longer outmatches the target of its justified war goal", () => {
+    const justified = withDiplomacy({
+      ...ORDERED.diplomacy,
+      warGoals: [{ nation: 1, readyOn: 0, target: 2 }],
+    });
+    const brief = councilOf(ROW_WORLD, justified).nations.find(
       (entry) => entry.nation === 1
     );
 
@@ -545,39 +625,53 @@ describe(ruledByRules, () => {
 
   it("should draw apart when two months are decided on the same day", () => {
     const armed: Simulation = {
-      ...ROW_SIMULATION,
+      ...MILITARIST_THREE,
       divisions: [division({ nation: 3, province: 3 })],
     };
 
     expect([
-      warCount(ruledByRules(ROW_WORLD, armed, 31).diplomacy.wars),
-      warCount(ruledByRules(ROW_WORLD, armed, 60).diplomacy.wars),
+      ruledByRules(ROW_WORLD, armed, 31).diplomacy.warGoals.length,
+      ruledByRules(ROW_WORLD, armed, 60).diplomacy.warGoals.length,
     ]).toStrictEqual([0, 1]);
   });
 
-  it("should declare the war the month's draw allows when the council meets on 1936-03-01", () => {
+  it("should start justifying the war goal the month's draw allows when a militarist nation's council meets on 1936-03-01", () => {
+    const armed: Simulation = {
+      ...MILITARIST_THREE,
+      clock: { ...ROW_SIMULATION.clock, days: 60 },
+      divisions: [division({ nation: 3, province: 3 })],
+    };
+
+    expect(ruledByRules(ROW_WORLD, armed, 60).diplomacy.warGoals).toStrictEqual(
+      [{ nation: 3, readyOn: 240, target: 2 }]
+    );
+  });
+
+  it("should justify nothing when a nation that took no stand meets under half world tension", () => {
     const armed: Simulation = {
       ...ROW_SIMULATION,
       clock: { ...ROW_SIMULATION.clock, days: 60 },
       divisions: [division({ nation: 3, province: 3 })],
     };
 
+    expect(ruledByRules(ROW_WORLD, armed, 60).diplomacy.warGoals).toStrictEqual(
+      []
+    );
+  });
+
+  it("should declare on the target of its justified war goal when its side outmatches the target's", () => {
     expect(
-      enemiesOf(ruledByRules(ROW_WORLD, armed, 60).diplomacy.wars, 3)
+      enemiesOf(ruledByRules(ROW_WORLD, JUSTIFIED_THREE, 60).diplomacy.wars, 3)
     ).toStrictEqual([2]);
   });
 
   it("should start the forces' technologies first when the rules declare war in the same council", () => {
-    const armed: Simulation = {
-      ...ROW_SIMULATION,
-      clock: { ...ROW_SIMULATION.clock, days: 60 },
-      divisions: [division({ nation: 3, province: 3 })],
-    };
-
     expect(
-      ruledByRules(ROW_WORLD, armed, 60).advancements[3]?.research.studies.map(
-        (study) => study.tech
-      )
+      ruledByRules(
+        ROW_WORLD,
+        JUSTIFIED_THREE,
+        60
+      ).advancements[3]?.research.studies.map((study) => study.tech)
     ).toStrictEqual([
       "basic-light-battery",
       "basic-medium-battery",
@@ -785,6 +879,35 @@ describe(ruledByRules, () => {
         ?.focuses.current
     ).toStrictEqual(Option.some({ focus: "industrialisation", progress: 0 }));
   });
+
+  it.each([
+    { leaning: "army", stand: "militarism" },
+    { leaning: "navy", stand: "neutrality" },
+    { leaning: "industry", stand: "neutrality" },
+  ] satisfies readonly {
+    readonly leaning: Leaning;
+    readonly stand: FocusId;
+  }[])(
+    "should take $stand when a $leaning nation at peace reaches its political stand",
+    ({ leaning, stand }) => {
+      const world: World = {
+        ...ROW_WORLD,
+        nations: ROW_WORLD.nations.map((nation) => ({ ...nation, leaning })),
+      };
+      const reached = replacedAt(ROW_SIMULATION.advancements, 0, {
+        ...START_ADVANCEMENT,
+        focuses: { ...START_FOCUSES, done: UP_TO_THE_STAND },
+      });
+
+      expect(
+        ruledByRules(
+          world,
+          { ...ROW_SIMULATION, advancements: reached },
+          COUNCIL_DAY
+        ).advancements[0]?.focuses.current
+      ).toStrictEqual(Option.some({ focus: stand, progress: 0 }));
+    }
+  );
 
   it("should pursue the first focus in the army's branch when a nation is at war", () => {
     expect(
@@ -1016,6 +1139,32 @@ describe(rulingsFrom, () => {
         source: fromJev(0.7),
       },
     ]);
+  });
+
+  it("should start justifying on the rival the draw lands on when Jev weighs a justification", () => {
+    const weighed = verdict({
+      question: "justify",
+      weights: [
+        { choice: "none", probability: 0.3 },
+        { choice: "j0", probability: 0.7 },
+      ],
+    });
+
+    expect(rulingsFrom(COUNCIL, [weighed], landingOn(0.5))).toStrictEqual([
+      {
+        decision: { kind: "justify", nation: 1, target: 0 },
+        source: fromJev(0.7),
+      },
+    ]);
+  });
+
+  it("should justify nothing when Jev names a nation the brief did not offer to justify on", () => {
+    const weighed = verdict({
+      question: "justify",
+      weights: [{ choice: "j2", probability: 1 }],
+    });
+
+    expect(rulingsFrom(COUNCIL, [weighed], landingOn(0.5))).toStrictEqual([]);
   });
 
   it("should keep the peace when the draw lands on none", () => {

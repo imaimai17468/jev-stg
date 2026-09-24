@@ -97,6 +97,10 @@ const NationBriefSchema = Schema.Struct({
   ),
   /** The share of what it can store that its fuel stockpile holds. */
   fuel: Share,
+  /** Nations it may start justifying a war goal on, empty unless it may justify one. */
+  justifiable: Schema.Array(RivalSchema).check(
+    Schema.isMaxLength(MOST_OPTIONS)
+  ),
   manpower: Amount,
   militaryFactories: Amount,
   nation: NationId,
@@ -109,7 +113,7 @@ const NationBriefSchema = Schema.Struct({
   population: Amount,
   /** Whether its operatives are posted in another nation rather than kept at home. */
   posted: Schema.Boolean,
-  /** Nations it may declare on, empty unless it is independent and at peace. */
+  /** Nations it may declare on, empty unless it holds a justified war goal. */
   rivals: Schema.Array(RivalSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
   /** The design its dockyards lay down for each class of warship. */
   shipDesigns: ShipDesignsSchema,
@@ -125,6 +129,8 @@ const NationBriefSchema = Schema.Struct({
   strength: Amount,
   /** Technologies a free slot may start on, empty when no slot is free. */
   techs: Schema.Array(TechIdSchema).check(Schema.isMaxLength(MOST_OPTIONS)),
+  /** How close the whole world stands to war. */
+  tension: Share,
   /** The share of its divisions that get less supply than they need. */
   undersupplied: Share,
 });
@@ -168,6 +174,7 @@ export type Question =
   | "plan"
   | "stance"
   | "war"
+  | "justify"
   | "faction"
   | "research"
   | "focus"
@@ -184,6 +191,7 @@ const QUESTIONS: readonly Question[] = [
   "plan",
   "stance",
   "war",
+  "justify",
   "faction",
   "research",
   "focus",
@@ -236,6 +244,9 @@ export const NO_CHOICE = "none";
 
 /** The choice id that names declaring on `nation`. */
 export const rivalChoice = (nation: number): string => `n${nation}`;
+
+/** The choice id that names justifying a war goal on `nation`. */
+export const justifyChoice = (nation: number): string => `j${nation}`;
 
 /** The choice id that names sending the operatives to `nation`. */
 export const spyChoice = (nation: number): string => `s${nation}`;
