@@ -54,6 +54,7 @@ const BRANCH_TITLES = {
 } satisfies Readonly<Record<FocusBranch, string>>;
 
 const LINE_TITLES = {
+  armour: "戦車",
   battleships: "戦艦",
   carriers: "空母",
   "close-support": "近接航空支援機",
@@ -65,8 +66,10 @@ const LINE_TITLES = {
   fuel: "燃料",
   industry: "工業",
   "infantry-weapons": "歩兵装備",
+  "mobile-infantry": "自動車化と機械化",
   "naval-armament": "艦砲と魚雷",
   "naval-bombers": "雷撃機",
+  "special-forces": "特殊部隊",
   submarines: "潜水艦",
 } satisfies Readonly<Record<TechLine, string>>;
 

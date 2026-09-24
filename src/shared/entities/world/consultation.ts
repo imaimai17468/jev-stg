@@ -1,6 +1,7 @@
 import { Schema } from "effect";
 import { AgencyProjectSchema } from "./agency";
 import { AirframeModelsSchema } from "./aircraft";
+import { DivisionKindSchema } from "./divisions";
 import { FocusIdSchema } from "./focus";
 import { MOST_INFRASTRUCTURE } from "./infrastructure";
 import { ShipDesignsSchema } from "./ships";
@@ -99,6 +100,10 @@ const NationBriefSchema = Schema.Struct({
   civilianFactories: Amount,
   /** Convoys it has afloat. */
   convoys: Amount,
+  /** The kinds of division its research lets it raise. */
+  divisionKinds: Schema.Array(DivisionKindSchema).check(
+    Schema.isMaxLength(MOST_OPTIONS)
+  ),
   /** Dockyards it builds ships and convoys in, none for a nation without a port. */
   dockyards: Amount,
   /** What it believes every nation it is fighting has at sea. */
@@ -207,6 +212,7 @@ export type Question =
   | "shipbuilding"
   | "aircraft"
   | "aviation"
+  | "division-kind"
   | "build-site"
   | "agency"
   | "espionage"
@@ -225,6 +231,7 @@ const QUESTIONS: readonly Question[] = [
   "shipbuilding",
   "aircraft",
   "aviation",
+  "division-kind",
   "build-site",
   "agency",
   "espionage",

@@ -142,20 +142,21 @@ export interface Simulation {
 export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
   const opening = startEconomies(world, owners);
-  const armies = musteredBy(
-    world,
-    owners,
-    opening,
-    openingLevyIn(groundOf(world, owners, opening))
-  );
-  const { economies } = armies;
-  const homes = homeZonesOf(world, owners);
   const advancements = world.nations.map((nation) =>
     openingAdvancementOf(nation.leaning)
   );
   const armouries = advancements.map((advancement) =>
     armouryOf(advancement.research)
   );
+  const armies = musteredBy(
+    world,
+    owners,
+    opening,
+    (nation) => itemAt(armouries, nation, OPENING_ARMOURY).kinds,
+    openingLevyIn(groundOf(world, owners, opening))
+  );
+  const { economies } = armies;
+  const homes = homeZonesOf(world, owners);
   return {
     advancements,
     airBases: openingAirBases(world),

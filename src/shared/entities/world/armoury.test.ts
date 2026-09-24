@@ -8,6 +8,7 @@ describe(armouryOf, () => {
   it("should arm with the first model of each kind and no weapon shares when nothing is researched", () => {
     expect(armouryOf({ ...START_RESEARCH, researched: [] })).toStrictEqual({
       infantry: "basic-infantry-equipment",
+      kinds: ["infantry", "cavalry"],
       planes: {
         "close-support": "close-air-support-1",
         fighter: "interwar-fighter",
@@ -44,10 +45,12 @@ describe(armouryOf, () => {
           "magnetic-detonator",
           "armor-piercing-capped-shell",
           "super-heavy-armor-piercing-shell",
+          "great-war-tank",
         ],
       })
     ).toStrictEqual({
       infantry: "infantry-equipment-2",
+      kinds: ["infantry", "cavalry", "light-armour"],
       planes: {
         "close-support": "close-air-support-1",
         fighter: "fighter-2",

@@ -1,5 +1,6 @@
 import type { AirCover } from "./air-cover";
 import { coverOver } from "./air-cover";
+import { OPENING_ARMOURY } from "./armoury";
 import type { BattlePlan } from "./battle-plan";
 import { battlePlansOf, NO_PLAN, onItsFront } from "./battle-plan";
 import type { Theatre } from "./combat";
@@ -688,6 +689,7 @@ export const armiesAfterOneDay = (
     world,
     armies.owners,
     armies.economies,
+    (nation) => itemAt(command.armouries, nation, OPENING_ARMOURY).kinds,
     dailyLevyBeside(armies.divisions)
   );
   const fought = foughtEverywhere(

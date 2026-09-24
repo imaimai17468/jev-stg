@@ -165,7 +165,9 @@ describe(openingLevyIn, () => {
       groundOf(worldOf([nation(0, 0)], [land(0, [])]), Int32Array.from([0]), [])
     );
 
-    expect(levied(manned(100_000), nation(0, 0), 0)).toStrictEqual({
+    expect(
+      levied(manned(100_000), nation(0, 0), 0, ["infantry", "cavalry"])
+    ).toStrictEqual({
       divisions: posted(1, 0, 0, "garrison"),
       economy: { ...manned(80_000), recruited: 20_000 },
     });

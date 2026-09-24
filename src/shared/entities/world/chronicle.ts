@@ -1,5 +1,6 @@
 import type { AgencyProject } from "./agency";
 import type { Aircraft, Aviation } from "./aircraft";
+import type { Raising } from "./divisions";
 import type { ConscriptionLaw, IndustryPlan } from "./economy";
 import type { FocusId } from "./focus";
 import type { Operation } from "./operations";
@@ -62,6 +63,12 @@ export type Decision =
       readonly kind: "aircraft";
       readonly nation: number;
       readonly aircraft: Aircraft;
+    }
+  | {
+      readonly kind: "division-kind";
+      readonly nation: number;
+      /** The kind of division its depots raise, or its leaning's mix. */
+      readonly division: Raising;
     }
   | {
       readonly kind: "build-site";
@@ -178,6 +185,7 @@ const STRAND_OF = {
   cipher: "intelligence",
   conscription: "policy",
   declare: "diplomacy",
+  "division-kind": "policy",
   espionage: "intelligence",
   focus: "advancement",
   join: "diplomacy",

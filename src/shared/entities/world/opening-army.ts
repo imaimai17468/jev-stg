@@ -256,14 +256,14 @@ export const openingPostsOf = (
 
 /**
  * The levy every nation opens the world with: as many divisions as its
- * manpower and its leaning give it, of the kinds its leaning's mix asks for,
- * posted where `openingPostsOf` puts them,
- * with their men called up.
+ * manpower and its leaning give it, of the kinds its leaning's mix asks for
+ * among the ones it may raise, posted where `openingPostsOf` puts them, with
+ * their men called up.
  */
 export const openingLevyIn =
   (ground: Ground): Levied =>
-  (economy, nation, home) => {
-    const kinds = openingKindsOf(economy.manpower, nation.leaning);
+  (economy, nation, home, unlocked) => {
+    const kinds = openingKindsOf(economy.manpower, nation.leaning, unlocked);
     return {
       divisions: openingPostsOf(ground, nation, home, kinds),
       economy: calledUpFor(economy, kinds),

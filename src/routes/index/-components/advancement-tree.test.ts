@@ -231,6 +231,9 @@ describe(advancementTreeOf, () => {
       advancementTreeOf(START_ADVANCEMENT).techs.map((group) => group.title)
     ).toStrictEqual([
       "歩兵装備",
+      "戦車",
+      "自動車化と機械化",
+      "特殊部隊",
       "駆逐艦",
       "巡洋艦",
       "戦艦",

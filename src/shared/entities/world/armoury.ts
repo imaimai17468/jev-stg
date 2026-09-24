@@ -1,7 +1,7 @@
 import type { AirframeModels } from "./aircraft";
 import { airframeModelsOf } from "./aircraft";
-import type { InfantryEquipment } from "./divisions";
-import { infantryEquipmentOf } from "./divisions";
+import type { DivisionKind, InfantryEquipment } from "./divisions";
+import { infantryEquipmentOf, unlockedKindsOf } from "./divisions";
 import type { Research } from "./research";
 import { shipUpgradesOf, START_RESEARCH } from "./research";
 import type { ShipClass, ShipDesigns } from "./ships";
@@ -26,12 +26,13 @@ export interface FleetShares {
 
 /**
  * What a nation's research arms it with: the infantry equipment its divisions
- * fight with, the design its dockyards lay down for each class and its
- * factories build for each kind of plane, and what its warships' weapons
- * gain.
+ * fight with and the kinds of division it may raise, the design its dockyards
+ * lay down for each class and its factories build for each kind of plane, and
+ * what its warships' weapons gain.
  */
 export interface Armoury {
   readonly infantry: InfantryEquipment;
+  readonly kinds: readonly DivisionKind[];
   readonly ships: ShipDesigns;
   readonly planes: AirframeModels;
   readonly weapons: FleetShares;
@@ -55,6 +56,7 @@ export const armouryOf = (research: Research): Armoury => {
   });
   return {
     infantry: infantryEquipmentOf(researched),
+    kinds: unlockedKindsOf(researched),
     planes: airframeModelsOf(researched),
     ships: shipDesignsOf(researched),
     weapons: {

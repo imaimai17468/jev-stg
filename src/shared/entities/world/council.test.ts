@@ -123,6 +123,7 @@ const BRIEF: NationBrief = {
   buildSites: [],
   civilianFactories: 0,
   convoys: 0,
+  divisionKinds: ["infantry", "cavalry"],
   dockyards: 0,
   enemyFleet: exactly(0),
   enemyPlanes: exactly(0),
@@ -412,6 +413,9 @@ describe(councilOf, () => {
       freeSlots: 3,
       techs: [
         "improved-infantry-equipment-1",
+        "great-war-tank",
+        "early-truck",
+        "mountain-infantry-1",
         "destroyer-3",
         "light-cruiser-3",
         "battleship-3",
@@ -673,11 +677,7 @@ describe(ruledByRules, () => {
         JUSTIFIED_THREE,
         60
       ).advancements[3]?.research.studies.map((study) => study.tech)
-    ).toStrictEqual([
-      "basic-light-battery",
-      "basic-medium-battery",
-      "basic-heavy-battery",
-    ]);
+    ).toStrictEqual(["great-war-tank", "early-truck", "mountain-infantry-1"]);
   });
 
   it("should join the faction across its border when a nation is threatened", () => {
@@ -691,20 +691,20 @@ describe(ruledByRules, () => {
     ]).toStrictEqual([0, 0, -1, -1]);
   });
 
-  it("should start the economy's technologies first on every free slot when a nation is at peace", () => {
+  it("should start the oldest technology first and then the economy's for this year when a nation is at peace", () => {
     expect(
       startedTechs(ruledByRules(ROW_WORLD, ROW_SIMULATION, COUNCIL_DAY))
-    ).toStrictEqual(["basic-machine-tools", "construction-1", "fuel-storage"]);
+    ).toStrictEqual([
+      "great-war-tank",
+      "basic-machine-tools",
+      "construction-1",
+    ]);
   });
 
   it("should start the forces' technologies first on every free slot when a nation is at war", () => {
     expect(
       startedTechs(ruledByRules(ROW_WORLD, atWar([]), COUNCIL_DAY))
-    ).toStrictEqual([
-      "basic-light-battery",
-      "basic-medium-battery",
-      "basic-heavy-battery",
-    ]);
+    ).toStrictEqual(["great-war-tank", "early-truck", "mountain-infantry-1"]);
   });
 
   it("should start the economy's technologies meant for this year before the forces' later ones when a nation at war has none of its own left for this year", () => {
@@ -713,6 +713,15 @@ describe(ruledByRules, () => {
         ruledByRules(
           ROW_WORLD,
           researchedAll(atWar([]), [
+            "great-war-tank",
+            "light-tank-1",
+            "light-tank-2",
+            "heavy-tank-1",
+            "early-truck",
+            "truck",
+            "mountain-infantry-1",
+            "marines-1",
+            "paratroopers-1",
             "basic-light-battery",
             "basic-medium-battery",
             "basic-heavy-battery",
@@ -737,9 +746,9 @@ describe(ruledByRules, () => {
         )
       )
     ).toStrictEqual([
+      "great-war-tank",
       "concentrated-industry-1",
       "construction-1",
-      "fuel-storage",
     ]);
   });
 
@@ -1245,6 +1254,64 @@ describe(rulingsFrom, () => {
         source: fromJev(0.3),
       },
     ]);
+  });
+
+  it("should raise the kind of division a sure division-kind verdict names when the brief offered it", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [
+          verdict({
+            choice: "cavalry",
+            probability: 0.8,
+            question: "division-kind",
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { division: "cavalry", kind: "division-kind", nation: 1 },
+        source: fromJev(0.8),
+      },
+    ]);
+  });
+
+  it("should hand the depots back to the mix when a sure division-kind verdict names the mix", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [
+          verdict({
+            choice: "mix",
+            probability: 0.8,
+            question: "division-kind",
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([
+      {
+        decision: { division: "mix", kind: "division-kind", nation: 1 },
+        source: fromJev(0.8),
+      },
+    ]);
+  });
+
+  it("should decide nothing when a division-kind verdict names a kind the nation's research has not unlocked", () => {
+    expect(
+      rulingsFrom(
+        COUNCIL,
+        [
+          verdict({
+            choice: "heavy-armour",
+            probability: 0.8,
+            question: "division-kind",
+          }),
+        ],
+        ANY_DRAW
+      )
+    ).toStrictEqual([]);
   });
 
   it("should decide nothing when a build-site verdict names a province the brief never offered", () => {

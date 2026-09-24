@@ -1,5 +1,6 @@
 import { Option } from "effect";
 import type { Reach } from "./compliance";
+import type { Raising } from "./divisions";
 import { FUEL_CAPACITY } from "./fuel";
 import type { World } from "./index";
 import { industryByNation } from "./industry";
@@ -150,6 +151,8 @@ export interface NationEconomy {
    * `UNASSIGNED` where it has picked none and the rules pick one each day.
    */
   readonly buildSite: number;
+  /** The kind of division its depots raise. */
+  readonly raising: Raising;
   /** Equipment turned out and not yet drawn on. */
   readonly equipment: number;
   readonly plan: IndustryPlan;
@@ -196,6 +199,7 @@ export const NO_ECONOMY: NationEconomy = {
   militaryFactories: 0,
   plan: "civilian",
   population: 0,
+  raising: "mix",
   recruited: 0,
   roadSite: UNASSIGNED,
   roadworks: 0,
@@ -234,6 +238,12 @@ export const withBuildSite = (
   economy: NationEconomy,
   province: number
 ): NationEconomy => ({ ...economy, buildSite: province });
+
+/** The economy raising `raising` from tomorrow. */
+export const withRaising = (
+  economy: NationEconomy,
+  raising: Raising
+): NationEconomy => ({ ...economy, raising });
 
 /** The economy under `law`, which changes what it sells abroad from tomorrow. */
 export const withTradeLaw = (
@@ -607,6 +617,7 @@ export const startEconomies = (
         militaryFactories,
         plan: START_PLAN,
         population: industry.population,
+        raising: "mix",
         recruited: 0,
         roadSite: UNASSIGNED,
         roadworks: 0,

@@ -708,6 +708,56 @@ describe(ruled, () => {
     });
   });
 
+  it("should raise the kind of division decided and record the ruling when the nation raised another kind", () => {
+    const ruling = byRules({
+      division: "mountaineers",
+      kind: "division-kind",
+      nation: 3,
+    });
+
+    const after = ruled(ROW_WORLD, ROW_SIMULATION, ruling);
+
+    expect({
+      chronicle: after.chronicle,
+      raising: after.economies[3]?.raising,
+    }).toStrictEqual({
+      chronicle: [{ day: 0, ruling, seq: 0 }],
+      raising: "mountaineers",
+    });
+  });
+
+  it("should hand the depots back to the mix when a nation raising one kind decides on the mix", () => {
+    const raising = ruled(
+      ROW_WORLD,
+      ROW_SIMULATION,
+      byRules({ division: "marines", kind: "division-kind", nation: 3 })
+    );
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        raising,
+        byRules({ division: "mix", kind: "division-kind", nation: 3 })
+      ).economies[3]?.raising
+    ).toBe("mix");
+  });
+
+  it("should change nothing when a nation decides on the kind of division it already raises", () => {
+    const raising = ruled(
+      ROW_WORLD,
+      ROW_SIMULATION,
+      byRules({ division: "marines", kind: "division-kind", nation: 3 })
+    );
+
+    expect(
+      ruled(
+        ROW_WORLD,
+        raising,
+        byRules({ division: "marines", kind: "division-kind", nation: 3 })
+      )
+    ).toBe(raising);
+  });
+
   it("should change nothing when a nation picks a province it does not hold to build in", () => {
     expect(
       ruled(

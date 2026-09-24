@@ -39,7 +39,15 @@ import {
   siteChoice,
   spyChoice,
 } from "@/shared/entities/world/consultation";
-import { INFANTRY_EQUIPMENT } from "@/shared/entities/world/divisions";
+import type { DivisionKind } from "@/shared/entities/world/divisions";
+import {
+  raisingNameOf,
+  equipmentOf,
+  INFANTRY_EQUIPMENT,
+  kindsUnlockedBy,
+  manpowerOf,
+  MIXED,
+} from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,
@@ -227,6 +235,32 @@ const aircraftLabelsOf = (models: AirframeModels) =>
     ])
   );
 
+const men = (count: number): string =>
+  `${Math.round(count).toLocaleString("ja-JP")}人`;
+
+/** What each kind of division is good and bad at, in words, read off its battalions. */
+const DIVISION_KIND_TRAITS = {
+  cavalry: "歩兵より速く、丘・森・山では攻撃が少し落ちる",
+  "heavy-armour":
+    "重戦車と自動車化歩兵の混成で、中戦車より攻撃は弱く守りは少し固い。戦車のうち最も遅く、森・山と上陸では攻撃が大きく落ち、組織力が低い",
+  infantry: "最も安く、どの地形でも同じように戦う",
+  "light-armour":
+    "軽戦車と自動車化歩兵の混成で速く攻撃が強いが、森では速さが落ち、組織力が低い",
+  marines:
+    "ほかの兵種は上陸すると攻撃が半分以下に落ちるが、海兵は陸上と同じ攻撃で戦える。組織力が高い",
+  mechanized: "装甲車で守りが固く速いが、森では攻撃が落ちる",
+  "medium-armour":
+    "中戦車と自動車化歩兵の混成で軽戦車より攻撃が強いが、森・山と上陸では攻撃が落ち、組織力が低い",
+  motorized:
+    "歩兵の3倍の速さで進む。森では速さが半分に落ちるが、それでも歩兵より速い",
+  mountaineers: "山と丘で攻撃・守り・速さが上がり、組織力が高い",
+  paratroopers: "組織力が高い。空挺降下はまだできない",
+} satisfies Readonly<Record<DivisionKind, string>>;
+
+/** How the division-kind question words one kind: what a division of it costs and what it is good at. */
+const divisionKindLabel = (kind: DivisionKind): string =>
+  `${raisingNameOf(kind)}（1師団に兵員${men(manpowerOf(kind))}・装備${Math.round(equipmentOf(kind)).toLocaleString("ja-JP")}、${DIVISION_KIND_TRAITS[kind]}）`;
+
 /** What each weight of aviation puts on planes, in words, read off its share. */
 const aviationLabel = (aviation: Aviation): string => {
   const share = aviationShareOf(aviation);
@@ -321,6 +355,12 @@ const designWords = (tech: TechId): readonly string[] =>
     return [words];
   });
 
+/** The kinds of division researching `tech` lets the nation raise, in words. */
+const unlockWords = (tech: TechId): readonly string[] =>
+  kindsUnlockedBy(tech).map(
+    (kind) => `${raisingNameOf(kind)}の師団を編成できるようになる`
+  );
+
 const GRANT_LABELS = {
   civilianFactories: "民需工場",
   militaryFactories: "軍需工場",
@@ -358,6 +398,7 @@ const techLabel = (tech: TechId): string => {
   const { bonus, name, upgrades, year } = techOf(tech);
   const effects = [
     ...designWords(tech),
+    ...unlockWords(tech),
     ...bonusWords(bonus),
     ...upgradeWords(upgrades),
   ];
@@ -373,9 +414,6 @@ const focusLabel = (focus: FocusId): string => {
   const { bonus, grants, name } = focusOf(focus);
   return `${name}（${[...grantWords(grants), ...bonusWords(bonus)].join("・")}）`;
 };
-
-const men = (count: number): string =>
-  `${Math.round(count).toLocaleString("ja-JP")}人`;
 
 /** What an agency upgrade's first level adds, by what it changes, and whether it counts points rather than a share. */
 const AGENCY_GAIN_WORDS = {
@@ -623,6 +661,22 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
       key: keyOf(nation, "aircraft"),
       nation,
       question: "aircraft",
+    },
+    {
+      criteria: Object.fromEntries([
+        [
+          MIXED,
+          "国柄の編成比率どおり（研究で編成できる兵種を、比率に足りない順に1つずつ編成する）",
+        ],
+        ...brief.divisionKinds.map((kind): [string, string] => [
+          kind,
+          divisionKindLabel(kind),
+        ]),
+      ]),
+      instructions: `${name}は次にどの兵種の師団を編成しますか。選択肢は研究で編成できるようになった兵種です。選んだ兵種は変えるまで編成し続け、装備が足りない日は編成せずに貯めます。兵員が1師団分に足りないあいだは、国柄の編成比率どおりに編成します。`,
+      key: keyOf(nation, "division-kind"),
+      nation,
+      question: "division-kind",
     }
   );
   if (brief.techs.length > 0) {

@@ -7,10 +7,11 @@ import { itemAt, lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import type { Nation } from "./nations";
 import { entrenchedShare } from "./preparation";
+import type { TechId } from "./techs";
 import type { Terrain } from "./terrain";
 
 /** Every kind of division a nation raises, named by the line battalions it is built around. */
-const DivisionKindSchema = Schema.Literals([
+export const DivisionKindSchema = Schema.Literals([
   "infantry",
   "cavalry",
   "motorized",
@@ -26,6 +27,66 @@ const DivisionKindSchema = Schema.Literals([
 export type DivisionKind = typeof DivisionKindSchema.Type;
 
 const DIVISION_KINDS = DivisionKindSchema.literals;
+
+/**
+ * What a nation's depots raise: the kind its government chose, or the kind
+ * its leaning's mix is shortest of where it chose none.
+ */
+export type Raising = DivisionKind | "mix";
+
+/** The raising that leaves the kind to its leaning's mix. */
+export const MIXED: Raising = "mix";
+
+/** What each kind, and the mix, is called, the way a technology's name is. */
+const RAISING_NAMES = {
+  cavalry: "騎兵",
+  "heavy-armour": "重戦車",
+  infantry: "歩兵",
+  "light-armour": "軽戦車",
+  marines: "海兵",
+  mechanized: "機械化歩兵",
+  "medium-armour": "中戦車",
+  mix: "編成比率どおり",
+  motorized: "自動車化歩兵",
+  mountaineers: "山岳歩兵",
+  paratroopers: "空挺兵",
+} satisfies Readonly<Record<Raising, string>>;
+
+export const raisingNameOf = (raising: Raising): string =>
+  RAISING_NAMES[raising];
+
+/**
+ * The technologies each kind needs researched, after Hearts of Iron IV: the
+ * tank that enables each tank battalion, the truck that enables motorized
+ * infantry, the first mechanized equipment, and the first technology of each
+ * special force. Infantry and cavalry need none.
+ */
+const UNLOCKED_BY = {
+  cavalry: [],
+  "heavy-armour": ["heavy-tank-1"],
+  infantry: [],
+  "light-armour": ["great-war-tank"],
+  marines: ["marines-1"],
+  mechanized: ["mechanized-equipment-1"],
+  "medium-armour": ["medium-tank-1"],
+  motorized: ["truck"],
+  mountaineers: ["mountain-infantry-1"],
+  paratroopers: ["paratroopers-1"],
+} satisfies Readonly<Record<DivisionKind, readonly TechId[]>>;
+
+/** The kinds a nation with `researched` may raise, in the order the kinds are listed. */
+export const unlockedKindsOf = (
+  researched: ReadonlySet<string>
+): readonly DivisionKind[] =>
+  DIVISION_KINDS.filter((kind) =>
+    UNLOCKED_BY[kind].every((tech) => researched.has(tech))
+  );
+
+/** The kinds that need `tech` researched. */
+export const kindsUnlockedBy = (tech: TechId): readonly DivisionKind[] =>
+  DIVISION_KINDS.filter((kind) =>
+    UNLOCKED_BY[kind].some((needed) => needed === tech)
+  );
 
 /** One line of battalions in a division, and how many of them it holds. */
 interface Line {
@@ -88,12 +149,12 @@ const MEN_PER_BATTALION_MAN = 2;
 const EQUIPMENT_PER_COST = 2;
 
 /** The men it takes to raise a division of `kind`, and the most it ever holds. */
-const manpowerOf = (kind: DivisionKind): number =>
+export const manpowerOf = (kind: DivisionKind): number =>
   summedOver(kind, (battalion) => battalionOf(battalion).manpower) *
   MEN_PER_BATTALION_MAN;
 
 /** The equipment it takes to raise a division of `kind`. */
-const equipmentOf = (kind: DivisionKind): number =>
+export const equipmentOf = (kind: DivisionKind): number =>
   summedOver(kind, (battalion) => battalionOf(battalion).cost) *
   EQUIPMENT_PER_COST;
 
@@ -245,33 +306,52 @@ export interface Levy {
   readonly economy: NationEconomy;
 }
 
-/** What a nation raises out of `economy` when it musters at `home`. */
+/** What a nation that may raise the `unlocked` kinds raises out of `economy` when it musters at `home`. */
 export type Levied = (
   economy: NationEconomy,
   nation: Nation,
-  home: number
+  home: number,
+  unlocked: readonly DivisionKind[]
 ) => Levy;
 
 /**
- * How many divisions of each kind a nation of each leaning raises for every
- * ten: mostly infantry, with the fast and the specialist divisions a 1936
- * army could raise, where its leaning puts them. The mixes are this game's own.
+ * How many parts of the divisions a nation of each leaning raises go to each
+ * kind: mostly infantry, with the fast and the specialist divisions where its
+ * leaning puts them. A kind its research has not unlocked takes no part, so
+ * the rest share what it would have. The mixes are this game's own.
  */
 const ARMY_MIX = {
   army: {
     cavalry: 1,
+    "heavy-armour": 1,
     infantry: 6,
     "light-armour": 1,
+    "medium-armour": 1,
     motorized: 1,
     mountaineers: 1,
+    paratroopers: 1,
   },
-  industry: { infantry: 6, "light-armour": 1, motorized: 2, mountaineers: 1 },
-  navy: { infantry: 6, "light-armour": 1, marines: 2, motorized: 1 },
+  industry: {
+    infantry: 6,
+    "light-armour": 1,
+    mechanized: 1,
+    "medium-armour": 1,
+    motorized: 2,
+    mountaineers: 1,
+  },
+  navy: {
+    infantry: 6,
+    "light-armour": 1,
+    marines: 2,
+    "medium-armour": 1,
+    motorized: 1,
+    paratroopers: 1,
+  },
 } satisfies Readonly<
   Record<Leaning, Partial<Readonly<Record<DivisionKind, number>>>>
 >;
 
-/** How many of every ten divisions a nation of `leaning` raises as `kind`, none where its mix has none. */
+/** How many parts of the mix a nation of `leaning` gives `kind`, none where its mix has none. */
 const mixShareOf = (leaning: Leaning, kind: DivisionKind): number => {
   const mix: Partial<Readonly<Record<DivisionKind, number>>> =
     ARMY_MIX[leaning];
@@ -279,29 +359,51 @@ const mixShareOf = (leaning: Leaning, kind: DivisionKind): number => {
 };
 
 /**
- * The kind a nation of `leaning` raises next, with `fielded` divisions of
- * each kind already in the field: the one furthest short of its share of the
- * mix once the next is counted in, the earlier kind first on a tie. The
- * shortfalls are compared as whole numbers of the mix's parts, so a tie stays
- * a tie.
+ * The kind a nation of `leaning` that may raise the `unlocked` kinds raises
+ * next, with `fielded` divisions of each kind already in the field: the one
+ * furthest short of its share of the mix over those kinds once the next is
+ * counted in, the earlier kind first on a tie, and infantry where none is
+ * unlocked. The shortfalls are compared as whole numbers of the mix's parts,
+ * so a tie stays a tie.
  */
 export const nextKindFor = (
   leaning: Leaning,
-  fielded: ReadonlyMap<DivisionKind, number>
+  fielded: ReadonlyMap<DivisionKind, number>,
+  unlocked: readonly DivisionKind[]
 ): DivisionKind => {
   const total = [...fielded.values()].reduce((sum, count) => sum + count, 1);
-  const mixed = DIVISION_KINDS.reduce(
+  const mixed = unlocked.reduce(
     (sum, kind) => sum + mixShareOf(leaning, kind),
     0
   );
   const shortOf = (kind: DivisionKind): number =>
     mixShareOf(leaning, kind) * total - (fielded.get(kind) ?? 0) * mixed;
   return itemAt(
-    DIVISION_KINDS.toSorted((one, other) => shortOf(other) - shortOf(one)),
+    unlocked.toSorted((one, other) => shortOf(other) - shortOf(one)),
     0,
     "infantry"
   );
 };
+
+/**
+ * The kind a nation with `economy` raises next: the kind its government chose
+ * while its research has it among the `unlocked` kinds and its free men
+ * reach one division of it, and otherwise the one `nextKindFor` gives. The
+ * men are checked apart from the equipment because the free men grow only
+ * with the population or a heavier law, so waiting for them could stop the
+ * depots for months, where the factories keep turning out equipment.
+ */
+const kindToRaise = (
+  economy: NationEconomy,
+  leaning: Leaning,
+  fielded: ReadonlyMap<DivisionKind, number>,
+  unlocked: readonly DivisionKind[]
+): DivisionKind =>
+  lastWhere(
+    unlocked,
+    (kind) => kind === economy.raising && manpowerOf(kind) <= economy.manpower,
+    nextKindFor(leaning, fielded, unlocked)
+  );
 
 /** How many divisions of each kind `nation` has among `divisions`. */
 const fieldedKindsOf = (
@@ -320,16 +422,18 @@ const fieldedKindsOf = (
 
 /**
  * A day of the depots beside `divisions` already in the field: one division
- * of the kind its mix is shortest of standing at `home` where the nation can
+ * of the kind `kindToRaise` gives standing at `home` where the nation can
  * afford it, and none where it cannot, so the weapons for a costly division
  * are saved up rather than spent on a cheaper one.
  */
 export const dailyLevyBeside =
   (divisions: readonly Division[]): Levied =>
-  (economy, nation, home) => {
-    const kind = nextKindFor(
+  (economy, nation, home, unlocked) => {
+    const kind = kindToRaise(
+      economy,
       nation.leaning,
-      fieldedKindsOf(divisions, nation.id)
+      fieldedKindsOf(divisions, nation.id),
+      unlocked
     );
     if (!canRaise(economy, kind)) {
       return { divisions: [], economy };
@@ -353,21 +457,23 @@ const OPENING_ARMY_SHARE = {
 /**
  * The kinds of the divisions a nation of `leaning` with `manpower` opens the
  * world with: as many as its opening share of the men raises, each the kind
- * its mix is shortest of once the ones before it are raised.
+ * among the `unlocked` ones its mix is shortest of once the ones before it
+ * are raised.
  */
 export const openingKindsOf = (
   manpower: number,
-  leaning: Leaning
+  leaning: Leaning,
+  unlocked: readonly DivisionKind[]
 ): readonly DivisionKind[] => {
   const kinds: DivisionKind[] = [];
   const fielded = new Map<DivisionKind, number>();
   let men = manpower * OPENING_ARMY_SHARE[leaning];
-  let kind = nextKindFor(leaning, fielded);
+  let kind = nextKindFor(leaning, fielded, unlocked);
   while (manpowerOf(kind) <= men) {
     men -= manpowerOf(kind);
     kinds.push(kind);
     fielded.set(kind, (fielded.get(kind) ?? 0) + 1);
-    kind = nextKindFor(leaning, fielded);
+    kind = nextKindFor(leaning, fielded, unlocked);
   }
   return kinds;
 };

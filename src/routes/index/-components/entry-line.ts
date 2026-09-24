@@ -6,6 +6,7 @@ import type {
   Source,
 } from "@/shared/entities/world/chronicle";
 import { dateOnDay } from "@/shared/entities/world/clock";
+import { raisingNameOf } from "@/shared/entities/world/divisions";
 import type {
   ConscriptionLaw,
   IndustryPlan,
@@ -75,16 +76,17 @@ const sourceLabel = (source: Source): string => {
 const caughtNote = (captured: number): string =>
   itemAt(["", `（${captured}人が捕まった）`], Number(captured > 0), "");
 
-/** The kinds of decision about a nation's trade, dockyards, planes or build site. */
+/** The kinds of decision about a nation's trade, dockyards, planes, divisions or build site. */
 const PRODUCTION_KINDS = {
   aircraft: true,
   aviation: true,
   "build-site": true,
+  "division-kind": true,
   shipbuilding: true,
   trade: true,
 } satisfies Partial<Readonly<Record<Decision["kind"], true>>>;
 
-/** A decision about a nation's trade, dockyards, planes or build site. */
+/** A decision about a nation's trade, dockyards, planes, divisions or build site. */
 type ProductionDecision = Extract<
   Decision,
   { kind: keyof typeof PRODUCTION_KINDS }
@@ -93,8 +95,11 @@ type ProductionDecision = Extract<
 const isProduction = (decision: Decision): decision is ProductionDecision =>
   decision.kind in PRODUCTION_KINDS;
 
-/** What a decision about a nation's trade, dockyards, planes or build site says in the feed's words. */
+/** What a decision about a nation's trade, dockyards, planes, divisions or build site says in the feed's words. */
 const productionAction = (decision: ProductionDecision): string => {
+  if (decision.kind === "division-kind") {
+    return `師団の編成 → ${raisingNameOf(decision.division)}`;
+  }
   if (decision.kind === "trade") {
     return `交易法 → ${TRADE_LAW_NAMES[decision.law]}`;
   }
