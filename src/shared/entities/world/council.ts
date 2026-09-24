@@ -28,6 +28,7 @@ import {
   factionChoice,
   justifyChoice,
   rivalChoice,
+  siteChoice,
   spyChoice,
 } from "./consultation";
 import {
@@ -56,6 +57,8 @@ import { neighbouringNations, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
+import type { Estate } from "./plants";
+import { siteOptionsOf } from "./plants";
 import { graphOf } from "./provinces";
 import type { Random } from "./random";
 import { randomFromSeed, shuffled, streamSeed } from "./random";
@@ -68,6 +71,7 @@ import type { Simulation } from "./simulation";
 import {
   armouriesOf,
   espialOf,
+  estateOf,
   modifiersOfAll,
   realmOf,
   skiesOf,
@@ -138,7 +142,12 @@ interface Dossier {
   readonly intel: IntelTable;
   /** The draws that set how far off each figure it cannot see exactly is. */
   readonly random: Random;
+  /** Where every nation's buildings stand and have room. */
+  readonly estate: Estate;
 }
+
+/** The most provinces a government is offered to build its factories in. */
+const MOST_BUILD_SITES = 5;
 
 /** Each of `nations` with `amount` of it, as what `observer` knows of each. */
 const forcesOf = (
@@ -301,6 +310,7 @@ const briefOf = (
       dossier.advancement.research.researched
     ),
     atWar: enemies.length > 0,
+    buildSites: siteOptionsOf(dossier.estate, nation, MOST_BUILD_SITES),
     civilianFactories: economy.civilianFactories,
     convoys: itemAt(dossier.navies, nation, NO_NAVY).convoys,
     dockyards: economy.dockyards,
@@ -371,6 +381,7 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
     world,
   });
   const intel = intelOf(espialOf(simulation, graphOf(world.provinces)));
+  const estate = estateOf(world, simulation, modifiersOfAll(simulation));
   const random = randomFromSeed(
     streamSeed(streamSeed(world.seed, SIGHTING_STREAM), simulation.clock.days)
   );
@@ -387,6 +398,7 @@ export const councilOf = (world: World, simulation: Simulation): Council => {
             START_ADVANCEMENT
           ),
           airForces: simulation.airForces,
+          estate,
           intel,
           navies: simulation.navies,
           random,
@@ -1001,6 +1013,14 @@ const decisionOf = (
       (option): Order => ({ kind: "espionage", nation, target: option.nation })
     );
   }
+  if (question === "build-site") {
+    return Option.map(
+      Option.fromUndefinedOr(
+        brief.buildSites.find((site) => siteChoice(site.province) === choice)
+      ),
+      (site): Order => ({ kind: "build-site", nation, province: site.province })
+    );
+  }
   if (question === "faction") {
     return Option.map(
       Option.fromUndefinedOr(
@@ -1039,8 +1059,9 @@ const drawn = (
  * changes only where Jev is sure of it, which keeps them from flipping on a
  * near tie month after month; a
  * faction, a focus and an agency's next project are the one Jev picked, since
- * each is taken once and the agency's many options leave no single one
- * likely enough to pass the bar a law has to; operatives still at home go
+ * each is taken once and their many options leave no single one likely enough
+ * to pass the bar a law has to, and so is a build site, which is only a
+ * preference that yields while the province has no room; operatives still at home go
  * where Jev picked, and operatives already posted move only where Jev is
  * sure, so a network under way is not abandoned on a near tie; and the
  * research comes back as
@@ -1063,6 +1084,7 @@ const settledOn = (
     verdict.question === "faction" ||
     verdict.question === "focus" ||
     verdict.question === "agency" ||
+    verdict.question === "build-site" ||
     (verdict.question === "espionage" && !brief.posted)
   ) {
     return [picked];

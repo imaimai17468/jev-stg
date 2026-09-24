@@ -75,6 +75,41 @@ const sourceLabel = (source: Source): string => {
 const caughtNote = (captured: number): string =>
   itemAt(["", `（${captured}人が捕まった）`], Number(captured > 0), "");
 
+/** The kinds of decision about a nation's trade, dockyards, planes or build site. */
+const PRODUCTION_KINDS = {
+  aircraft: true,
+  aviation: true,
+  "build-site": true,
+  shipbuilding: true,
+  trade: true,
+} satisfies Partial<Readonly<Record<Decision["kind"], true>>>;
+
+/** A decision about a nation's trade, dockyards, planes or build site. */
+type ProductionDecision = Extract<
+  Decision,
+  { kind: keyof typeof PRODUCTION_KINDS }
+>;
+
+const isProduction = (decision: Decision): decision is ProductionDecision =>
+  decision.kind in PRODUCTION_KINDS;
+
+/** What a decision about a nation's trade, dockyards, planes or build site says in the feed's words. */
+const productionAction = (decision: ProductionDecision): string => {
+  if (decision.kind === "trade") {
+    return `交易法 → ${TRADE_LAW_NAMES[decision.law]}`;
+  }
+  if (decision.kind === "shipbuilding") {
+    return `造船 → ${ORDER_NAMES[decision.order]}`;
+  }
+  if (decision.kind === "aircraft") {
+    return `航空機 → ${AIRCRAFT_NAMES[decision.aircraft]}`;
+  }
+  if (decision.kind === "aviation") {
+    return `航空機の生産 → ${AVIATION_NAMES[decision.aviation]}`;
+  }
+  return `建設地 → 州${decision.province}`;
+};
+
 /** Who decided, and what, in the feed's words. */
 const described = (
   decision: Decision,
@@ -93,23 +128,11 @@ const described = (
     };
   }
   const actor = nameOf(decision.nation);
+  if (isProduction(decision)) {
+    return { action: productionAction(decision), actor };
+  }
   if (decision.kind === "landing") {
     return { action: `${nameOf(decision.defender)}の海岸に上陸`, actor };
-  }
-  if (decision.kind === "trade") {
-    return { action: `交易法 → ${TRADE_LAW_NAMES[decision.law]}`, actor };
-  }
-  if (decision.kind === "shipbuilding") {
-    return { action: `造船 → ${ORDER_NAMES[decision.order]}`, actor };
-  }
-  if (decision.kind === "aircraft") {
-    return { action: `航空機 → ${AIRCRAFT_NAMES[decision.aircraft]}`, actor };
-  }
-  if (decision.kind === "aviation") {
-    return {
-      action: `航空機の生産 → ${AVIATION_NAMES[decision.aviation]}`,
-      actor,
-    };
   }
   if (decision.kind === "conscription") {
     return { action: `徴兵法 → ${LAW_NAMES[decision.law]}`, actor };

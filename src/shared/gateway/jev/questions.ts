@@ -22,6 +22,7 @@ import {
   aviationShareOf,
 } from "@/shared/entities/world/aircraft";
 import type {
+  BuildSite,
   Consultation,
   Council,
   NationBrief,
@@ -35,6 +36,7 @@ import {
   justifyChoice,
   NO_CHOICE,
   rivalChoice,
+  siteChoice,
   spyChoice,
 } from "@/shared/entities/world/consultation";
 import { INFANTRY_EQUIPMENT } from "@/shared/entities/world/divisions";
@@ -44,6 +46,7 @@ import type {
 } from "@/shared/entities/world/economy";
 import type { FocusId, Grants } from "@/shared/entities/world/focus";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
+import { constructionSpeedAt } from "@/shared/entities/world/infrastructure";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
@@ -242,6 +245,28 @@ const TERMS_LABELS = {
   cede: "占領した土地だけを取って講和する",
   puppet: "傀儡国にして陣営に従わせる",
 } satisfies Readonly<Record<PeaceTerms, string>>;
+
+/** How much faster each level of infrastructure builds, in percent, as the question words it. */
+const CONSTRUCTION_SPEED_PERCENT_PER_LEVEL = Math.round(
+  (constructionSpeedAt(1) - 1) * 100
+);
+
+/** What the build-site question says of a province's coast: that it has one, or nothing. */
+const coastWords = (site: BuildSite): readonly string[] => {
+  if (site.coastal) {
+    return ["沿岸"];
+  }
+  return [];
+};
+
+/** How the build-site question words one province it offers. */
+const buildSiteLabel = (site: BuildSite): string =>
+  [
+    `州${site.province}`,
+    `インフラ${site.infrastructure}`,
+    `空き枠${site.free}`,
+    ...coastWords(site),
+  ].join("・");
 
 const MODIFIER_LABELS = {
   attack: "攻撃",
@@ -561,6 +586,20 @@ const questionsOf = (brief: NationBrief): readonly Posed[] => {
     nation,
     question: "trade",
   });
+  if (brief.buildSites.length > 0) {
+    asked.push({
+      criteria: Object.fromEntries(
+        brief.buildSites.map((site): [string, string] => [
+          siteChoice(site.province),
+          buildSiteLabel(site),
+        ])
+      ),
+      instructions: `${name}は次の工場をどの州に建てますか。建てる州のインフラが1段階高いごとに建設が${CONSTRUCTION_SPEED_PERCENT_PER_LEVEL}%速くなり、造船所は沿岸の州にしか建ちません。選んだ州に空き枠があるあいだはそこに建ち、空き枠がないか州を失っているあいだは最もインフラの高い州に建ちます。`,
+      key: keyOf(nation, "build-site"),
+      nation,
+      question: "build-site",
+    });
+  }
   if (brief.dockyards > 0) {
     asked.push({
       criteria: orderLabelsOf(brief.shipDesigns),

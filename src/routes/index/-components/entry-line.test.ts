@@ -101,6 +101,11 @@ describe(entryLine, () => {
       what: "a nation sets its dockyards to carriers",
     },
     {
+      action: "建設地 → 州12",
+      decision: { kind: "build-site", nation: 0, province: 12 },
+      what: "a nation picks the province its factories go up in",
+    },
+    {
       action: "航空機 → 雷撃機",
       decision: { aircraft: "naval-bomber", kind: "aircraft", nation: 0 },
       what: "a nation turns its aircraft factories to a new plane",

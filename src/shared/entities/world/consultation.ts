@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import { AgencyProjectSchema } from "./agency";
 import { AirframeModelsSchema } from "./aircraft";
 import { FocusIdSchema } from "./focus";
+import { MOST_INFRASTRUCTURE } from "./infrastructure";
 import { ShipDesignsSchema } from "./ships";
 import { TechIdSchema } from "./techs";
 
@@ -54,6 +55,26 @@ const RivalSchema = Schema.Struct({
 /** A nation `nation` could send its operatives to, with how much it already knows of it on average. */
 const SpyTargetSchema = Schema.Struct({ known: Share, nation: NationId });
 
+/** A ceiling on the province ids the server accepts, above what the province lattices can produce. */
+const MOST_PROVINCES = 4096;
+
+const ProvinceId = Schema.Int.check(
+  Schema.isBetween({ maximum: MOST_PROVINCES - 1, minimum: 0 })
+);
+
+/** A province `nation` could build its factories in, and what it offers there. */
+const BuildSiteSchema = Schema.Struct({
+  coastal: Schema.Boolean,
+  /** The building slots it still has free, under a ceiling above what research and focuses can reach. */
+  free: Schema.Int.check(Schema.isBetween({ maximum: 64, minimum: 1 })),
+  infrastructure: Schema.Int.check(
+    Schema.isBetween({ maximum: MOST_INFRASTRUCTURE, minimum: 0 })
+  ),
+  province: ProvinceId,
+});
+
+export type BuildSite = typeof BuildSiteSchema.Type;
+
 /** A faction `nation` could join, with the men it has in the field. */
 const FactionOptionSchema = Schema.Struct({
   faction: NationId,
@@ -71,6 +92,10 @@ const NationBriefSchema = Schema.Struct({
     Schema.isMaxLength(MOST_OPTIONS)
   ),
   atWar: Schema.Boolean,
+  /** Provinces it may build its factories in, the fastest first, empty where it has no free slot. */
+  buildSites: Schema.Array(BuildSiteSchema).check(
+    Schema.isMaxLength(MOST_OPTIONS)
+  ),
   civilianFactories: Amount,
   /** Convoys it has afloat. */
   convoys: Amount,
@@ -182,6 +207,7 @@ export type Question =
   | "shipbuilding"
   | "aircraft"
   | "aviation"
+  | "build-site"
   | "agency"
   | "espionage"
   | "terms";
@@ -199,6 +225,7 @@ const QUESTIONS: readonly Question[] = [
   "shipbuilding",
   "aircraft",
   "aviation",
+  "build-site",
   "agency",
   "espionage",
   "terms",
@@ -253,6 +280,9 @@ export const spyChoice = (nation: number): string => `s${nation}`;
 
 /** The choice that keeps the operatives at home on counter-intelligence. */
 export const COUNTER_INTELLIGENCE_CHOICE = "home";
+
+/** The choice id that names building factories in `province`. */
+export const siteChoice = (province: number): string => `p${province}`;
 
 /** The choice id that names joining `faction`. */
 export const factionChoice = (faction: number): string => `f${faction}`;

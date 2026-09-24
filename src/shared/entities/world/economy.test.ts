@@ -58,6 +58,7 @@ const WORLD: World = {
 
 /** Twenty civilian and ten military factories, no dockyard, and nobody living there. */
 const INDUSTRY: NationEconomy = {
+  buildSite: UNASSIGNED,
   burned: 0,
   civilianFactories: 20,
   conscription: "volunteer",
@@ -78,6 +79,7 @@ const INDUSTRY: NationEconomy = {
 
 /** A million people and no industry at all. */
 const PEOPLE: NationEconomy = {
+  buildSite: UNASSIGNED,
   burned: 0,
   civilianFactories: 0,
   conscription: "volunteer",
@@ -118,6 +120,7 @@ describe(startEconomies, () => {
   it("should split a nation's factories by its plan when the world opens", () => {
     expect(startEconomies(WORLD, OWNERS)).toStrictEqual([
       {
+        buildSite: UNASSIGNED,
         burned: 0,
         civilianFactories: 25,
         conscription: "volunteer",

@@ -11,6 +11,7 @@ import {
   openingPlants,
   placedGains,
   plantsIn,
+  siteOptionsOf,
   slotsHeldBy,
   buildingSlotsOf,
 } from "./plants";
@@ -260,7 +261,9 @@ describe(nextSiteOf, () => {
   it("should build in the province with the highest infrastructure when several have room", () => {
     const estate = { ...ESTATE, infrastructure: Uint8Array.from([1, 0, 4, 0]) };
 
-    expect(nextSiteOf(estate, 0, "civilian")).toStrictEqual(
+    expect(
+      nextSiteOf(estate, 0, { chosen: UNASSIGNED, wanted: "civilian" })
+    ).toStrictEqual(
       Option.some({ infrastructure: 4, kind: "civilian", province: 2 })
     );
   });
@@ -271,8 +274,33 @@ describe(nextSiteOf, () => {
       plants: plantsOf([0, 0, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
     };
 
-    expect(nextSiteOf(estate, 0, "dockyards")).toStrictEqual(
+    expect(
+      nextSiteOf(estate, 0, { chosen: UNASSIGNED, wanted: "dockyards" })
+    ).toStrictEqual(
       Option.some({ infrastructure: 0, kind: "military", province: 1 })
+    );
+  });
+
+  it("should build in the province its government chose when that one has room", () => {
+    const estate = { ...ESTATE, infrastructure: Uint8Array.from([1, 0, 4, 0]) };
+
+    expect(
+      nextSiteOf(estate, 0, { chosen: 0, wanted: "civilian" })
+    ).toStrictEqual(
+      Option.some({ infrastructure: 1, kind: "civilian", province: 0 })
+    );
+  });
+
+  it("should build in the best province when the one its government chose has no room", () => {
+    const estate = {
+      ...ESTATE,
+      plants: plantsOf([2, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    };
+
+    expect(
+      nextSiteOf(estate, 0, { chosen: 0, wanted: "civilian" })
+    ).toStrictEqual(
+      Option.some({ infrastructure: 0, kind: "civilian", province: 1 })
     );
   });
 
@@ -282,6 +310,23 @@ describe(nextSiteOf, () => {
       plants: plantsOf([2, 4, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
     };
 
-    expect(nextSiteOf(estate, 0, "civilian")).toStrictEqual(Option.none());
+    expect(
+      nextSiteOf(estate, 0, { chosen: UNASSIGNED, wanted: "civilian" })
+    ).toStrictEqual(Option.none());
+  });
+});
+
+describe(siteOptionsOf, () => {
+  it("should offer the provinces with room, the fastest to build in first, when the nation holds several", () => {
+    const estate = {
+      ...ESTATE,
+      infrastructure: Uint8Array.from([1, 0, 4, 0]),
+      plants: plantsOf([2, 1, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    };
+
+    expect(siteOptionsOf(estate, 0, 5)).toStrictEqual([
+      { coastal: true, free: 2, infrastructure: 4, province: 2 },
+      { coastal: false, free: 3, infrastructure: 0, province: 1 },
+    ]);
   });
 });

@@ -182,28 +182,33 @@ const crowdingOf = (plants: Plants, province: LandProvince): number =>
   (plantsIn(plants, province.id) + 1) / Math.max(1, provincePeople(province));
 
 /**
- * The one of `sites` a building goes up fastest in: the highest
+ * Orders provinces from the one a building goes up fastest in: the highest
  * infrastructure, then the fewest buildings for the people living there, then
  * the first.
  */
+const fastestFirst =
+  (estate: Estate) =>
+  (one: LandProvince, other: LandProvince): number =>
+    valueAt(estate.infrastructure, other.id) -
+      valueAt(estate.infrastructure, one.id) ||
+    crowdingOf(estate.plants, one) - crowdingOf(estate.plants, other);
+
+/** The one of `sites` a building goes up fastest in. */
 const bestOf = (
   estate: Estate,
   sites: readonly LandProvince[]
 ): Option.Option<LandProvince> =>
-  Option.fromIterable(
-    sites.toSorted(
-      (one, other) =>
-        valueAt(estate.infrastructure, other.id) -
-          valueAt(estate.infrastructure, one.id) ||
-        crowdingOf(estate.plants, one) - crowdingOf(estate.plants, other)
-    )
-  );
+  Option.fromIterable(sites.toSorted(fastestFirst(estate)));
 
-/** How a province of its own is picked for a nation's next building of a kind. */
+/**
+ * How a province of its own is picked for a nation's next building of a
+ * kind, with the province its government chose, or `UNASSIGNED`.
+ */
 type SitePicker = (
   estate: Estate,
   nation: number,
-  kind: PlantKind
+  kind: PlantKind,
+  chosen: number
 ) => Option.Option<LandProvince>;
 
 /** Where a nation builds next, what, and the level of the infrastructure there. */
@@ -213,20 +218,62 @@ export interface Site {
   readonly infrastructure: number;
 }
 
-/**
- * The province of its own with a free slot where `nation` builds a building
- * of `kind`, or none where it holds no such province.
- */
-const roomFor: SitePicker = (estate, nation, kind) =>
-  bestOf(
-    estate,
-    sitesFor(estate, nation, kind).filter((province) =>
-      hasRoom(estate, province)
-    )
+/** The provinces `nation` holds with a free slot for a building of `kind`. */
+const roomyFor = (
+  estate: Estate,
+  nation: number,
+  kind: PlantKind
+): readonly LandProvince[] =>
+  sitesFor(estate, nation, kind).filter((province) =>
+    hasRoom(estate, province)
   );
 
 /**
- * Where `nation` builds the building its plan wants, `wanted`, and what: a
+ * The province of its own with a free slot where `nation` builds a building
+ * of `kind`: the one its government chose while that one still has room for
+ * it, and the best one otherwise. None where it holds no such province.
+ */
+const roomFor: SitePicker = (estate, nation, kind, chosen) => {
+  const roomy = roomyFor(estate, nation, kind);
+  return Option.orElse(
+    Option.fromUndefinedOr(roomy.find((province) => province.id === chosen)),
+    () => bestOf(estate, roomy)
+  );
+};
+
+/** A province a government may pick to build its factories in, and what it offers. */
+export interface SiteOption {
+  readonly province: number;
+  readonly infrastructure: number;
+  /** The building slots it still has free. */
+  readonly free: number;
+  readonly coastal: boolean;
+}
+
+/**
+ * The `limit` provinces of its own with a free slot that `nation` builds in
+ * fastest, the fastest first, which is what its government picks from.
+ */
+export const siteOptionsOf = (
+  estate: Estate,
+  nation: number,
+  limit: number
+): readonly SiteOption[] =>
+  roomyFor(estate, nation, "civilian")
+    .toSorted(fastestFirst(estate))
+    .slice(0, limit)
+    .map((province) => ({
+      coastal: onTheCoast(estate.world.provinces, province),
+      free:
+        buildingSlotsOf(estate, province) -
+        plantsIn(estate.plants, province.id),
+      infrastructure: valueAt(estate.infrastructure, province.id),
+      province: province.id,
+    }));
+
+/**
+ * Where `nation` builds the building its plan wants, `wanted`, and what: in
+ * the province its government `chosen` while that has room for it, a
  * military factory where it wants a dockyard and has no free slot on a coast,
  * and none where it has no free slot anywhere, so no factory goes up until a
  * slot frees.
@@ -234,10 +281,10 @@ const roomFor: SitePicker = (estate, nation, kind) =>
 export const nextSiteOf = (
   estate: Estate,
   nation: number,
-  wanted: PlantKind
+  { chosen, wanted }: { readonly wanted: PlantKind; readonly chosen: number }
 ): Option.Option<Site> => {
   const site = (kind: PlantKind) =>
-    Option.map(roomFor(estate, nation, kind), (province) => ({
+    Option.map(roomFor(estate, nation, kind, chosen), (province) => ({
       infrastructure: valueAt(estate.infrastructure, province.id),
       kind,
       province: province.id,
@@ -262,16 +309,17 @@ const anywhereFor: SitePicker = (estate, nation, kind) =>
 export type Handover = "built" | "granted";
 
 /**
- * Where a gained building goes. One finished on a site goes in the best
- * province with a free slot, which is the one `nextSiteOf` had it built in as
+ * Where a gained building goes. One finished on a site goes in the province
+ * its government chose while that has a free slot, and otherwise in the best
+ * one with a free slot, which is the province `nextSiteOf` had it built in as
  * long as the estate is what the day's construction read. One a focus hands
  * over goes in the best province the nation holds and brings a slot of its
  * own, as Hearts of Iron IV's focuses add a building slot with each factory.
  */
 const PLACEMENTS = {
-  built: (estate, nation, kind) =>
-    Option.orElse(roomFor(estate, nation, kind), () =>
-      anywhereFor(estate, nation, kind)
+  built: (estate, nation, kind, chosen) =>
+    Option.orElse(roomFor(estate, nation, kind, chosen), () =>
+      anywhereFor(estate, nation, kind, chosen)
     ),
   granted: anywhereFor,
 } satisfies Readonly<Record<Handover, SitePicker>>;
@@ -315,7 +363,8 @@ export const placedGains = (
         const site = PLACEMENTS[handover](
           { ...estate, grantedSlots, plants },
           nation,
-          kind
+          kind,
+          economy.buildSite
         );
         if (Option.isNone(site)) {
           break;

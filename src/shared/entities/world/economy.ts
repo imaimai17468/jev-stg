@@ -145,6 +145,11 @@ export interface NationEconomy {
    * when all of its construction goes into factories.
    */
   readonly roadSite: number;
+  /**
+   * The province its government picked to build its factories in, or
+   * `UNASSIGNED` where it has picked none and the rules pick one each day.
+   */
+  readonly buildSite: number;
   /** Equipment turned out and not yet drawn on. */
   readonly equipment: number;
   readonly plan: IndustryPlan;
@@ -179,6 +184,7 @@ const FACTORY_COST = 10_800;
 
 /** The economy of a nation the world does not hold. */
 export const NO_ECONOMY: NationEconomy = {
+  buildSite: UNASSIGNED,
   burned: 0,
   civilianFactories: 0,
   conscription: "volunteer",
@@ -222,6 +228,12 @@ export const withPlan = (
   economy: NationEconomy,
   plan: IndustryPlan
 ): NationEconomy => ({ ...economy, plan });
+
+/** The economy building its factories in `province` from tomorrow. */
+export const withBuildSite = (
+  economy: NationEconomy,
+  province: number
+): NationEconomy => ({ ...economy, buildSite: province });
 
 /** The economy under `law`, which changes what it sells abroad from tomorrow. */
 export const withTradeLaw = (
@@ -581,6 +593,7 @@ export const startEconomies = (
         industry.factories * PLAN_SHARES[START_PLAN].military
       );
       return {
+        buildSite: UNASSIGNED,
         burned: 0,
         civilianFactories: industry.factories - militaryFactories,
         conscription: START_CONSCRIPTION,

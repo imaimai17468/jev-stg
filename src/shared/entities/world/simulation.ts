@@ -65,7 +65,7 @@ import { NO_NAVY, openingNavy } from "./navy";
 import type { Networks } from "./networks";
 import { noNetworks } from "./networks";
 import { groundOf, openingLevyIn } from "./opening-army";
-import type { Plants } from "./plants";
+import type { Estate, Plants } from "./plants";
 import { countedFrom, openingPlants, placedGains } from "./plants";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
@@ -293,6 +293,23 @@ export const modifiersOfAll = (simulation: Simulation): readonly Modifiers[] =>
 export const armouriesOf = (simulation: Simulation): readonly Armoury[] =>
   simulation.advancements.map((advancement) => armouryOf(advancement.research));
 
+/**
+ * What a placement reads off `simulation`: who holds each province, what
+ * stands there, its slots and its infrastructure.
+ */
+export const estateOf = (
+  world: World,
+  simulation: Simulation,
+  modifiers: readonly Modifiers[]
+): Estate => ({
+  grantedSlots: simulation.grantedSlots,
+  infrastructure: simulation.infrastructure,
+  modifiers,
+  owners: simulation.owners,
+  plants: simulation.plants,
+  world,
+});
+
 /** Everything a supply network reads off `simulation`. */
 const linesOf = (world: World, simulation: Simulation): Lines => ({
   diplomacy: simulation.diplomacy,
@@ -515,18 +532,10 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     ),
     world,
   });
-  const built = placedGains(
-    {
-      grantedSlots: simulation.grantedSlots,
-      infrastructure: simulation.infrastructure,
-      modifiers,
-      owners: simulation.owners,
-      plants: simulation.plants,
-      world,
-    },
-    "built",
-    { after: exchange.economies, before: simulation.economies }
-  );
+  const built = placedGains(estateOf(world, simulation, modifiers), "built", {
+    after: exchange.economies,
+    before: simulation.economies,
+  });
   const aloft = airWarOneDay(
     {
       airBases: simulation.airBases,
