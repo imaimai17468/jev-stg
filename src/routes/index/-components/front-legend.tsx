@@ -76,7 +76,7 @@ const ENTRIES: readonly {
 export const FrontLegend = ({ shown }: FrontLegendProps) => (
   <ul
     aria-label="戦線の凡例"
-    className="absolute bottom-3 left-3 flex flex-col gap-1 rounded-md border border-border bg-card px-3 py-2 text-xs"
+    className="flex flex-col gap-1 rounded-md border border-border bg-card px-3 py-2 text-xs"
     hidden={!shown}
   >
     {ENTRIES.map((entry) => (

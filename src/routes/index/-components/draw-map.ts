@@ -5,6 +5,7 @@ import type { CounterMark } from "./counter-mark";
 import type { DivisionMark } from "./division-marks";
 import type { Edge, FrontMark, Point } from "./front-marks";
 import type { NationLabel } from "./nation-labels";
+import type { UnitSymbol } from "./unit-symbols";
 import type { Surface, Viewport } from "./viewport";
 
 /** A straight line on the screen, in screen pixels. */
@@ -31,24 +32,26 @@ export interface MapPen {
   readonly world: (x: number, y: number, width: number, height: number) => void;
   readonly text: (value: string, x: number, y: number) => void;
   /**
-   * Draws one army counter, centred on the point, in its nation's colour, with
-   * a crate on it where its divisions are not fully supplied.
+   * Draws one army counter, centred on the point: the land frame in its
+   * nation's colour with the unit symbol inside, and a crate beside it where
+   * its divisions are not fully supplied.
    */
   readonly counter: (
     value: string,
     x: number,
     y: number,
     colour: Colour,
-    supply: SupplyState
+    supply: SupplyState,
+    symbol: UnitSymbol
   ) => void;
   /**
-   * Draws one fleet counter, centred on the point, in its nation's colour,
-   * shaped apart from an army counter so the two never read as one.
+   * Draws one fleet counter, centred on the point, in the sea frame in its
+   * nation's colour, so its shape alone reads apart from an army counter.
    */
   readonly fleet: (value: string, x: number, y: number, colour: Colour) => void;
   /**
-   * Draws one air wing counter, centred on the point, in its nation's colour,
-   * shaped as a plane so it reads apart from an army's and a fleet's.
+   * Draws one air wing counter, centred on the point, in the air frame in its
+   * nation's colour, so its shape alone reads apart from an army's and a fleet's.
    */
   readonly wing: (value: string, x: number, y: number, colour: Colour) => void;
   /** Draws a nation's front or fallback line, every segment of it in one stroke. */
@@ -150,7 +153,8 @@ export const drawMap = (
       (mark.x - view.x) * view.scale,
       (mark.y - view.y) * view.scale,
       mark.colour,
-      mark.supply
+      mark.supply,
+      mark.symbol
     );
   }
   const placed = (

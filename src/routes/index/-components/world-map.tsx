@@ -37,6 +37,9 @@ import { CRATES } from "./map-palette";
 import { MapZoomControls } from "./map-zoom-controls";
 import { nationLabels } from "./nation-labels";
 import { nationAt } from "./pick-nation";
+import { UnitLegend } from "./unit-legend";
+import type { Frame, Ink, SymbolPaths, UnitSymbol } from "./unit-symbols";
+import { FRAMES, inkOn, NO_SYMBOL, SYMBOL_PATHS } from "./unit-symbols";
 import { useMapView } from "./use-map-view";
 import type { Surface } from "./viewport";
 import { wingMarks } from "./wing-marks";
@@ -106,17 +109,30 @@ const slackFor = (pointerType: string): number => {
 };
 
 const LABEL_FONT = "600 13px system-ui, sans-serif";
-/** How big an army counter is drawn, in screen pixels. */
-const COUNTER_WIDTH = 24;
-const COUNTER_HEIGHT = 14;
-/** The nation's colour down the counter's left edge, which says whose it is. */
-const COUNTER_STRIPE = 4;
 /**
- * Dark rather than the nation's colour, because a counter filled with the
- * colour of the land under it disappears into that land.
+ * How a counter is drawn, in screen pixels: a dark body holding the frame of
+ * its domain on the left and the number on the right. The body is dark rather
+ * than the nation's colour, because a counter filled with the colour of the
+ * land under it disappears into that land, and the frame inside it carries the
+ * colour instead.
  */
+const COUNTER_HEIGHT = 13;
+const COUNTER_PAD = 1.5;
+const FRAME_HEIGHT = COUNTER_HEIGHT - 2 * COUNTER_PAD;
+const NUMBER_GAP = 1.5;
+const NUMBER_PAD = 2;
 const COUNTER_FILL = "rgba(12, 14, 20, 0.88)";
 const COUNTER_FONT = "600 10px system-ui, sans-serif";
+const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
+/** The frame's rim, light so a dark nation's frame still shows on the dark body. */
+const FRAME_RIM = "rgba(255, 255, 255, 0.45)";
+const FRAME_RIM_WIDTH = 1;
+/** How thick a unit symbol's lines are drawn, in screen pixels. */
+const SYMBOL_LINE = 1.25;
+const SYMBOL_INKS = {
+  dark: "rgba(12, 14, 20, 0.95)",
+  light: "rgba(255, 255, 255, 0.95)",
+} satisfies Record<Ink, string>;
 /** The crate beside a counter whose divisions are short of supply, in screen pixels. */
 const CRATE_SIZE = 8;
 const CRATE_GAP = 2;
@@ -143,24 +159,6 @@ const FILL_CRATE = {
   `${boolean}`,
   (pen: CanvasRenderingContext2D, left: number, top: number) => void
 >;
-const COUNTER_INK = "rgba(255, 255, 255, 0.95)";
-/**
- * How big a fleet counter is drawn, in screen pixels: wider than an army's
- * and narrowing to a keel, with the nation's colour along its deck.
- */
-const FLEET_WIDTH = 28;
-const FLEET_HEIGHT = 16;
-const FLEET_KEEL = 5;
-/**
- * How big a wing counter is drawn, in screen pixels: a dark fuselage with a
- * pair of dark wings across it, the nation's colour inset along the wings so
- * it still shows over a sky painted in the same colour.
- */
-const WING_SPAN = 30;
-const WING_CHORD = 8;
-const WING_INSET = 2;
-const FUSELAGE_WIDTH = 10;
-const FUSELAGE_LENGTH = 18;
 /**
  * How a nation's lines are drawn, in screen pixels: its colour over a dark
  * casing, so a line keeps showing over land painted the same colour, the front
@@ -197,96 +195,88 @@ const inkOf = (colour: Colour): string =>
   `rgb(${colour.red} ${colour.green} ${colour.blue})`;
 
 /**
- * Draws an army counter, with the crate beside it where its divisions are
- * short of supply, and leaves the pen set for the names again.
+ * Draws a counter's body with `frame` filled in the nation's colour and
+ * `symbol` inside it, and the number beside the frame, and answers where the
+ * body's right edge fell. The pen comes back as it was handed over.
+ */
+const drawFramed = (
+  pen: CanvasRenderingContext2D,
+  counter: Counter,
+  frame: Frame,
+  symbol: SymbolPaths
+): number => {
+  const { colour, value, x, y } = counter;
+  pen.save();
+  pen.font = COUNTER_FONT;
+  const scale = FRAME_HEIGHT / frame.height;
+  const frameWidth = frame.width * scale;
+  const numberWidth = pen.measureText(value).width;
+  const width =
+    COUNTER_PAD + frameWidth + NUMBER_GAP + numberWidth + NUMBER_PAD;
+  const left = x - width / 2;
+  const top = y - COUNTER_HEIGHT / 2;
+  pen.fillStyle = COUNTER_FILL;
+  pen.fillRect(left, top, width, COUNTER_HEIGHT);
+  pen.fillStyle = COUNTER_INK;
+  pen.fillText(
+    value,
+    left + COUNTER_PAD + frameWidth + NUMBER_GAP + numberWidth / 2,
+    y
+  );
+  pen.translate(left + COUNTER_PAD, top + COUNTER_PAD);
+  pen.scale(scale, scale);
+  // The rim goes down before the fill covers its inner half, so what shows is
+  // a hairline just outside the frame, and each fill is a clip filled edge to
+  // edge, which also keeps the symbol's lines inside the frame.
+  const outline = new Path2D(frame.outline);
+  pen.strokeStyle = FRAME_RIM;
+  pen.lineWidth = (2 * FRAME_RIM_WIDTH) / scale;
+  pen.stroke(outline);
+  pen.clip(outline);
+  pen.fillStyle = inkOf(colour);
+  pen.fillRect(0, 0, frame.width, frame.height);
+  const ink = SYMBOL_INKS[inkOn(colour)];
+  pen.strokeStyle = ink;
+  pen.fillStyle = ink;
+  pen.lineWidth = SYMBOL_LINE / scale;
+  if (symbol.strokes !== "") {
+    pen.stroke(new Path2D(symbol.strokes));
+  }
+  if (symbol.fills !== "") {
+    pen.clip(new Path2D(symbol.fills));
+    pen.fillRect(0, 0, frame.width, frame.height);
+  }
+  pen.restore();
+  return left + width;
+};
+
+/**
+ * Draws an army counter, the land frame holding its unit symbol, with the
+ * crate beside it where its divisions are short of supply.
  */
 const drawCounter = (
   pen: CanvasRenderingContext2D,
   counter: Counter,
-  crate: SupplyState
+  crate: SupplyState,
+  symbol: UnitSymbol
 ): void => {
-  const { colour, value, x, y } = counter;
-  const left = x - COUNTER_WIDTH / 2;
-  const top = y - COUNTER_HEIGHT / 2;
-  pen.fillStyle = COUNTER_FILL;
-  pen.fillRect(left, top, COUNTER_WIDTH, COUNTER_HEIGHT);
-  pen.fillStyle = inkOf(colour);
-  pen.fillRect(left, top, COUNTER_STRIPE, COUNTER_HEIGHT);
-  pen.fillStyle = COUNTER_INK;
-  pen.font = COUNTER_FONT;
-  pen.fillText(value, x + COUNTER_STRIPE / 2, y);
+  const right = drawFramed(pen, counter, FRAMES.land, SYMBOL_PATHS[symbol]);
   Option.match(CRATES[crate], {
     onNone: noCrate,
     onSome: (drawn) => {
-      const crateLeft = left + COUNTER_WIDTH + CRATE_GAP;
-      const crateTop = y - CRATE_SIZE / 2;
+      const crateLeft = right + CRATE_GAP;
+      const crateTop = counter.y - CRATE_SIZE / 2;
       const ink = inkOf(drawn.colour);
+      pen.save();
       pen.fillStyle = COUNTER_FILL;
       pen.fillRect(crateLeft - 1, crateTop - 1, CRATE_SIZE + 2, CRATE_SIZE + 2);
       pen.fillStyle = ink;
       pen.strokeStyle = ink;
       pen.lineWidth = CRATE_LINE;
       FILL_CRATE[`${drawn.filled}`](pen, crateLeft, crateTop);
-      pen.lineWidth = LABEL_OUTLINE_WIDTH;
-      pen.strokeStyle = LABEL_OUTLINE;
+      pen.restore();
     },
   });
-  pen.font = LABEL_FONT;
-  pen.fillStyle = LABEL_INK;
-};
-
-/**
- * Draws a fleet counter, a hull narrowing to its keel with the nation's
- * colour along the deck, and leaves the pen set for the names again.
- */
-const drawFleet = (pen: CanvasRenderingContext2D, counter: Counter): void => {
-  const { colour, value, x, y } = counter;
-  const top = y - FLEET_HEIGHT / 2;
-  pen.fillStyle = COUNTER_FILL;
-  pen.beginPath();
-  pen.moveTo(x - FLEET_WIDTH / 2, top);
-  pen.lineTo(x + FLEET_WIDTH / 2, top);
-  pen.lineTo(x + FLEET_WIDTH / 2 - FLEET_KEEL, y + FLEET_HEIGHT / 2);
-  pen.lineTo(x - FLEET_WIDTH / 2 + FLEET_KEEL, y + FLEET_HEIGHT / 2);
-  pen.closePath();
-  pen.fill();
-  pen.fillStyle = inkOf(colour);
-  pen.fillRect(x - FLEET_WIDTH / 2, top, FLEET_WIDTH, COUNTER_STRIPE);
-  pen.fillStyle = COUNTER_INK;
-  pen.font = COUNTER_FONT;
-  pen.fillText(value, x, y + COUNTER_STRIPE / 2);
-  pen.font = LABEL_FONT;
-  pen.fillStyle = LABEL_INK;
-};
-
-/**
- * Draws a wing counter, a dark fuselage and wings with the nation's colour
- * inset along the wings and the planes written below, and leaves the pen set
- * for the names again.
- */
-const drawWing = (pen: CanvasRenderingContext2D, counter: Counter): void => {
-  const { colour, value, x, y } = counter;
-  pen.fillStyle = COUNTER_FILL;
-  pen.fillRect(
-    x - FUSELAGE_WIDTH / 2,
-    y - FUSELAGE_LENGTH / 2,
-    FUSELAGE_WIDTH,
-    FUSELAGE_LENGTH
-  );
-  pen.fillRect(x - WING_SPAN / 2, y - WING_CHORD / 2, WING_SPAN, WING_CHORD);
-  pen.fillStyle = inkOf(colour);
-  pen.fillRect(
-    x - WING_SPAN / 2 + WING_INSET,
-    y - WING_CHORD / 2 + WING_INSET,
-    WING_SPAN - 2 * WING_INSET,
-    WING_CHORD - 2 * WING_INSET
-  );
-  pen.fillStyle = COUNTER_INK;
-  pen.font = COUNTER_FONT;
-  pen.strokeText(value, x, y + FUSELAGE_LENGTH / 2 + COUNTER_STRIPE);
-  pen.fillText(value, x, y + FUSELAGE_LENGTH / 2 + COUNTER_STRIPE);
-  pen.font = LABEL_FONT;
-  pen.fillStyle = LABEL_INK;
 };
 
 /** Strokes `path` twice: the dark casing, then the colour over it. */
@@ -593,8 +583,8 @@ const WorldMapSurface = ({
         clear: (clearWidth, clearHeight) => {
           pen.clearRect(0, 0, clearWidth, clearHeight);
         },
-        counter: (value, x, y, colour, crate) => {
-          drawCounter(pen, { colour, value, x, y }, crate);
+        counter: (value, x, y, colour, crate, symbol) => {
+          drawCounter(pen, { colour, value, x, y }, crate, symbol);
         },
         arrow: (points, colour) => {
           drawArrow(pen, points, colour);
@@ -603,10 +593,10 @@ const WorldMapSurface = ({
           drawLines(pen, segments, colour, kind);
         },
         fleet: (value, x, y, colour) => {
-          drawFleet(pen, { colour, value, x, y });
+          drawFramed(pen, { colour, value, x, y }, FRAMES.sea, NO_SYMBOL);
         },
         wing: (value, x, y, colour) => {
-          drawWing(pen, { colour, value, x, y });
+          drawFramed(pen, { colour, value, x, y }, FRAMES.air, NO_SYMBOL);
         },
         text: (value, x, y) => {
           pen.strokeText(value, x, y);
@@ -716,7 +706,10 @@ const WorldMapSurface = ({
         ref={attach}
         tabIndex={0}
       />
-      <FrontLegend shown={fronts.length > 0} />
+      <div className="absolute bottom-3 left-3 flex flex-col items-start gap-2">
+        <UnitLegend />
+        <FrontLegend shown={fronts.length > 0} />
+      </div>
       <MapZoomControls
         onFit={fit}
         onZoom={(factor) => {
