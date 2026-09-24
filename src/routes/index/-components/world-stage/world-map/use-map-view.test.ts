@@ -1,8 +1,8 @@
 import { act, cleanup, renderHook } from "@testing-library/react";
 import { describe, expect, it, onTestFinished } from "vite-plus/test";
 import type { Grid } from "@/shared/entities/world/grid";
+import type { Surface } from "../viewport";
 import { useMapView } from "./use-map-view";
-import type { Surface } from "./viewport";
 
 const GRID: Grid = { height: 400, width: 800 };
 const SURFACE: Surface = { height: 400, width: 800 };

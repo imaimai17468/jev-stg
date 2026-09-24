@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { useState } from "react";
 import type { Grid } from "@/shared/entities/world/grid";
-import type { Surface, Viewport } from "./viewport";
-import { clamped, fitViewport, pannedBy, zoomedAt } from "./viewport";
+import type { Surface, Viewport } from "../viewport";
+import { clamped, fitViewport, pannedBy, zoomedAt } from "../viewport";
 
 const FIT = Option.none<Viewport>();
 

@@ -1,8 +1,8 @@
 import type { World } from "@/shared/entities/world/geography/world";
 import type { Navy } from "@/shared/entities/world/navy/navy";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import type { CounterMark } from "./counter-mark";
-import { leadingMark } from "./counter-mark";
+import type { CounterMark } from "../counter-mark";
+import { leadingMark } from "../counter-mark";
 
 /** One nation's warships in one zone. */
 interface Squadron {

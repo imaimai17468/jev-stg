@@ -1,4 +1,4 @@
-import type { Frame, SymbolPaths } from "./unit-symbols";
+import type { Frame, SymbolPaths } from "../unit-symbols";
 
 /** The room around a frame inside its glyph, in the frame's own units, so its rim is not cut. */
 const MARGIN = 8;

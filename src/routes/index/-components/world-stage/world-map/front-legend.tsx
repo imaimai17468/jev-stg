@@ -1,5 +1,5 @@
 import type { ReactNode } from "react";
-import { FRONT_INKS, inkOf } from "./map-palette";
+import { FRONT_INKS, inkOf } from "../map-palette";
 
 interface FrontLegendProps {
   /** Whether the map is drawing any front, which is when the legend shows. */

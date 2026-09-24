@@ -1,7 +1,7 @@
 import { ChevronRightIcon } from "lucide-react";
+import type { Domain, UnitSymbol } from "../unit-symbols";
+import { everySymbol, FRAMES, NO_SYMBOL, SYMBOL_PATHS } from "../unit-symbols";
 import { UnitLegendEntry } from "./unit-legend-entry";
-import type { Domain, UnitSymbol } from "./unit-symbols";
-import { everySymbol, FRAMES, NO_SYMBOL, SYMBOL_PATHS } from "./unit-symbols";
 
 const SYMBOL_LABELS = {
   airborne: "空挺",

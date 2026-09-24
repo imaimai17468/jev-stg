@@ -347,7 +347,7 @@ export default defineConfig({
         // cost this also avoids.
         files: [
           "src/shared/entities/world/**",
-          "src/routes/index/-components/world-stage/map-bitmap.ts",
+          "src/routes/index/-components/world-stage/world-map/map-bitmap.ts",
           "src/routes/index/-components/world-stage/nation-labels.ts",
           "src/routes/index/-components/world-stage/draw-map.ts",
           "src/routes/index/-components/world-stage/front-marks.ts",

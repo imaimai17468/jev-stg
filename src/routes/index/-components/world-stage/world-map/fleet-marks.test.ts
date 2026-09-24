@@ -2,8 +2,8 @@ import { describe, expect, it } from "vite-plus/test";
 import type { Navy } from "@/shared/entities/world/navy/navy";
 import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import { launched } from "@/shared/entities/world/navy/ships";
+import { FIXTURE_WORLD } from "../world-fixture";
 import { fleetMarks } from "./fleet-marks";
-import { FIXTURE_WORLD } from "./world-fixture";
 
 /** A navy with a task force of `ships` destroyers in `zone`. */
 const navyAt = (zone: number, ships: number): Navy => ({

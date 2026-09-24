@@ -3,9 +3,8 @@ import { describe, expect, it } from "vite-plus/test";
 import { startCompliance } from "@/shared/entities/world/economy/compliance";
 import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import type { Colour } from "@/shared/entities/world/geography/nations";
-import { paintWorld } from "./map-bitmap";
-import { airTintOf } from "./map-mode";
-import type { Tint } from "./map-mode";
+import { airTintOf } from "../map-mode";
+import type { Tint } from "../map-mode";
 import {
   COMPLIANCE_COLOURS,
   HATCH_SHADE,
@@ -14,13 +13,14 @@ import {
   NETWORK_COLOURS,
   RESOURCE_COLOURS,
   SUPPLY_COLOURS,
-} from "./map-palette";
+} from "../map-palette";
 import {
   FIXTURE_WORLD,
   HELD_BY_NOBODY,
   HELD_BY_ONE,
   HELD_BY_TWO,
-} from "./world-fixture";
+} from "../world-fixture";
+import { paintWorld } from "./map-bitmap";
 
 /** The map coloured by who holds what. */
 const POLITICAL: Tint = { mode: "political" };
