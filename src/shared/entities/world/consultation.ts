@@ -281,6 +281,8 @@ const JevReplySchema = Schema.Union([
   }),
   Schema.TaggedStruct("unavailable", {}),
   Schema.TaggedStruct("rate-limited", {}),
+  /** Not sent, because the council before it is still waiting on Jev. */
+  Schema.TaggedStruct("busy", {}),
 ]);
 
 export type JevReply = typeof JevReplySchema.Type;
