@@ -8,6 +8,7 @@ import { startCompliance } from "@/shared/entities/world/compliance";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { openingServices } from "@/shared/entities/world/espionage";
+import { FULL_SUPPLY_LEVEL } from "@/shared/entities/world/infrastructure";
 import { noGleaned } from "@/shared/entities/world/intel";
 import type { Nation } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
@@ -75,6 +76,7 @@ export const fixtureSimulation = (
 ): Simulation => ({
   advancements: [START_ADVANCEMENT, START_ADVANCEMENT],
   airBases: new Uint8Array(3),
+  infrastructure: new Uint8Array(3).fill(FULL_SUPPLY_LEVEL),
   airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
   airPower: [new Float32Array(3), new Float32Array(3)],
   chronicle: [],

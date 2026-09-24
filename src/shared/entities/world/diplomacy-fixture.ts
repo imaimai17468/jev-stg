@@ -9,6 +9,7 @@ import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { openingServices } from "./espionage";
 import type { World } from "./index";
+import { FULL_SUPPLY_LEVEL } from "./infrastructure";
 import { noGleaned } from "./intel";
 import { NO_NATION } from "./nations";
 import { NO_NAVY } from "./navy";
@@ -56,6 +57,9 @@ export const ROW_SIMULATION: Simulation = {
     population: 300_000,
   })),
   gleaned: noGleaned(ROW_WORLD.nations.length),
+  infrastructure: new Uint8Array(ROW_WORLD.provinces.length).fill(
+    FULL_SUPPLY_LEVEL
+  ),
   invasions: [],
   navies: ROW_WORLD.nations.map(() => NO_NAVY),
   negotiations: [],

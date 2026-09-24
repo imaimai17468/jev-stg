@@ -21,6 +21,7 @@ import {
   slotsOf,
 } from "@/shared/entities/world/espionage";
 import { valueAt } from "@/shared/entities/world/grid";
+import { meanInfrastructureOf } from "@/shared/entities/world/infrastructure";
 import { intelOf } from "@/shared/entities/world/insight";
 import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
@@ -298,7 +299,8 @@ export const summaryOf = (
       supply,
       simulation.divisions,
       itemAt(simulation.economies, nation, NO_ECONOMY),
-      nation
+      nation,
+      meanInfrastructureOf(simulation.infrastructure, owners, nation)
     ),
     terrain: terrainShares(counts),
     trade: tradeSummaryOf(

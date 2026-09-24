@@ -44,6 +44,7 @@ import {
 } from "./espionage";
 import { valueAt } from "./grid";
 import type { World } from "./index";
+import { openingInfrastructure } from "./infrastructure";
 import type { Espial } from "./insight";
 import { insightOf, intelOf } from "./insight";
 import type { Gleaned } from "./intel";
@@ -67,6 +68,7 @@ import { groundOf, openingLevyIn } from "./opening-army";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
+import { roadsBuiltOneDay } from "./roadworks";
 import { landmassesOf } from "./seas";
 import type { Skies } from "./skies";
 import { skiesBelow } from "./skies";
@@ -111,6 +113,8 @@ export interface Simulation {
   readonly airForces: readonly AirForce[];
   /** The level of the air base in each province, by province id. */
   readonly airBases: Uint8Array;
+  /** The level of the infrastructure in each province, by province id. */
+  readonly infrastructure: Uint8Array;
   /** The air power each nation flew over each region today, by nation id and then region id. */
   readonly airPower: readonly Float32Array[];
   /** One intelligence service per nation, by nation id. */
@@ -168,6 +172,7 @@ export const startSimulation = (world: World): Simulation => {
     divisions: armies.divisions,
     economies,
     gleaned: noGleaned(world.nations.length),
+    infrastructure: openingInfrastructure(world),
     invasions: [],
     navies: economies.map((economy, nation) =>
       openingNavy(
@@ -282,6 +287,7 @@ const linesOf = (world: World, simulation: Simulation): Lines => ({
   diplomacy: simulation.diplomacy,
   divisions: simulation.divisions,
   graph: graphOf(world.provinces),
+  infrastructure: simulation.infrastructure,
   modifiers: modifiersOfAll(simulation),
   owners: simulation.owners,
   shipped: simulation.navies.map((navy) => navy.overseas),
@@ -432,8 +438,9 @@ const landingsChronicled = (
  * occupied ground as far as its compliance lets them, the dockyards and the
  * factories on planes; the upkeep the depots pay the army; then the air
  * wings, their battles and their strikes on the enemy's ships; then the fleets, the battles at sea, the
- * landings and the convoys; then the supply those convoys leave; then the
- * armies; then the research and the national focuses; then the diplomacy;
+ * landings and the convoys; then the supply those convoys leave, and the
+ * infrastructure each nation builds where its divisions go shortest of supply;
+ * then the armies; then the research and the national focuses; then the diplomacy;
  * then the agencies, the operatives and the codebreakers, and what the day's
  * fighting and the captured operatives told each nation; then the white
  * peaces between nations that no longer touch; and last each province's
@@ -554,6 +561,15 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     invasions: seafaring.invasions,
     navies: seafaring.navies,
   };
+  const supply = supplyOf(world, afloat);
+  const roadworks = roadsBuiltOneDay(
+    {
+      infrastructure: simulation.infrastructure,
+      network: supply,
+      owners: simulation.owners,
+    },
+    economies
+  );
   const armies = armiesAfterOneDay(
     world,
     {
@@ -574,10 +590,14 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       insight: insightOf(intel, simulation.services, simulation.networks),
       modifiers,
       stances: simulation.stances,
-      supply: supplyOf(world, afloat),
+      supply,
       wars: simulation.diplomacy.wars,
     },
-    { divisions: afloat.divisions, economies, owners: simulation.owners }
+    {
+      divisions: afloat.divisions,
+      economies: roadworks.economies,
+      owners: simulation.owners,
+    }
   );
   const advanced = advancedEverywhere(
     simulation.diplomacy,
@@ -648,6 +668,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
           streamSeed(streamSeed(world.seed, EXTRACTION_STREAM), clock.days)
         )
       ),
+      infrastructure: roadworks.infrastructure,
       networks: plotted.intrigue.networks,
       services: plotted.intrigue.services,
       unrest: plotted.intrigue.unrest,

@@ -4,6 +4,7 @@ import type { World } from "./index";
 import { industryByNation } from "./industry";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import { UNASSIGNED } from "./spread";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW } from "./trade";
 
@@ -133,6 +134,14 @@ export interface NationEconomy {
   readonly tradeLaw: TradeLaw;
   /** Construction put into the factory now being built. */
   readonly construction: number;
+  /** Construction put into the next level of infrastructure. */
+  readonly roadworks: number;
+  /**
+   * The province the nation is building its next level of infrastructure in,
+   * or `UNASSIGNED` while its supply carries every division it has, which is
+   * when all of its construction goes into factories.
+   */
+  readonly roadSite: number;
   /** Equipment turned out and not yet drawn on. */
   readonly equipment: number;
   readonly plan: IndustryPlan;
@@ -178,6 +187,8 @@ export const NO_ECONOMY: NationEconomy = {
   plan: "civilian",
   population: 0,
   recruited: 0,
+  roadSite: UNASSIGNED,
+  roadworks: 0,
   tradeLaw: START_TRADE_LAW,
   upkeepMet: 1,
 };
@@ -238,6 +249,21 @@ const constructionPerDay = (
   (1 + modifiers.construction) *
   outputUnder(economy.conscription) *
   reach.factories;
+
+/**
+ * The share of its construction a nation puts into infrastructure while it
+ * has a road site. Hearts of Iron IV leaves that to the player, who assigns
+ * civilian factories to each construction line, so this is this game's own.
+ */
+const ROADWORKS_SHARE = 0.25;
+
+/** The share of today's construction that goes into `economy`'s road site. */
+const roadworksShareOf = (economy: NationEconomy): number => {
+  if (economy.roadSite === UNASSIGNED) {
+    return 0;
+  }
+  return ROADWORKS_SHARE;
+};
 
 /**
  * The people a nation of `population` can still call up: what its law reaches,
@@ -385,7 +411,8 @@ export const burnt = (
 
 /**
  * The economy after one day of work, which is the step the calendar takes,
- * with the nation's technologies and focuses speeding up its construction,
+ * a share of its construction going to its road site while it has one, with
+ * the nation's technologies and focuses speeding up its construction,
  * the equipment of the military factories it does not have on planes, and
  * the reach of its conscription law, a heavy law taking
  * some of the construction and the equipment back, and occupied ground giving
@@ -396,8 +423,9 @@ export const producedOneDay = (
   footing: Footing
 ): NationEconomy => {
   const population = economy.population * (1 + POPULATION_GROWTH_PER_DAY);
-  const progressed =
-    economy.construction + constructionPerDay(economy, footing);
+  const constructed = constructionPerDay(economy, footing);
+  const onRoads = constructed * roadworksShareOf(economy);
+  const progressed = economy.construction + constructed - onRoads;
   const built = splitBuilt(
     economy,
     Math.floor(progressed / FACTORY_COST),
@@ -422,6 +450,7 @@ export const producedOneDay = (
     manpower: freeManpower(economy, population, footing),
     militaryFactories: economy.militaryFactories + built.military,
     population,
+    roadworks: economy.roadworks + onRoads,
   };
 };
 
@@ -548,6 +577,8 @@ export const startEconomies = (
         plan: START_PLAN,
         population: industry.population,
         recruited: 0,
+        roadSite: UNASSIGNED,
+        roadworks: 0,
         tradeLaw: START_TRADE_LAW,
         upkeepMet: 1,
       };
