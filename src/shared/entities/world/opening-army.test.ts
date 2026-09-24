@@ -1,12 +1,16 @@
 import { describe, expect, it } from "vite-plus/test";
 import { land, nation, sea, worldOf } from "./army-fixture";
-import type { Division, Task } from "./divisions";
+import type { Division, DivisionKind, Task } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Nation } from "./nations";
 import { groundOf, openingLevyIn, openingPostsOf } from "./opening-army";
 import { UNASSIGNED } from "./spread";
+
+/** `count` infantry divisions' kinds. */
+const infantry = (count: number): readonly DivisionKind[] =>
+  Array.from({ length: count }, () => "infantry");
 
 const manned = (manpower: number): NationEconomy => ({
   ...NO_ECONOMY,
@@ -21,7 +25,7 @@ const posted = (
   task: Task
 ): readonly Division[] =>
   Array.from({ length: count }, () => ({
-    ...raisedAt(owner, province),
+    ...raisedAt(owner, province, "infantry"),
     task,
   }));
 
@@ -62,7 +66,12 @@ const INDUSTRIAL: Nation = { ...nation(0, 0), leaning: "industry" };
 describe(openingPostsOf, () => {
   it("should post divisions to the capital, the border, a home port and the ground overseas by the leaning's shares when the nation has all four", () => {
     expect(
-      openingPostsOf(groundOf(EMPIRE, EMPIRE_OWNERS, []), nation(0, 0), 0, 20)
+      openingPostsOf(
+        groundOf(EMPIRE, EMPIRE_OWNERS, []),
+        nation(0, 0),
+        0,
+        infantry(20)
+      )
     ).toStrictEqual([
       ...posted(2, 0, 0, "garrison"),
       ...posted(16, 0, 2, "line"),
@@ -81,7 +90,7 @@ describe(openingPostsOf, () => {
         ]),
         nation(0, 0),
         0,
-        9
+        infantry(9)
       )
     ).toStrictEqual([
       ...posted(1, 0, 0, "garrison"),
@@ -106,13 +115,13 @@ describe(openingPostsOf, () => {
         groundOf(world, Int32Array.from([0, 0, 0, 1]), []),
         INDUSTRIAL,
         0,
-        4
+        infantry(4)
       )
     ).toStrictEqual([
       ...posted(1, 0, 0, "garrison"),
-      { ...raisedAt(0, 2), task: "line" },
-      { ...raisedAt(0, 1), task: "line" },
-      { ...raisedAt(0, 2), task: "line" },
+      { ...raisedAt(0, 2, "infantry"), task: "line" },
+      { ...raisedAt(0, 1, "infantry"), task: "line" },
+      { ...raisedAt(0, 2, "infantry"), task: "line" },
     ]);
   });
 
@@ -126,9 +135,27 @@ describe(openingPostsOf, () => {
         ),
         nation(0, 0),
         0,
-        3
+        infantry(3)
       )
     ).toStrictEqual(posted(3, 0, 0, "garrison"));
+  });
+
+  it("should raise each division as the kind at its place in the list when the kinds are mixed", () => {
+    expect(
+      openingPostsOf(
+        groundOf(
+          worldOf([nation(0, 0)], [land(0, [])]),
+          Int32Array.from([0]),
+          []
+        ),
+        nation(0, 0),
+        0,
+        ["infantry", "cavalry"]
+      )
+    ).toStrictEqual([
+      { ...raisedAt(0, 0, "infantry"), task: "garrison" },
+      { ...raisedAt(0, 0, "cavalry"), task: "garrison" },
+    ]);
   });
 });
 

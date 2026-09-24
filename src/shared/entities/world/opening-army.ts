@@ -1,6 +1,6 @@
 import { apportioned } from "./apportion";
-import type { Division, Levied, Task } from "./divisions";
-import { calledUpFor, openingDivisionCount, raisedAt } from "./divisions";
+import type { Division, DivisionKind, Levied, Task } from "./divisions";
+import { calledUpFor, openingKindsOf, raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { fieldFrom } from "./front";
@@ -196,24 +196,30 @@ const postPlansOf = (
   }));
 };
 
-/** `count` divisions of `nation` dealt over the station's provinces in turn, each set to `task`. */
+/** Where one opening division stands and what it is set to. */
+interface Placement {
+  readonly province: number;
+  readonly task: Task;
+}
+
+/** `count` places dealt over the station's provinces in turn, each set to `task`. */
 const dealtOver = (
   station: Station,
   count: number,
-  nation: number,
   task: Task
-): readonly Division[] =>
+): readonly Placement[] =>
   Array.from({ length: count }, (_, dealt) => ({
-    ...raisedAt(
-      nation,
-      itemAt(station.provinces, dealt % station.provinces.length, UNASSIGNED)
+    province: itemAt(
+      station.provinces,
+      dealt % station.provinces.length,
+      UNASSIGNED
     ),
     task,
   }));
 
 /**
- * `count` divisions of `nation` posted where its leaning and its ground put
- * them: a share guarding the capital, a share on each border as strong as
+ * A division of each of `kinds` for `nation`, in turn, posted where its
+ * leaning and its ground put them: a share guarding the capital, a share on each border as strong as
  * the neighbour across it, a share guarding its ports and a share guarding
  * its ground across the sea, a post with nowhere to stand giving its share
  * to the others.
@@ -222,40 +228,44 @@ export const openingPostsOf = (
   ground: Ground,
   nation: Nation,
   home: number,
-  count: number
+  kinds: readonly DivisionKind[]
 ): readonly Division[] => {
   const plans = postPlansOf(ground, nation.id, home);
   const perPost = apportioned(
-    count,
+    kinds.length,
     plans.map((plan) => POST_SHARES[nation.leaning][plan.post])
   );
-  return plans.flatMap((plan, index) => {
+  const placements = plans.flatMap((plan, index) => {
     const perStation = apportioned(
       itemAt(perPost, index, 0),
       plan.stations.map((station) => station.weight)
     );
     return plan.stations.flatMap((station, at) =>
-      dealtOver(
-        station,
-        itemAt(perStation, at, 0),
-        nation.id,
-        TASK_AT[plan.post]
-      )
+      dealtOver(station, itemAt(perStation, at, 0), TASK_AT[plan.post])
     );
   });
+  return placements.map((placement, index) => ({
+    ...raisedAt(
+      nation.id,
+      placement.province,
+      itemAt(kinds, index, "infantry")
+    ),
+    task: placement.task,
+  }));
 };
 
 /**
  * The levy every nation opens the world with: as many divisions as its
- * manpower and its leaning give it, posted where `openingPostsOf` puts them,
+ * manpower and its leaning give it, of the kinds its leaning's mix asks for,
+ * posted where `openingPostsOf` puts them,
  * with their men called up.
  */
 export const openingLevyIn =
   (ground: Ground): Levied =>
   (economy, nation, home) => {
-    const count = openingDivisionCount(economy.manpower, nation.leaning);
+    const kinds = openingKindsOf(economy.manpower, nation.leaning);
     return {
-      divisions: openingPostsOf(ground, nation, home, count),
-      economy: calledUpFor(economy, count),
+      divisions: openingPostsOf(ground, nation, home, kinds),
+      economy: calledUpFor(economy, kinds),
     };
   };

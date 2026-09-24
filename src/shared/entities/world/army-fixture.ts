@@ -105,6 +105,7 @@ export const FULL_SUPPLY: SupplyNetwork = {
   ),
   demand: new Map(),
   nations: 2,
+  stationed: new Map(),
   upkeepMet: [1, 1],
 };
 
@@ -121,6 +122,6 @@ export const WAR_COMMAND: Command = {
 
 /** A full-strength division, with whatever a test needs changed. */
 export const division = (patch: Partial<Division>): Division => ({
-  ...raisedAt(0, 0),
+  ...raisedAt(0, 0, "infantry"),
   ...patch,
 });

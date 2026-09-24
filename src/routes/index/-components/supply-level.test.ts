@@ -12,6 +12,13 @@ const NETWORK: SupplyNetwork = {
     [3, 5],
     [4, 4],
   ]),
+  stationed: new Map([
+    [0, 2],
+    [1, 1],
+    [2, 1],
+    [3, 5],
+    [4, 4],
+  ]),
   nations: 1,
   upkeepMet: [1],
 };
@@ -41,6 +48,7 @@ describe(supplyLevelOf, () => {
     const invaded: SupplyNetwork = {
       capacity: [Float32Array.from([20]), Float32Array.from([0])],
       demand: new Map([[1, 3]]),
+      stationed: new Map([[1, 3]]),
       nations: 2,
       upkeepMet: [1, 1],
     };

@@ -1,21 +1,23 @@
 import { describe, expect, it } from "vite-plus/test";
 import { division, nation } from "./army-fixture";
-import type { Backing } from "./divisions";
+import type { Backing, DivisionKind } from "./divisions";
 import {
   attackOf,
   calledUpFor,
   canRaise,
-  dailyLevy,
+  dailyLevyBeside,
   defenceOf,
   fieldedBy,
   infantryEquipmentOf,
   marchDaysFor,
   menFor,
-  openingDivisionCount,
+  nextKindFor,
+  openingKindsOf,
   paidForDivision,
   raisedAt,
   regroupedEnough,
   rested,
+  supplyUseOf,
   terrainDefenceOf,
   worn,
 } from "./divisions";
@@ -24,6 +26,7 @@ import { NO_ECONOMY } from "./economy";
 import type { Leaning } from "./leaning";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
+import type { Terrain } from "./terrain";
 
 const ARMED: NationEconomy = {
   ...NO_ECONOMY,
@@ -33,7 +36,7 @@ const ARMED: NationEconomy = {
 
 describe(raisedAt, () => {
   it("should stand a full division in the province when one is raised", () => {
-    expect(raisedAt(2, 7)).toStrictEqual({
+    expect(raisedAt(2, 7, "infantry")).toStrictEqual({
       arrival: "march",
       entrenchment: 0,
       kind: "infantry",
@@ -51,21 +54,21 @@ describe(raisedAt, () => {
 
 describe(canRaise, () => {
   it("should allow a division when the nation has exactly what one costs", () => {
-    expect(canRaise(ARMED)).toBeTruthy();
+    expect(canRaise(ARMED, "infantry")).toBeTruthy();
   });
 
   it("should refuse a division when the weapons are short", () => {
-    expect(canRaise({ ...ARMED, equipment: 999 })).toBeFalsy();
+    expect(canRaise({ ...ARMED, equipment: 999 }, "infantry")).toBeFalsy();
   });
 
   it("should refuse a division when the men are short", () => {
-    expect(canRaise({ ...ARMED, manpower: 19_999 })).toBeFalsy();
+    expect(canRaise({ ...ARMED, manpower: 19_999 }, "infantry")).toBeFalsy();
   });
 });
 
 describe(paidForDivision, () => {
   it("should call the men up and take the weapons out when a division is raised", () => {
-    expect(paidForDivision(ARMED)).toStrictEqual({
+    expect(paidForDivision(ARMED, "infantry")).toStrictEqual({
       ...ARMED,
       equipment: 0,
       manpower: 0,
@@ -91,66 +94,86 @@ const backedBy = (bonus: Partial<Modifiers>): Backing => ({
 
 describe(attackOf, () => {
   it("should be worth half when the division has lost half its men", () => {
-    expect(attackOf(division({ strength: 10_000 }), SUPPLIED)).toBe(3);
+    expect(attackOf(division({ strength: 10_000 }), SUPPLIED, "plains")).toBe(
+      3
+    );
   });
 });
 
 describe("attackOf after preparing", () => {
   it("should hit a third harder when the division has built the whole planning bonus", () => {
-    expect(attackOf(division({ planning: 0.3 }), SUPPLIED)).toBeCloseTo(7.8);
+    expect(
+      attackOf(division({ planning: 0.3 }), SUPPLIED, "plains")
+    ).toBeCloseTo(7.8);
   });
 
   it("should hit a tenth harder when the division is dug in five levels", () => {
-    expect(attackOf(division({ entrenchment: 5 }), SUPPLIED)).toBeCloseTo(6.6);
+    expect(
+      attackOf(division({ entrenchment: 5 }), SUPPLIED, "plains")
+    ).toBeCloseTo(6.6);
   });
 });
 
 describe("defenceOf after preparing", () => {
   it("should hold a tenth better when the division is dug in five levels", () => {
-    expect(defenceOf(division({ entrenchment: 5 }), SUPPLIED)).toBeCloseTo(11);
+    expect(
+      defenceOf(division({ entrenchment: 5 }), SUPPLIED, "plains")
+    ).toBeCloseTo(11);
   });
 
   it("should hold no better when the division has only planned an attack", () => {
-    expect(defenceOf(division({ planning: 0.3 }), SUPPLIED)).toBeCloseTo(10);
+    expect(
+      defenceOf(division({ planning: 0.3 }), SUPPLIED, "plains")
+    ).toBeCloseTo(10);
   });
 });
 
 describe("attackOf off a beach", () => {
   it("should be worth half when the division came ashore from a landing", () => {
-    expect(attackOf(division({ arrival: "landing" }), SUPPLIED)).toBe(3);
+    expect(attackOf(division({ arrival: "landing" }), SUPPLIED, "plains")).toBe(
+      3
+    );
   });
 });
 
 describe("attackOf under modifiers", () => {
   it("should hit harder when the nation's modifiers raise its attack", () => {
-    expect(attackOf(division({}), backedBy({ attack: 0.5 }))).toBe(9);
+    expect(attackOf(division({}), backedBy({ attack: 0.5 }), "plains")).toBe(9);
   });
 });
 
 describe("attackOf out of supply", () => {
   it("should keep only the unsupplied share of its worth when the division gets no supply", () => {
-    expect(attackOf(division({}), { ...SUPPLIED, fill: 0 })).toBeCloseTo(1.8);
+    expect(
+      attackOf(division({}), { ...SUPPLIED, fill: 0 }, "plains")
+    ).toBeCloseTo(1.8);
   });
 });
 
 describe("attackOf under the enemy's air superiority", () => {
   it("should keep only the share the enemy's sky leaves it when the enemy holds the air overhead", () => {
-    expect(attackOf(division({}), { ...SUPPLIED, air: 0.65 })).toBeCloseTo(3.9);
+    expect(
+      attackOf(division({}), { ...SUPPLIED, air: 0.65 }, "plains")
+    ).toBeCloseTo(3.9);
   });
 });
 
 describe("attackOf with what its nation knows", () => {
   it("should hit harder by the share its insight adds when its nation knows the enemy better", () => {
-    expect(attackOf(division({}), { ...SUPPLIED, insight: 0.15 })).toBeCloseTo(
-      6.9
-    );
+    expect(
+      attackOf(division({}), { ...SUPPLIED, insight: 0.15 }, "plains")
+    ).toBeCloseTo(6.9);
   });
 });
 
 describe("attackOf with its nation's equipment", () => {
   it("should hit harder by the equipment's soft attack when its nation fields a newer generation", () => {
     expect(
-      attackOf(division({}), { ...SUPPLIED, equipment: "infantry-equipment-3" })
+      attackOf(
+        division({}),
+        { ...SUPPLIED, equipment: "infantry-equipment-3" },
+        "plains"
+      )
     ).toBe(12);
   });
 });
@@ -158,10 +181,14 @@ describe("attackOf with its nation's equipment", () => {
 describe("defenceOf with its nation's equipment", () => {
   it("should hold harder by the equipment's defence when its nation fields a newer generation", () => {
     expect(
-      defenceOf(division({}), {
-        ...SUPPLIED,
-        equipment: "infantry-equipment-2",
-      })
+      defenceOf(
+        division({}),
+        {
+          ...SUPPLIED,
+          equipment: "infantry-equipment-2",
+        },
+        "plains"
+      )
     ).toBeCloseTo((10 * 28) / 22);
   });
 });
@@ -188,21 +215,25 @@ describe(infantryEquipmentOf, () => {
 
 describe("defenceOf with what its nation knows", () => {
   it("should hold harder by the share its insight adds when its nation knows the enemy better", () => {
-    expect(defenceOf(division({}), { ...SUPPLIED, insight: 0.15 })).toBeCloseTo(
-      11.5
-    );
+    expect(
+      defenceOf(division({}), { ...SUPPLIED, insight: 0.15 }, "plains")
+    ).toBeCloseTo(11.5);
   });
 });
 
 describe("defenceOf under modifiers", () => {
   it("should hold harder when the nation's modifiers raise its defence", () => {
-    expect(defenceOf(division({}), backedBy({ defence: 0.5 }))).toBe(15);
+    expect(defenceOf(division({}), backedBy({ defence: 0.5 }), "plains")).toBe(
+      15
+    );
   });
 });
 
 describe(defenceOf, () => {
   it("should be worth half when the division has lost half its men", () => {
-    expect(defenceOf(division({ strength: 10_000 }), SUPPLIED)).toBe(5);
+    expect(defenceOf(division({ strength: 10_000 }), SUPPLIED, "plains")).toBe(
+      5
+    );
   });
 });
 
@@ -271,40 +302,83 @@ describe(menFor, () => {
   });
 });
 
-describe(dailyLevy, () => {
-  it("should raise one division at home and pay for it when the nation can afford one", () => {
-    expect(dailyLevy(ARMED, nation(2, 7), 7)).toStrictEqual({
-      divisions: [raisedAt(2, 7)],
-      economy: paidForDivision(ARMED),
+describe(dailyLevyBeside, () => {
+  it("should raise one division of the kind its mix is shortest of at home and pay for it when the nation can afford one", () => {
+    expect(dailyLevyBeside([])(ARMED, nation(2, 7), 7)).toStrictEqual({
+      divisions: [raisedAt(2, 7, "infantry")],
+      economy: paidForDivision(ARMED, "infantry"),
     });
   });
 
   it("should raise nothing and leave the economy alone when the nation cannot afford a division", () => {
     const short = { ...ARMED, equipment: 999 };
 
-    expect(dailyLevy(short, nation(2, 7), 7)).toStrictEqual({
+    expect(dailyLevyBeside([])(short, nation(2, 7), 7)).toStrictEqual({
       divisions: [],
       economy: short,
     });
   });
+
+  it("should save its weapons rather than raise infantry when the kind its mix is short of costs more than it has", () => {
+    const infantry = Array.from({ length: 6 }, () => division({ nation: 2 }));
+
+    expect(dailyLevyBeside(infantry)(ARMED, nation(2, 7), 7)).toStrictEqual({
+      divisions: [],
+      economy: ARMED,
+    });
+  });
+
+  it("should count only its own divisions when another nation's stand in the field", () => {
+    const foreign = Array.from({ length: 6 }, () => division({ nation: 1 }));
+
+    expect(
+      dailyLevyBeside(foreign)(ARMED, nation(2, 7), 7).divisions
+    ).toStrictEqual([raisedAt(2, 7, "infantry")]);
+  });
 });
 
-describe(openingDivisionCount, () => {
+describe(nextKindFor, () => {
   it.each([
-    ["army", 5],
-    ["navy", 3],
-    ["industry", 3],
-  ] satisfies readonly (readonly [Leaning, number])[])(
-    "should put a %s nation's share of 400,000 men into %i divisions when the world opens",
-    (leaning, count) => {
-      expect(openingDivisionCount(400_000, leaning)).toBe(count);
+    { fielded: [], kind: "infantry", leaning: "army" },
+    { fielded: [["infantry", 6]], kind: "cavalry", leaning: "army" },
+    { fielded: [["infantry", 6]], kind: "marines", leaning: "navy" },
+    { fielded: [["infantry", 6]], kind: "motorized", leaning: "industry" },
+  ] satisfies readonly {
+    fielded: readonly (readonly [DivisionKind, number])[];
+    kind: DivisionKind;
+    leaning: Leaning;
+  }[])(
+    "should raise $kind next when a $leaning nation fields $fielded",
+    ({ fielded, kind, leaning }) => {
+      expect(nextKindFor(leaning, new Map(fielded))).toBe(kind);
     }
   );
 });
 
+describe(openingKindsOf, () => {
+  it("should raise its mix in turn until the next division needs more men than its share holds when the world opens", () => {
+    expect(openingKindsOf(400_000, "army")).toStrictEqual([
+      "infantry",
+      "infantry",
+      "cavalry",
+      "infantry",
+    ]);
+  });
+});
+
 describe(calledUpFor, () => {
+  it("should call up the men of the kinds raised when the opening divisions are not infantry", () => {
+    expect(
+      calledUpFor({ ...ARMED, manpower: 30_000 }, ["motorized"])
+    ).toStrictEqual({
+      ...ARMED,
+      manpower: 6000,
+      recruited: 24_000,
+    });
+  });
+
   it("should move each division's men from the pool to the recruited without spending weapons when opening divisions are called up", () => {
-    expect(calledUpFor(ARMED, 1)).toStrictEqual({
+    expect(calledUpFor(ARMED, ["infantry"])).toStrictEqual({
       ...ARMED,
       manpower: 0,
       recruited: 20_000,
@@ -314,7 +388,9 @@ describe(calledUpFor, () => {
 
 describe(marchDaysFor, () => {
   it("should take longer when the ground is mountains rather than plains", () => {
-    expect(marchDaysFor("mountains")).toBeGreaterThan(marchDaysFor("plains"));
+    expect(marchDaysFor("infantry", "mountains")).toBeGreaterThan(
+      marchDaysFor("infantry", "plains")
+    );
   });
 });
 
@@ -338,4 +414,141 @@ describe(regroupedEnough, () => {
       );
     }
   );
+});
+
+describe("raisedAt for an armoured division", () => {
+  it("should stand its tanks and motorized infantry at their averaged cohesion when a light armour division is raised", () => {
+    expect(raisedAt(2, 7, "light-armour")).toStrictEqual({
+      ...raisedAt(2, 7, "infantry"),
+      kind: "light-armour",
+      organisation: 35,
+      strength: 17_000,
+    });
+  });
+});
+
+describe("canRaise for an armoured division", () => {
+  it("should refuse a light armour division when the weapons are enough only for infantry", () => {
+    expect(canRaise(ARMED, "light-armour")).toBeFalsy();
+  });
+});
+
+describe("marchDaysFor by kind", () => {
+  it.each([
+    { days: 2 / 3, kind: "motorized", terrain: "plains" },
+    { days: 5 / 1.2, kind: "mountaineers", terrain: "mountains" },
+    { days: 2, kind: "light-armour", terrain: "forest" },
+    { days: 5 / ((4 * 1.6 * 0.95) / 4), kind: "cavalry", terrain: "mountains" },
+  ] satisfies readonly {
+    days: number;
+    kind: DivisionKind;
+    terrain: Terrain;
+  }[])(
+    "should take $days days when a $kind division walks into $terrain",
+    ({ days, kind, terrain }) => {
+      expect(marchDaysFor(kind, terrain)).toBeCloseTo(days);
+    }
+  );
+});
+
+describe("attackOf by kind and ground", () => {
+  it.each([
+    { attack: 6 * 1.35, kind: "mountaineers", terrain: "mountains" },
+    { attack: 9.5, kind: "light-armour", terrain: "plains" },
+    {
+      attack: (6 * (5 * 13 * 0.8 + 5 * 6 * 0.9)) / 60,
+      kind: "light-armour",
+      terrain: "forest",
+    },
+    { attack: 6.6, kind: "mechanized", terrain: "plains" },
+  ] satisfies readonly {
+    attack: number;
+    kind: DivisionKind;
+    terrain: Terrain;
+  }[])(
+    "should be worth $attack when a $kind division attacks into $terrain",
+    ({ attack, kind, terrain }) => {
+      expect(
+        attackOf(
+          division({ kind, strength: raisedAt(0, 0, kind).strength }),
+          SUPPLIED,
+          terrain
+        )
+      ).toBeCloseTo(attack);
+    }
+  );
+});
+
+describe("attackOf off a beach by kind", () => {
+  it.each([
+    { attack: 6, kind: "marines" },
+    { attack: 0.9, kind: "heavy-armour" },
+  ] satisfies readonly { attack: number; kind: DivisionKind }[])(
+    "should be worth $attack when a $kind division attacks from a landing",
+    ({ attack, kind }) => {
+      expect(
+        attackOf(
+          division({
+            arrival: "landing",
+            kind,
+            strength: raisedAt(0, 0, kind).strength,
+          }),
+          SUPPLIED,
+          "plains"
+        )
+      ).toBeCloseTo(attack);
+    }
+  );
+});
+
+describe("defenceOf by kind and ground", () => {
+  it.each([
+    { defence: 130 / 22, kind: "light-armour", terrain: "plains" },
+    { defence: 480 / 22, kind: "mechanized", terrain: "plains" },
+    { defence: 11, kind: "mountaineers", terrain: "mountains" },
+  ] satisfies readonly {
+    defence: number;
+    kind: DivisionKind;
+    terrain: Terrain;
+  }[])(
+    "should be worth $defence when a $kind division holds $terrain",
+    ({ defence, kind, terrain }) => {
+      expect(
+        defenceOf(
+          division({ kind, strength: raisedAt(0, 0, kind).strength }),
+          SUPPLIED,
+          terrain
+        )
+      ).toBeCloseTo(defence);
+    }
+  );
+});
+
+describe(supplyUseOf, () => {
+  it.each([
+    { kind: "infantry", use: 1 },
+    { kind: "light-armour", use: 2.375 },
+  ] satisfies readonly { kind: DivisionKind; use: number }[])(
+    "should use $use infantry divisions' supply when the division is $kind",
+    ({ kind, use }) => {
+      expect(supplyUseOf(kind)).toBeCloseTo(use);
+    }
+  );
+});
+
+describe("rested by kind", () => {
+  it("should recover a third faster when the division's battalions carry special forces' morale", () => {
+    expect(
+      rested(division({ kind: "marines", organisation: 20 }), SUPPLIED)
+        .organisation
+    ).toBeCloseTo(24);
+  });
+});
+
+describe("worn by kind", () => {
+  it("should lose men against its own kind's full strength when an armoured division is half supplied", () => {
+    expect(
+      worn(division({ kind: "light-armour", strength: 17_000 }), 0.5).strength
+    ).toBeCloseTo(16_957.5);
+  });
 });

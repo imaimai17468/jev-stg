@@ -8,6 +8,7 @@ import { airTintOf, resourceTintOf, tintFor } from "./map-mode";
 const NETWORK: SupplyNetwork = {
   capacity: [],
   demand: new Map(),
+  stationed: new Map(),
   nations: 0,
   upkeepMet: [],
 };
