@@ -10,9 +10,9 @@ import {
   orderOf,
   SHIP_CLASSES,
 } from "@/shared/entities/world/navy/ships";
-import { countLabel, percentLabel } from "./count-label";
-import { ORDER_NAMES } from "./naval-names";
-import type { Stat } from "./stat";
+import { countLabel, percentLabel } from "../count-label";
+import { ORDER_NAMES } from "../naval-names";
+import type { Stat } from "../stat";
 
 /** How many of `navy`'s warships are of `shipClass`, in every task force. */
 const shipsOf = (navy: Navy, shipClass: ShipClass): number =>

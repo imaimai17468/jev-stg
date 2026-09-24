@@ -52,15 +52,15 @@ import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
 import type { AdvancementTree } from "./advancement-tree";
 import { advancementTreeOf } from "./advancement-tree";
-import { airSummaryOf } from "./air-summary";
-import { frontSummaryOf } from "./front-summary";
-import { intelSummaryOf } from "./intel-summary";
-import { navySummaryOf } from "./navy-summary";
-import { occupationSummaryOf } from "./occupation-summary";
+import { airSummaryOf } from "./nation-summary/air-summary";
+import { frontSummaryOf } from "./nation-summary/front-summary";
+import { intelSummaryOf } from "./nation-summary/intel-summary";
+import { navySummaryOf } from "./nation-summary/navy-summary";
+import { occupationSummaryOf } from "./nation-summary/occupation-summary";
+import { supplySummaryOf } from "./nation-summary/supply-summary";
+import { tradeSummaryOf } from "./nation-summary/trade-summary";
+import { warGoalSummaryOf } from "./nation-summary/war-goal-summary";
 import type { Stat } from "./stat";
-import { supplySummaryOf } from "./supply-summary";
-import { tradeSummaryOf } from "./trade-summary";
-import { warGoalSummaryOf } from "./war-goal-summary";
 
 /** How much of a nation's ground is one kind of terrain. */
 export interface TerrainShare {

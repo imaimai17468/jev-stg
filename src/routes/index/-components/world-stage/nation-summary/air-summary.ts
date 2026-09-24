@@ -9,9 +9,9 @@ import { AIRCRAFT, airframeOf } from "@/shared/entities/world/air/aircraft";
 import type { Superiority } from "@/shared/entities/world/army/skies";
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { FUEL_CAPACITY } from "@/shared/entities/world/fuel";
-import { countLabel, percentLabel } from "./count-label";
-import { AIRCRAFT_NAMES, AVIATION_NAMES } from "./naval-names";
-import type { Stat } from "./stat";
+import { countLabel, percentLabel } from "../count-label";
+import { AIRCRAFT_NAMES, AVIATION_NAMES } from "../naval-names";
+import type { Stat } from "../stat";
 
 /** What the nation panel reads about one nation's air force. */
 export interface Hangar {

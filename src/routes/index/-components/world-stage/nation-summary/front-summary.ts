@@ -3,8 +3,8 @@ import { onItsFront } from "@/shared/entities/world/army/battle-plan";
 import type { Division } from "@/shared/entities/world/army/divisions";
 import { MOST_ENTRENCHMENT } from "@/shared/entities/world/army/preparation";
 import type { Nation } from "@/shared/entities/world/geography/nations";
-import { averageLabel, percentLabel } from "./count-label";
-import type { Stat } from "./stat";
+import { averageLabel, percentLabel } from "../count-label";
+import type { Stat } from "../stat";
 
 /** The capital an offensive ends on, named after the nation whose it is. */
 const objectiveLabel = (

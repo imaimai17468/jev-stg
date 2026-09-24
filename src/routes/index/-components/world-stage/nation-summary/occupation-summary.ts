@@ -9,8 +9,8 @@ import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import type { Stirred } from "@/shared/entities/world/intelligence/unrest";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { averageLabel, percentLabel } from "./count-label";
-import type { Stat } from "./stat";
+import { averageLabel, percentLabel } from "../count-label";
+import type { Stat } from "../stat";
 
 /** What the occupation panel reads about who holds what and how the people there take it. */
 export interface Occupation {
