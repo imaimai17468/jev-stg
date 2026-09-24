@@ -1,9 +1,9 @@
+import type { Compliance } from "../economy/compliance";
+import type { Networks } from "../geography/networks";
+import { NETWORK_FLOOR } from "../geography/networks";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
 import { countedDown } from "./countdown";
-import type { Compliance } from "./economy/compliance";
-import type { Networks } from "./geography/networks";
-import { NETWORK_FLOOR } from "./geography/networks";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
 
 /** What a nation's operatives have stirred up against an occupier. */
 export type UnrestKind = "contacts" | "strengthened" | "sabotage";

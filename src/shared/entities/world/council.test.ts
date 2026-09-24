@@ -1,7 +1,5 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Agency } from "./agency";
-import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import { airForceOf, wing } from "./air/air-war-fixture";
 import { OPENING_ARMOURY } from "./armoury";
 import { division } from "./army-fixture";
@@ -27,11 +25,14 @@ import {
   warDeclared,
 } from "./diplomacy/diplomacy";
 import { NO_ECONOMY } from "./economy/economy";
-import type { Service } from "./espionage";
-import { HOME, serviceFor } from "./espionage";
 import { FUEL_CAPACITY } from "./fuel";
 import type { Leaning } from "./geography/leaning";
 import type { World } from "./geography/world";
+import type { Agency } from "./intelligence/agency";
+import { AGENCY_DAYS, NO_AGENCY } from "./intelligence/agency";
+import type { Service } from "./intelligence/espionage";
+import { HOME, serviceFor } from "./intelligence/espionage";
+import type { Sighting } from "./intelligence/sightings";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy/navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy/navy";
@@ -41,7 +42,6 @@ import { START_ADVANCEMENT } from "./research/advancement";
 import type { FocusId } from "./research/focus";
 import { START_FOCUSES } from "./research/focus";
 import { START_RESEARCH } from "./research/research";
-import type { Sighting } from "./sightings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { enemiesOf } from "./wars";

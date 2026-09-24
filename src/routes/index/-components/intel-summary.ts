@@ -1,12 +1,18 @@
 import { Option } from "effect";
-import type { Agency } from "@/shared/entities/world/agency";
-import { NO_AGENCY } from "@/shared/entities/world/agency";
-import { cipherStrengthOf } from "@/shared/entities/world/cipher";
-import type { Assignment, Service } from "@/shared/entities/world/espionage";
-import { freeOperatives } from "@/shared/entities/world/espionage";
 import { valueAt } from "@/shared/entities/world/grid";
-import type { IntelTable } from "@/shared/entities/world/intel";
-import { INTEL_KINDS, intelOn } from "@/shared/entities/world/intel";
+import type { Agency } from "@/shared/entities/world/intelligence/agency";
+import { NO_AGENCY } from "@/shared/entities/world/intelligence/agency";
+import { cipherStrengthOf } from "@/shared/entities/world/intelligence/cipher";
+import type {
+  Assignment,
+  Service,
+} from "@/shared/entities/world/intelligence/espionage";
+import { freeOperatives } from "@/shared/entities/world/intelligence/espionage";
+import type { IntelTable } from "@/shared/entities/world/intelligence/intel";
+import {
+  INTEL_KINDS,
+  intelOn,
+} from "@/shared/entities/world/intelligence/intel";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { percentLabel } from "./count-label";
 import {

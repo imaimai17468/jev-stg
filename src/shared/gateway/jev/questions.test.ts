@@ -4,7 +4,7 @@ import type {
   NationBrief,
   PeaceTalks,
 } from "@/shared/entities/world/consultation";
-import type { Sighting } from "@/shared/entities/world/sightings";
+import type { Sighting } from "@/shared/entities/world/intelligence/sightings";
 import { BRIEF, exactly } from "./brief-fixture";
 import { evaluationFor, partsOf, verdictsFrom } from "./questions";
 

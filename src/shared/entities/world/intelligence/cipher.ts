@@ -1,7 +1,7 @@
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
 import type { Agency } from "./agency";
 import { agencyModifiersOf, levelsOf } from "./agency";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
 
 /**
  * How far a nation has got into breaking each other nation's cipher, and how

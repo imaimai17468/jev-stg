@@ -1,15 +1,15 @@
-import type { Diplomacy } from "./diplomacy/diplomacy";
-import type { NationEconomy } from "./economy/economy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import type { NationEconomy } from "../economy/economy";
+import type { Networks } from "../geography/networks";
+import { NETWORK_FLOOR } from "../geography/networks";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { ProvinceGraph } from "../provinces";
+import { isLand } from "../provinces";
 import type { Service } from "./espionage";
 import { NO_SERVICE } from "./espionage";
-import type { Networks } from "./geography/networks";
-import { NETWORK_FLOOR } from "./geography/networks";
-import { valueAt } from "./grid";
 import type { Gleaned, IntelTable } from "./intel";
 import { intelOn, intelTableOf } from "./intel";
-import { itemAt } from "./lookup";
-import type { ProvinceGraph } from "./provinces";
-import { isLand } from "./provinces";
 import type { Unrest } from "./unrest";
 
 /** What every nation's intelligence on the others is read from, as the simulation holds it. */

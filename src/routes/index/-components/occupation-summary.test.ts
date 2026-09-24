@@ -6,8 +6,8 @@ import {
 } from "@/shared/entities/world/army-fixture";
 import type { Compliance } from "@/shared/entities/world/economy/compliance";
 import { startCompliance } from "@/shared/entities/world/economy/compliance";
+import type { Stirred } from "@/shared/entities/world/intelligence/unrest";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import type { Stirred } from "@/shared/entities/world/unrest";
 import type { Occupation } from "./occupation-summary";
 import { occupationSummaryOf } from "./occupation-summary";
 

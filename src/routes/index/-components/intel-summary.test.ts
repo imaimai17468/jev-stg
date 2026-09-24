@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Agency } from "@/shared/entities/world/agency";
-import { NO_AGENCY } from "@/shared/entities/world/agency";
-import type { Service } from "@/shared/entities/world/espionage";
-import { serviceFor } from "@/shared/entities/world/espionage";
-import type { IntelTable } from "@/shared/entities/world/intel";
+import type { Agency } from "@/shared/entities/world/intelligence/agency";
+import { NO_AGENCY } from "@/shared/entities/world/intelligence/agency";
+import type { Service } from "@/shared/entities/world/intelligence/espionage";
+import { serviceFor } from "@/shared/entities/world/intelligence/espionage";
+import type { IntelTable } from "@/shared/entities/world/intelligence/intel";
 import type { Bureau } from "./intel-summary";
 import { intelSummaryOf } from "./intel-summary";
 

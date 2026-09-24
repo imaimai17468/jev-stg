@@ -1,8 +1,8 @@
-import type { AgencyProject } from "@/shared/entities/world/agency";
-import { upgradeTermsOf } from "@/shared/entities/world/agency";
-import { HOME } from "@/shared/entities/world/espionage";
-import type { IntelKind } from "@/shared/entities/world/intel";
-import type { Operation } from "@/shared/entities/world/operations";
+import type { AgencyProject } from "@/shared/entities/world/intelligence/agency";
+import { upgradeTermsOf } from "@/shared/entities/world/intelligence/agency";
+import { HOME } from "@/shared/entities/world/intelligence/espionage";
+import type { IntelKind } from "@/shared/entities/world/intelligence/intel";
+import type { Operation } from "@/shared/entities/world/intelligence/operations";
 
 /** What the feed and the nation panel call each operation. */
 export const OPERATION_NAMES = {

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Random } from "../random";
 import { NO_INTEL } from "./intel";
-import type { Random } from "./random";
 import { sightingOf } from "./sightings";
 
 /** A source whose every draw sits three quarters of the way up the unit interval. */

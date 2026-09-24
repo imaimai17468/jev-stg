@@ -7,8 +7,8 @@ import {
 import type { Plants } from "@/shared/entities/world/economy/plants";
 import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
+import type { Stirred } from "@/shared/entities/world/intelligence/unrest";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Stirred } from "@/shared/entities/world/unrest";
 import { averageLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";
 

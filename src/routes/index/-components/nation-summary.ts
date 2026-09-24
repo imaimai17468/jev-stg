@@ -19,11 +19,6 @@ import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import type { HeldSlots } from "@/shared/entities/world/economy/plants";
 import { slotsHeldBy } from "@/shared/entities/world/economy/plants";
-import {
-  counterIntelligenceOf,
-  NO_SERVICE,
-  slotsOf,
-} from "@/shared/entities/world/espionage";
 import { meanInfrastructureOf } from "@/shared/entities/world/geography/infrastructure";
 import type { Leaning } from "@/shared/entities/world/geography/leaning";
 import {
@@ -33,7 +28,12 @@ import {
 import type { Terrain } from "@/shared/entities/world/geography/terrain";
 import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
-import { intelOf } from "@/shared/entities/world/insight";
+import {
+  counterIntelligenceOf,
+  NO_SERVICE,
+  slotsOf,
+} from "@/shared/entities/world/intelligence/espionage";
+import { intelOf } from "@/shared/entities/world/intelligence/insight";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import { graphOf } from "@/shared/entities/world/provinces";

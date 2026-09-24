@@ -9,7 +9,7 @@ import type { Plants } from "./economy/plants";
 import { NO_RESOURCES } from "./economy/resources";
 import type { Nation } from "./geography/nations";
 import type { World } from "./geography/world";
-import { NO_INSIGHT } from "./insight";
+import { NO_INSIGHT } from "./intelligence/insight";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";

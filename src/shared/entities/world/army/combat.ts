@@ -1,8 +1,8 @@
 import type { Armoury } from "../armoury";
 import { OPENING_ARMOURY } from "../armoury";
 import { valueAt } from "../grid";
-import type { Insight } from "../insight";
-import { edgeAgainst } from "../insight";
+import type { Insight } from "../intelligence/insight";
+import { edgeAgainst } from "../intelligence/insight";
 import { itemAt } from "../lookup";
 import type { Modifiers } from "../modifiers";
 import { NO_MODIFIERS } from "../modifiers";

@@ -1,8 +1,8 @@
 import { Schema } from "effect";
-import { AgencyProjectSchema } from "./agency";
 import { AirframeModelsSchema } from "./air/aircraft";
 import { DivisionKindSchema } from "./army/divisions";
 import { MOST_INFRASTRUCTURE } from "./geography/infrastructure";
+import { AgencyProjectSchema } from "./intelligence/agency";
 import { ShipDesignsSchema } from "./navy/ships";
 import { FocusIdSchema } from "./research/focus";
 import { TECH_IDS, TechIdSchema } from "./techs";

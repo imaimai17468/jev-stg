@@ -1,18 +1,18 @@
 import { Schema } from "effect";
+import type { Division } from "../army/divisions";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { allied } from "../diplomacy/diplomacy";
+import type { TradeLaw } from "../economy/trade";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { Navy } from "../navy/navy";
+import type { Random } from "../random";
+import type { Wars } from "../wars";
+import { atWar } from "../wars";
 import type { Agency, AgencyModifiers } from "./agency";
 import { agencyModifiersOf, NO_AGENCY, NO_AGENCY_MODIFIERS } from "./agency";
-import type { Division } from "./army/divisions";
 import type { Ciphers } from "./cipher";
 import { cipherStrengthOf } from "./cipher";
-import type { Diplomacy } from "./diplomacy/diplomacy";
-import { allied } from "./diplomacy/diplomacy";
-import type { TradeLaw } from "./economy/trade";
-import { valueAt } from "./grid";
-import { itemAt } from "./lookup";
-import type { Navy } from "./navy/navy";
-import type { Random } from "./random";
-import type { Wars } from "./wars";
-import { atWar } from "./wars";
 
 /** The four things a nation gathers intelligence on about another. */
 const IntelKindSchema = Schema.Literals(["civilian", "army", "navy", "air"]);

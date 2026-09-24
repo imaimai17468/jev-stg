@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import { agencyStarted } from "./agency";
 import type { AirForce } from "./air/air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air/air-force";
 import type { Decision, Order, Ruling } from "./chronicle";
@@ -27,11 +26,12 @@ import {
   withRaising,
   withTradeLaw,
 } from "./economy/economy";
-import type { Service } from "./espionage";
-import { HOME, NO_SERVICE } from "./espionage";
 import { neighbouringNations } from "./geography/nations";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
+import { agencyStarted } from "./intelligence/agency";
+import type { Service } from "./intelligence/espionage";
+import { HOME, NO_SERVICE } from "./intelligence/espionage";
 import { itemAt, replacedAt } from "./lookup";
 import { overseasRivals } from "./navy/maritime";
 import type { Navy } from "./navy/navy";

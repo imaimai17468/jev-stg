@@ -1,10 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
+import { AT_WAR, division } from "../army-fixture";
+import { joined, openingDiplomacy } from "../diplomacy/diplomacy";
+import type { Navy } from "../navy/navy";
+import { NO_NAVY } from "../navy/navy";
+import { launched } from "../navy/ships";
+import type { Random } from "../random";
+import { noWars } from "../wars";
 import type { Agency, AgencyUpgrade } from "./agency";
 import { NO_AGENCY } from "./agency";
-import { AT_WAR, division } from "./army-fixture";
 import type { Ciphers } from "./cipher";
 import { noCiphers } from "./cipher";
-import { joined, openingDiplomacy } from "./diplomacy/diplomacy";
 import type { Fighting, Gleaned, IntelLevels, Sources } from "./intel";
 import {
   clashesOf,
@@ -15,11 +20,6 @@ import {
   NO_INTEL,
   noGleaned,
 } from "./intel";
-import type { Navy } from "./navy/navy";
-import { NO_NAVY } from "./navy/navy";
-import { launched } from "./navy/ships";
-import type { Random } from "./random";
-import { noWars } from "./wars";
 
 /** Two nations with nothing in the field, the sea or the air, at war with each other. */
 const QUIET: Fighting = {
