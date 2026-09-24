@@ -1,7 +1,7 @@
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { landProvinces } from "./provinces";
 import type { Terrain } from "./terrain";
+import type { World } from "./world";
 
 /** The most levels a province's infrastructure is built to, after Hearts of Iron IV. */
 export const MOST_INFRASTRUCTURE = 5;

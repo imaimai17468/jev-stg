@@ -1,6 +1,6 @@
-import type { World } from "@/shared/entities/world";
 import type { Colour } from "@/shared/entities/world/nations";
 import type { SupplyState } from "@/shared/entities/world/supply";
+import type { World } from "@/shared/entities/world/world";
 import type { CounterMark } from "./counter-mark";
 import type { DivisionMark } from "./division-marks";
 import type { Edge, FrontMark, Point } from "./front-marks";

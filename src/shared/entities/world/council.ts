@@ -47,7 +47,6 @@ import { HOME, NO_SERVICE } from "./espionage";
 import type { FocusId, Focuses } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
-import type { World } from "./index";
 import { intelOf } from "./insight";
 import type { IntelTable } from "./intel";
 import { INTEL_KINDS, intelOn } from "./intel";
@@ -103,6 +102,7 @@ import { categoryOf, techOf } from "./techs";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW, TRADE_LAWS } from "./trade";
 import { enemiesOf } from "./wars";
+import type { World } from "./world";
 
 /**
  * The draws for the month the council met on `councilDay`. They belong to the

@@ -8,7 +8,6 @@ import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { openingServices } from "./espionage";
-import type { World } from "./index";
 import { FULL_SUPPLY_LEVEL } from "./infrastructure";
 import { noGleaned } from "./intel";
 import { NO_NATION } from "./nations";
@@ -18,6 +17,7 @@ import { openingPlants } from "./plants";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
+import type { World } from "./world";
 
 /**
  * The same four provinces in a row as the army's line, with one nation to a

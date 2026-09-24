@@ -1,9 +1,9 @@
 import { Option } from "effect";
-import type { World } from "@/shared/entities/world";
 import type { Diplomacy } from "@/shared/entities/world/diplomacy";
 import { nationsStanding } from "@/shared/entities/world/diplomacy";
 import { constructionProgress } from "@/shared/entities/world/economy";
 import { warCount } from "@/shared/entities/world/wars";
+import type { World } from "@/shared/entities/world/world";
 import { countLabel, percentLabel } from "./count-label";
 import type { NationSummary } from "./nation-summary";
 import type { Stat } from "./stat";

@@ -20,7 +20,6 @@ import {
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { HOME, serviceFor } from "./espionage";
 import { focusStarted, START_FOCUSES } from "./focus";
-import type { World } from "./index";
 import { replacedAt } from "./lookup";
 import { NO_NATION } from "./nations";
 import { NO_NAVY, openingNavy } from "./navy";
@@ -31,6 +30,7 @@ import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { enemiesOf } from "./wars";
+import type { World } from "./world";
 
 const byRules = (decision: Order): Ruling<Order> => ({
   decision,

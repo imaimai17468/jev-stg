@@ -11,7 +11,6 @@ import {
   SHIP_FUEL_PER_DAY,
 } from "./fuel";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import type { Invasion, Muster } from "./invasion";
 import { invasionOutcome, invasionPlanned } from "./invasion";
 import { itemAt } from "./lookup";
@@ -47,6 +46,7 @@ import type { Lines, SupplyReach } from "./supply";
 import { reachOf } from "./supply";
 import type { Deal } from "./trade";
 import { atWar } from "./wars";
+import type { World } from "./world";
 
 /** Everything at sea, and the divisions a landing takes aboard or puts ashore. */
 export interface Seas {

@@ -6,7 +6,6 @@ import type {
   WheelEvent,
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
-import type { World } from "@/shared/entities/world";
 import type { AirForce } from "@/shared/entities/world/air-force";
 import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
@@ -23,6 +22,7 @@ import type {
   SupplyState,
 } from "@/shared/entities/world/supply";
 import type { Wars } from "@/shared/entities/world/wars";
+import type { World } from "@/shared/entities/world/world";
 import { divisionMarks } from "./division-marks";
 import type { LineKind, Segment } from "./draw-map";
 import { drawMap } from "./draw-map";

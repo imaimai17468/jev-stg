@@ -18,7 +18,6 @@ import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Focuses } from "./focus";
 import { START_FOCUSES } from "./focus";
-import type { World } from "./index";
 import { neighbouringNations } from "./nations";
 import type { Province } from "./provinces";
 import type { Random } from "./random";
@@ -34,6 +33,7 @@ import {
   warTarget,
   withinReach,
 } from "./statecraft";
+import type { World } from "./world";
 
 const ECONOMIES: readonly NationEconomy[] = [
   NO_ECONOMY,

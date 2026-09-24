@@ -1,11 +1,11 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LINE_WORLD } from "./army-fixture";
-import type { World } from "./index";
 import {
   infrastructureSupply,
   meanInfrastructureOf,
   openingInfrastructure,
 } from "./infrastructure";
+import type { World } from "./world";
 
 describe(openingInfrastructure, () => {
   it("should open mountains lower than plains and every capital built all the way when the world opens", () => {

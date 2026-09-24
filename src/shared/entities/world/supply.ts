@@ -3,7 +3,6 @@ import { allied } from "./diplomacy";
 import type { Division } from "./divisions";
 import { supplyUseOf } from "./divisions";
 import { valueAt } from "./grid";
-import type { World } from "./index";
 import { infrastructureSupply } from "./infrastructure";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
@@ -20,6 +19,7 @@ import {
 import { distanceFrom, UNASSIGNED } from "./spread";
 import type { Terrain } from "./terrain";
 import { atWar } from "./wars";
+import type { World } from "./world";
 
 /** The divisions the province a nation musters in can keep supplied. */
 const SOURCE_CAPACITY = 40;
