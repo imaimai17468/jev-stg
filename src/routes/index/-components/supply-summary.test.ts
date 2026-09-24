@@ -17,7 +17,7 @@ const NETWORK: SupplyNetwork = {
 };
 
 describe(supplySummaryOf, () => {
-  it("should count the short, the cut-off and the day's upkeep when some divisions stand past their supply", () => {
+  it("should count the short, the cut-off and the day's upkeep, and round the mean infrastructure, when some divisions stand past their supply", () => {
     const divisions = [
       division({ province: 0 }),
       division({ province: 0 }),
@@ -30,13 +30,15 @@ describe(supplySummaryOf, () => {
         NETWORK,
         divisions,
         { ...NO_ECONOMY, upkeepMet: 0.755 },
-        0
+        0,
+        2.64
       )
     ).toStrictEqual([
       { label: "補給が足りない師団", value: "3 / 4" },
       { label: "補給が届かない師団", value: "1" },
       { label: "装備の維持費", value: "8 / 日" },
       { label: "維持費の充足", value: "76%" },
+      { label: "インフラの平均", value: "2.6 / 5" },
     ]);
   });
 });

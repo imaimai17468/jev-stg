@@ -9,6 +9,7 @@ import {
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
 import type { World } from "./index";
+import { FULL_SUPPLY_LEVEL } from "./infrastructure";
 import { NO_MODIFIERS } from "./modifiers";
 import { graphOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
@@ -31,6 +32,9 @@ const LINES: Lines = {
   diplomacy: PEACE,
   divisions: [],
   graph: LINE_GRAPH,
+  infrastructure: new Uint8Array(LINE_WORLD.provinces.length).fill(
+    FULL_SUPPLY_LEVEL
+  ),
   modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: LINE_OWNERS,
   shipped: [1, 1],
@@ -84,6 +88,12 @@ describe(supplyNetwork, () => {
         world: mountainous,
       })
     ).toStrictEqual([40, 19, 0, 0, 0]);
+  });
+
+  it("should supply more when the province's infrastructure is built above the full-supply level", () => {
+    expect(
+      capacities({ ...LINES, infrastructure: Uint8Array.from([3, 5, 3, 3, 3]) })
+    ).toStrictEqual([40, 45.6, 0, 0, 0]);
   });
 
   it("should supply more when the nation's modifiers raise its supply", () => {

@@ -68,6 +68,8 @@ const INDUSTRY: NationEconomy = {
   plan: "civilian",
   population: 0,
   recruited: 0,
+  roadSite: UNASSIGNED,
+  roadworks: 0,
   tradeLaw: "export-focus",
   upkeepMet: 1,
 };
@@ -86,6 +88,8 @@ const PEOPLE: NationEconomy = {
   plan: "civilian",
   population: 1_000_000,
   recruited: 0,
+  roadSite: UNASSIGNED,
+  roadworks: 0,
   tradeLaw: "export-focus",
   upkeepMet: 1,
 };
@@ -123,6 +127,8 @@ describe(startEconomies, () => {
         plan: "civilian",
         population: 30_000_000,
         recruited: 0,
+        roadSite: UNASSIGNED,
+        roadworks: 0,
         tradeLaw: "export-focus",
         upkeepMet: 1,
       },
@@ -265,6 +271,16 @@ describe(producedOneDay, () => {
       ...INDUSTRY,
       construction: 65,
       equipment: 50,
+    });
+  });
+
+  it("should put a quarter of the day's construction into the roadworks when the nation has a road site", () => {
+    expect(producedOneDay({ ...INDUSTRY, roadSite: 0 }, INLAND)).toStrictEqual({
+      ...INDUSTRY,
+      construction: 48.75,
+      equipment: 50,
+      roadSite: 0,
+      roadworks: 16.25,
     });
   });
 

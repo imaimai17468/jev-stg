@@ -3,6 +3,7 @@ import { division } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
 import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "./fuel";
+import { FULL_SUPPLY_LEVEL } from "./infrastructure";
 import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import type { Coasts, Seas } from "./maritime";
@@ -74,6 +75,9 @@ const coastsOn = (
     diplomacy,
     divisions: [],
     graph: ISLES_GRAPH,
+    infrastructure: new Uint8Array(ISLES_WORLD.provinces.length).fill(
+      FULL_SUPPLY_LEVEL
+    ),
     modifiers: [NO_MODIFIERS, NO_MODIFIERS],
     owners,
     shipped: [1, 1],

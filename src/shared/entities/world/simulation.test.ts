@@ -24,6 +24,7 @@ import type { Service } from "./espionage";
 import { openingServices, serviceFor } from "./espionage";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
+import { FULL_SUPPLY_LEVEL } from "./infrastructure";
 import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
@@ -62,6 +63,9 @@ const OPENING: Simulation = {
     },
   ],
   gleaned: noGleaned(2),
+  infrastructure: new Uint8Array(LINE_WORLD.provinces.length).fill(
+    FULL_SUPPLY_LEVEL
+  ),
   invasions: [],
   navies: [NO_NAVY, NO_NAVY],
   negotiations: [],

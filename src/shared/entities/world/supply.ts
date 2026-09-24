@@ -3,6 +3,7 @@ import { allied } from "./diplomacy";
 import type { Division } from "./divisions";
 import { valueAt } from "./grid";
 import type { World } from "./index";
+import { infrastructureSupply } from "./infrastructure";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
@@ -68,6 +69,8 @@ export interface Lines {
    * that its convoys brought, by nation id.
    */
   readonly shipped: readonly number[];
+  /** The level of the infrastructure in each province, by province id. */
+  readonly infrastructure: Uint8Array;
 }
 
 /** The key one nation's divisions in one province are counted under. */
@@ -157,7 +160,10 @@ const coastsBy = (
     return [province.id];
   });
 
-/** What `reach` lets through to each province, `share` of it where reached. */
+/**
+ * What `reach` lets through to each province, `share` of it where reached,
+ * as far as the province's ground and its infrastructure let it through.
+ */
 const capacityOver = (
   lines: Lines,
   reach: Int32Array,
@@ -171,7 +177,8 @@ const capacityOver = (
       SOURCE_CAPACITY *
       share *
       KEPT_PER_PROVINCE ** step *
-      TERRAIN_SUPPLY[provinceTerrain(lines.world.provinces, province)]
+      TERRAIN_SUPPLY[provinceTerrain(lines.world.provinces, province)] *
+      infrastructureSupply(valueAt(lines.infrastructure, province))
     );
   });
 

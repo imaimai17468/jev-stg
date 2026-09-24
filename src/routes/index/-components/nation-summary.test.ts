@@ -15,6 +15,7 @@ import {
 import type { NationEconomy } from "@/shared/entities/world/economy";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
 import { openingServices } from "@/shared/entities/world/espionage";
+import { FULL_SUPPLY_LEVEL } from "@/shared/entities/world/infrastructure";
 import { noGleaned } from "@/shared/entities/world/intel";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { noNetworks } from "@/shared/entities/world/networks";
@@ -90,6 +91,7 @@ const SIMULATION: Simulation = {
   airBases: Uint8Array.from([5, 0, 2, 0, 0]),
   airForces: [NO_AIR_FORCE, NO_AIR_FORCE],
   airPower: [new Float32Array(0), new Float32Array(0)],
+  infrastructure: new Uint8Array(5).fill(FULL_SUPPLY_LEVEL),
   chronicle: [],
   compliance: startCompliance(OWNERS),
   deals: [],
@@ -227,6 +229,7 @@ describe(summaryOf, () => {
         { label: "補給が届かない師団", value: "0" },
         { label: "装備の維持費", value: "2 / 日" },
         { label: "維持費の充足", value: "100%" },
+        { label: "インフラの平均", value: "3.0 / 5" },
       ],
       terrain: [
         { provinces: 2, terrain: "plains" },
