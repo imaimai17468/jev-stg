@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { AirForce } from "@/shared/entities/world/air/air-force";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
+import { FIXTURE_WORLD } from "../world-fixture";
 import { wingMarks } from "./wing-marks";
-import { FIXTURE_WORLD } from "./world-fixture";
 
 /** An air force with one wing of `planes` fighters flying for the sky over `region`. */
 const flyingOver = (region: number, planes: number): AirForce => ({

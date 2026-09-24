@@ -2,7 +2,7 @@ import { Option } from "effect";
 import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import type { Viewport } from "./viewport";
+import type { Viewport } from "../viewport";
 
 /**
  * The nation holding the ground under a point on the drawing surface.

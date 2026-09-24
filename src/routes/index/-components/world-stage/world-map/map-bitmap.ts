@@ -9,8 +9,8 @@ import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import { complianceLevelOf } from "./compliance-level";
-import type { Tint } from "./map-mode";
+import { complianceLevelOf } from "../compliance-level";
+import type { Tint } from "../map-mode";
 import {
   COMPLIANCE_COLOURS,
   COMPLIANCE_HATCH,
@@ -24,11 +24,11 @@ import {
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
   TERRAIN_SHADE,
-} from "./map-palette";
-import { networkLevelOf, strengthShown } from "./network-level";
-import { richestResourceOf } from "./resource-level";
-import { seaHoldOf } from "./sea-hold";
-import { supplyLevelOf } from "./supply-level";
+} from "../map-palette";
+import { networkLevelOf, strengthShown } from "../network-level";
+import { richestResourceOf } from "../resource-level";
+import { seaHoldOf } from "../sea-hold";
+import { supplyLevelOf } from "../supply-level";
 
 /** Stands in for the nation an unowned land province would name. */
 const UNOWNED_NATION: Nation = {

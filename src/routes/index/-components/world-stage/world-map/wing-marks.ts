@@ -1,7 +1,7 @@
 import type { AirForce } from "@/shared/entities/world/air/air-force";
 import type { World } from "@/shared/entities/world/geography/world";
-import type { CounterMark } from "./counter-mark";
-import { leadingMark } from "./counter-mark";
+import type { CounterMark } from "../counter-mark";
+import { leadingMark } from "../counter-mark";
 
 /**
  * A counter over every region that planes fly a mission over, in the colour

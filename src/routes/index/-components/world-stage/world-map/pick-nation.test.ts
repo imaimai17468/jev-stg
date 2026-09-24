@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import type { Viewport } from "../viewport";
+import { FIXTURE_WORLD, HELD_BY_TWO } from "../world-fixture";
 import { nationAt } from "./pick-nation";
-import type { Viewport } from "./viewport";
-import { FIXTURE_WORLD, HELD_BY_TWO } from "./world-fixture";
 
 /** One screen pixel per cell, looking at the world's top-left corner. */
 const VIEW: Viewport = { scale: 1, x: 0, y: 0 };
