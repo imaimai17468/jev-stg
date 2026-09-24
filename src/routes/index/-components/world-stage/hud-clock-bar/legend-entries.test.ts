@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import { MAP_COLOURS, NETWORK_COLOURS } from "../map-palette";
 import { legendFor } from "./legend-entries";
-import { MAP_COLOURS, NETWORK_COLOURS } from "./map-palette";
 
 describe(legendFor, () => {
   it("should list who holds each sky, striped where it is fought for, when the map shows air superiority", () => {

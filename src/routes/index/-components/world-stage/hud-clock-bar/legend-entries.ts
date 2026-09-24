@@ -1,7 +1,7 @@
 import type { Colour } from "@/shared/entities/world/geography/nations";
-import type { ComplianceLevel } from "./compliance-level";
-import { COMPLIANCE_LEVELS } from "./compliance-level";
-import type { MapMode } from "./map-mode";
+import type { ComplianceLevel } from "../compliance-level";
+import { COMPLIANCE_LEVELS } from "../compliance-level";
+import type { MapMode } from "../map-mode";
 import {
   COMPLIANCE_COLOURS,
   COMPLIANCE_HATCH,
@@ -12,15 +12,15 @@ import {
   SEA_HOLD_SWATCHES,
   SUPPLY_COLOURS,
   SUPPLY_HATCH,
-} from "./map-palette";
-import type { NetworkLevel } from "./network-level";
-import { NETWORK_LEVELS } from "./network-level";
-import type { ResourceLevel } from "./resource-level";
-import { RESOURCE_LEVELS } from "./resource-level";
-import type { SeaHoldLevel } from "./sea-hold";
-import { SEA_HOLD_LEVELS } from "./sea-hold";
-import type { SupplyLevel } from "./supply-level";
-import { SUPPLY_LEVELS } from "./supply-level";
+} from "../map-palette";
+import type { NetworkLevel } from "../network-level";
+import { NETWORK_LEVELS } from "../network-level";
+import type { ResourceLevel } from "../resource-level";
+import { RESOURCE_LEVELS } from "../resource-level";
+import type { SeaHoldLevel } from "../sea-hold";
+import { SEA_HOLD_LEVELS } from "../sea-hold";
+import type { SupplyLevel } from "../supply-level";
+import { SUPPLY_LEVELS } from "../supply-level";
 
 /** One swatch of a map's legend and what it stands for. */
 export interface LegendEntry {
