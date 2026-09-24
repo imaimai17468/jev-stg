@@ -21,6 +21,8 @@ export const MODIFIERS: readonly Modifier[] = [
  */
 export interface Modifiers {
   readonly attack: number;
+  /** The share the building slots of every province it holds grow by. */
+  readonly buildingSlots: number;
   readonly defence: number;
   /** The cohesion a division rests up to. */
   readonly organisation: number;
@@ -53,6 +55,7 @@ export type Bonus = Partial<Modifiers>;
 /** A nation that has researched and pursued nothing yet. */
 export const NO_MODIFIERS: Modifiers = {
   attack: 0,
+  buildingSlots: 0,
   construction: 0,
   defence: 0,
   dockyards: 0,
@@ -73,6 +76,7 @@ export const shareOf = (bonus: Bonus, modifier: Modifier): number =>
 /** `total` with `bonus` added to it. */
 const added = (total: Modifiers, bonus: Bonus): Modifiers => ({
   attack: total.attack + shareOf(bonus, "attack"),
+  buildingSlots: total.buildingSlots + shareOf(bonus, "buildingSlots"),
   construction: total.construction + shareOf(bonus, "construction"),
   defence: total.defence + shareOf(bonus, "defence"),
   dockyards: total.dockyards + shareOf(bonus, "dockyards"),

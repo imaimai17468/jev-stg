@@ -42,7 +42,7 @@ describe(techOf, () => {
 
   it("should carry the bonus and the exclusion when a technology opens one of two paths", () => {
     expect(techOf("concentrated-industry-1")).toStrictEqual({
-      bonus: { dockyards: 0.1, production: 0.15 },
+      bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
       cost: 2,
       excludes: ["dispersed-industry-1"],
       from: ["basic-machine-tools"],

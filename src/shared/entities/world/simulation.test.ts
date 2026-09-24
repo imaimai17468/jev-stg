@@ -64,6 +64,7 @@ const OPENING: Simulation = {
   divisions: [],
   economies: OPENING_ECONOMIES,
   gleaned: noGleaned(2),
+  grantedSlots: new Uint8Array(LINE_WORLD.provinces.length),
   infrastructure: new Uint8Array(LINE_WORLD.provinces.length).fill(
     FULL_SUPPLY_LEVEL
   ),

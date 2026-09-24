@@ -58,6 +58,7 @@ export const ROW_SIMULATION: Simulation = {
     population: 300_000,
   })),
   gleaned: noGleaned(ROW_WORLD.nations.length),
+  grantedSlots: new Uint8Array(ROW_WORLD.provinces.length),
   infrastructure: new Uint8Array(ROW_WORLD.provinces.length).fill(
     FULL_SUPPLY_LEVEL
   ),

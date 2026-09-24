@@ -245,6 +245,7 @@ const TERMS_LABELS = {
 
 const MODIFIER_LABELS = {
   attack: "攻撃",
+  buildingSlots: "州の建設枠",
   construction: "建設速度",
   defence: "防御",
   dockyards: "造船",
