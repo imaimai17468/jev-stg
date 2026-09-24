@@ -2,9 +2,9 @@ import { dateLabel } from "@/shared/entities/world/calendar";
 import type { Clock, Speed } from "@/shared/entities/world/clock";
 import { dateOf, SPEEDS } from "@/shared/entities/world/clock";
 import { Button } from "@/shared/ui/button";
-import { ChoiceButton } from "./choice-button";
-import { legendFor } from "./legend-entries";
-import { MapLegend } from "./map-legend";
+import { ChoiceButton } from "./hud-clock-bar/choice-button";
+import { legendFor } from "./hud-clock-bar/legend-entries";
+import { MapLegend } from "./hud-clock-bar/map-legend";
 import type { MapMode } from "./map-mode";
 import { MAP_MODES } from "./map-mode";
 

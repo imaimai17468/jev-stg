@@ -1,6 +1,6 @@
+import { inkOf } from "../map-palette";
 import type { LegendEntry } from "./legend-entries";
 import { stripeOffsets } from "./legend-stripes";
-import { inkOf } from "./map-palette";
 
 /** The swatch's side, in its own units. */
 const SWATCH = 12;
