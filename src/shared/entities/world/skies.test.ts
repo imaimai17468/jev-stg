@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { AT_WAR, LINE_WORLD } from "./army-fixture";
-import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy } from "./diplomacy";
+import type { Diplomacy } from "./diplomacy/diplomacy";
+import { openingDiplomacy } from "./diplomacy/diplomacy";
 import type { Skies } from "./skies";
 import {
   combatKeptUnder,

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "../army-fixture";
-import type { Diplomacy } from "../diplomacy";
-import { joined, openingDiplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy/diplomacy";
 import type { NationEconomy } from "../economy/economy";
 import { NO_ECONOMY } from "../economy/economy";
 import type { Nation } from "../geography/nations";

@@ -4,13 +4,6 @@ import type { AirForce } from "./air/air-force";
 import { NO_AIR_FORCE, openingAirForce } from "./air/air-force";
 import { airWarOneDay } from "./air/air-war";
 import { paradropsOneDay } from "./air/airborne";
-import {
-  armisticesDue,
-  noQuiet,
-  quietOneDay,
-  touchedBetween,
-} from "./armistice";
-import type { Quiet } from "./armistice";
 import type { Armoury } from "./armoury";
 import { armouryOf, OPENING_ARMOURY } from "./armoury";
 import { supportOf } from "./army/air-cover";
@@ -27,8 +20,17 @@ import type { Decision, Entry, Negotiation } from "./chronicle";
 import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
-import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy, standsAlone } from "./diplomacy";
+import {
+  armisticesDue,
+  noQuiet,
+  quietOneDay,
+  touchedBetween,
+} from "./diplomacy/armistice";
+import type { Quiet } from "./diplomacy/armistice";
+import type { Diplomacy } from "./diplomacy/diplomacy";
+import { openingDiplomacy, standsAlone } from "./diplomacy/diplomacy";
+import type { Realm } from "./diplomacy/statecraft";
+import { conductedOneDay, factionFounders } from "./diplomacy/statecraft";
 import { commerceOneDay } from "./economy/commerce";
 import type { Compliance } from "./economy/compliance";
 import {
@@ -85,8 +87,6 @@ import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";
 import type { Stance } from "./stance";
 import { START_STANCE } from "./stance";
-import type { Realm } from "./statecraft";
-import { conductedOneDay, factionFounders } from "./statecraft";
 import type { Stirred, Unrest } from "./unrest";
 import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";

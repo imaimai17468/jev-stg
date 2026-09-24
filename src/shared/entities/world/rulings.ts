@@ -4,7 +4,7 @@ import type { AirForce } from "./air/air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air/air-force";
 import type { Decision, Order, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
-import type { Diplomacy } from "./diplomacy";
+import type { Diplomacy } from "./diplomacy/diplomacy";
 import {
   allied,
   answersToItself,
@@ -15,7 +15,9 @@ import {
   sideOf,
   standsAlone,
   warDeclared,
-} from "./diplomacy";
+} from "./diplomacy/diplomacy";
+import { mayStartJustifying, peaceSigned } from "./diplomacy/statecraft";
+import { justifiedTarget } from "./diplomacy/war-goals";
 import type { NationEconomy } from "./economy/economy";
 import {
   NO_ECONOMY,
@@ -41,8 +43,6 @@ import { availableTechs, studyStarted } from "./research/research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
 import { START_STANCE } from "./stance";
-import { mayStartJustifying, peaceSigned } from "./statecraft";
-import { justifiedTarget } from "./war-goals";
 import { enemiesOf } from "./wars";
 
 /** A decision that turns one nation on another. */

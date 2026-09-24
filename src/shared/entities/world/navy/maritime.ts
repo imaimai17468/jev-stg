@@ -4,7 +4,7 @@ import type { Division } from "../army/divisions";
 import { musteringAt, sentToMuster } from "../army/muster";
 import type { Lines, SupplyReach } from "../army/supply";
 import { reachOf } from "../army/supply";
-import type { Diplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
 import type { Deal } from "../economy/trade";
 import {
   COMBAT_FUEL_MULTIPLE,

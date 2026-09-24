@@ -1,12 +1,12 @@
 import { Option } from "effect";
-import type { Focuses } from "@/shared/entities/world/research/focus";
-import { justifyingThreshold } from "@/shared/entities/world/tension";
-import type { WarGoal } from "@/shared/entities/world/war-goals";
+import { justifyingThreshold } from "@/shared/entities/world/diplomacy/tension";
+import type { WarGoal } from "@/shared/entities/world/diplomacy/war-goals";
 import {
   JUSTIFIED_DAYS,
   warGoalOf,
   warGoalStanding,
-} from "@/shared/entities/world/war-goals";
+} from "@/shared/entities/world/diplomacy/war-goals";
+import type { Focuses } from "@/shared/entities/world/research/focus";
 import { percentLabel } from "./count-label";
 import type { Stat } from "./stat";
 

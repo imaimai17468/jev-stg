@@ -4,7 +4,7 @@ import { NO_AGENCY } from "./agency";
 import { AT_WAR, division } from "./army-fixture";
 import type { Ciphers } from "./cipher";
 import { noCiphers } from "./cipher";
-import { joined, openingDiplomacy } from "./diplomacy";
+import { joined, openingDiplomacy } from "./diplomacy/diplomacy";
 import type { Fighting, Gleaned, IntelLevels, Sources } from "./intel";
 import {
   clashesOf,

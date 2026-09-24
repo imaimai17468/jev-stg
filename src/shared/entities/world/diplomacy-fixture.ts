@@ -1,9 +1,9 @@
 import { NO_AIR_FORCE } from "./air/air-force";
-import { noQuiet } from "./armistice";
 import { LINE_WORLD } from "./army-fixture";
 import { START_CLOCK } from "./clock";
-import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy } from "./diplomacy";
+import { noQuiet } from "./diplomacy/armistice";
+import type { Diplomacy } from "./diplomacy/diplomacy";
+import { openingDiplomacy } from "./diplomacy/diplomacy";
 import { startCompliance } from "./economy/compliance";
 import { NO_ECONOMY } from "./economy/economy";
 import { openingPlants } from "./economy/plants";

@@ -1,13 +1,13 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
+import { division } from "../army-fixture";
+import { ROW_PEACE, ROW_WORLD } from "../diplomacy-fixture";
+import { NO_ECONOMY } from "../economy/economy";
+import { UNASSIGNED } from "../spread";
+import { enemiesOf } from "../wars";
 import type { Diplomacy } from "./diplomacy";
 import { INDEPENDENT, standingOf, warDeclared } from "./diplomacy";
-import { ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
-import { NO_ECONOMY } from "./economy/economy";
 import type { PeaceTerms, Settled } from "./peace";
 import { settled } from "./peace";
-import { UNASSIGNED } from "./spread";
-import { enemiesOf } from "./wars";
 
 /**
  * Nation 0 at war with nation 1 and its puppet 3. Nation 0 has taken

@@ -11,8 +11,8 @@ import {
   noCiphers,
 } from "./cipher";
 import { countedDown } from "./countdown";
-import type { Diplomacy } from "./diplomacy";
-import { factionOf, standsAlone } from "./diplomacy";
+import type { Diplomacy } from "./diplomacy/diplomacy";
+import { factionOf, standsAlone } from "./diplomacy/diplomacy";
 import type { Compliance } from "./economy/compliance";
 import type { NationEconomy } from "./economy/economy";
 import type { Build, Networks } from "./geography/networks";

@@ -1,7 +1,7 @@
 import type { Airspace } from "./airspace";
 import { regionOfProvince } from "./airspace";
-import type { Diplomacy } from "./diplomacy";
-import { allied } from "./diplomacy";
+import type { Diplomacy } from "./diplomacy/diplomacy";
+import { allied } from "./diplomacy/diplomacy";
 import { valueAt } from "./grid";
 import { atWar } from "./wars";
 

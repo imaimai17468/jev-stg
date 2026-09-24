@@ -1,11 +1,11 @@
-import { valueAt } from "./grid";
-import { itemAt, replacedAt } from "./lookup";
+import { valueAt } from "../grid";
+import { itemAt, replacedAt } from "../lookup";
+import type { Wars } from "../wars";
+import { atWar, declared, noWars, peaceFor, warCount } from "../wars";
 import type { TensionCause } from "./tension";
 import { tensionEasedOneDay, tensionRaised } from "./tension";
 import type { WarGoal } from "./war-goals";
 import { justifyingDays, warGoalStanding, withoutGoalOf } from "./war-goals";
-import type { Wars } from "./wars";
-import { atWar, declared, noWars, peaceFor, warCount } from "./wars";
 
 /** Whether a nation answers to itself, to another, or to nobody any more. */
 export type Standing =

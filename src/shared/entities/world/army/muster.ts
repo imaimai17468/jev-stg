@@ -1,5 +1,5 @@
-import type { Diplomacy } from "../diplomacy";
-import { allied } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { allied } from "../diplomacy/diplomacy";
 import type { NationEconomy } from "../economy/economy";
 import { NO_ECONOMY } from "../economy/economy";
 import type { Nation } from "../geography/nations";

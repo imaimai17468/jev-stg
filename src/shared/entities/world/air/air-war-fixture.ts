@@ -1,7 +1,7 @@
 import type { Airspace } from "../airspace";
 import { land, nation, sea, worldOf } from "../army-fixture";
-import type { Diplomacy } from "../diplomacy";
-import { openingDiplomacy } from "../diplomacy";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { openingDiplomacy } from "../diplomacy/diplomacy";
 import type { World } from "../geography/world";
 import type { ProvinceGraph } from "../provinces";
 import { graphOf } from "../provinces";

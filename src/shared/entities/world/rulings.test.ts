@@ -6,7 +6,8 @@ import { airspaceOf } from "./airspace";
 import { OPENING_ARMOURY } from "./armoury";
 import type { Order, Ruling } from "./chronicle";
 import { BY_RULES } from "./chronicle";
-import type { Diplomacy } from "./diplomacy";
+import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import type { Diplomacy } from "./diplomacy/diplomacy";
 import {
   factionOf,
   INDEPENDENT,
@@ -14,8 +15,7 @@ import {
   openingDiplomacy,
   standingOf,
   warDeclared,
-} from "./diplomacy";
-import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+} from "./diplomacy/diplomacy";
 import { NO_RESOURCES } from "./economy/resources";
 import { HOME, serviceFor } from "./espionage";
 import { NO_NATION } from "./geography/nations";
