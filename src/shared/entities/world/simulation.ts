@@ -1,6 +1,7 @@
 import type { Advancement } from "./advancement";
 import {
   modifiersOf,
+  openingAdvancementOf,
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./advancement";
@@ -128,14 +129,20 @@ export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
   const economies = startEconomies(world, owners);
   const homes = homeZonesOf(world, owners);
+  const advancements = world.nations.map((nation) =>
+    openingAdvancementOf(nation.leaning)
+  );
+  const armouries = advancements.map((advancement) =>
+    armouryOf(advancement.research)
+  );
   return {
-    advancements: world.nations.map(() => START_ADVANCEMENT),
+    advancements,
     airBases: openingAirBases(world),
     airForces: economies.map((economy, nation) =>
       openingAirForce(
         economy.militaryFactories,
         itemAt(world.nations, nation, NO_NATION).capital,
-        OPENING_ARMOURY.planes
+        itemAt(armouries, nation, OPENING_ARMOURY).planes
       )
     ),
     airPower: world.nations.map(
@@ -158,7 +165,7 @@ export const startSimulation = (world: World): Simulation => {
       openingNavy(
         economy.dockyards,
         itemAt(homes, nation, UNASSIGNED),
-        OPENING_ARMOURY.ships
+        itemAt(armouries, nation, OPENING_ARMOURY).ships
       )
     ),
     negotiations: [],

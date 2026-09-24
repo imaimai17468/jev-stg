@@ -67,5 +67,5 @@ export const armouryOf = (research: Research): Armoury => {
   };
 };
 
-/** What a nation opens the world armed with, which a nation the world does not hold keeps. */
+/** What the research every nation shares arms a nation with, which stands in for a nation the simulation holds no armoury for. */
 export const OPENING_ARMOURY: Armoury = armouryOf(START_RESEARCH);

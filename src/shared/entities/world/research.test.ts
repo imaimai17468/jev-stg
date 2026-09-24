@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { daysFromCivil } from "./calendar";
+import type { Leaning } from "./leaning";
 import type { Research, Study, Voucher } from "./research";
 import {
   AHEAD_OF_TIME_PER_YEAR,
@@ -7,6 +8,7 @@ import {
   bonusUsable,
   daysOf,
   leadingTechs,
+  openingResearchOf,
   researchBonuses,
   researchedOneDay,
   shipUpgradesOf,
@@ -103,6 +105,47 @@ describe("the opening research", () => {
       vouchers: [],
     });
   });
+});
+
+describe(openingResearchOf, () => {
+  it.each([
+    ["army", ["improved-infantry-equipment-1"]],
+    ["industry", ["basic-machine-tools", "construction-1", "excavation-1"]],
+    [
+      "navy",
+      [
+        "basic-light-battery",
+        "basic-medium-battery",
+        "basic-heavy-battery",
+        "magnetic-detonator",
+      ],
+    ],
+  ] satisfies readonly (readonly [Leaning, readonly TechId[]])[])(
+    "should add the %s leaning's head start to the opening research when the world opens",
+    (leaning, headStart) => {
+      expect(openingResearchOf(leaning)).toStrictEqual({
+        ...START_RESEARCH,
+        researched: [...START_RESEARCH.researched, ...headStart],
+      });
+    }
+  );
+});
+
+describe("the opening research of each leaning", () => {
+  it.each(["army", "navy", "industry"] satisfies readonly Leaning[])(
+    "should reach every technology from one it also holds when a %s nation opens",
+    (leaning) => {
+      const { researched } = openingResearchOf(leaning);
+
+      expect(
+        researched.filter(
+          (tech) =>
+            techOf(tech).from.length > 0 &&
+            !techOf(tech).from.some((from) => researched.includes(from))
+        )
+      ).toStrictEqual([]);
+    }
+  );
 });
 
 /** The world's opening research with machine tools done and concentrated industry on a slot. */

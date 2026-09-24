@@ -8,7 +8,14 @@ import { NO_AIR_FORCE } from "./air-force";
 import { airForceOf, flying, wing } from "./air-war-fixture";
 import { noQuiet } from "./armistice";
 import { OPENING_ARMOURY } from "./armoury";
-import { AT_WAR, division, LINE_OWNERS, LINE_WORLD } from "./army-fixture";
+import {
+  AT_WAR,
+  division,
+  LINE_OWNERS,
+  LINE_WORLD,
+  nation,
+  worldOf,
+} from "./army-fixture";
 import { START_CLOCK } from "./clock";
 import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
@@ -21,7 +28,7 @@ import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
 import { noNetworks } from "./networks";
-import { START_RESEARCH, studyStarted } from "./research";
+import { openingResearchOf, START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";
 import { UNASSIGNED } from "./spread";
@@ -95,6 +102,18 @@ describe(startSimulation, () => {
 
   it("should open with nothing in the field when a world opens", () => {
     expect(startSimulation(LINE_WORLD).divisions).toStrictEqual([]);
+  });
+
+  it("should open each nation with its leaning's research when a world opens", () => {
+    const leaning = worldOf(
+      [nation(0, 0), { ...nation(1, 3), leaning: "navy" }],
+      LINE_WORLD.provinces
+    );
+
+    expect(startSimulation(leaning).advancements).toStrictEqual([
+      { focuses: START_FOCUSES, research: openingResearchOf("army") },
+      { focuses: START_FOCUSES, research: openingResearchOf("navy") },
+    ]);
   });
 
   it("should open a base at every capital and hub, an air force for each nation's military factories, and a clear sky over every region when a world opens", () => {

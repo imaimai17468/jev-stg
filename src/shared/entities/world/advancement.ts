@@ -8,10 +8,16 @@ import {
   researchSlotsOf,
   START_FOCUSES,
 } from "./focus";
+import type { Leaning } from "./leaning";
 import type { Modifiers } from "./modifiers";
 import { summed } from "./modifiers";
 import type { Research } from "./research";
-import { researchBonuses, researchedOneDay, START_RESEARCH } from "./research";
+import {
+  openingResearchOf,
+  researchBonuses,
+  researchedOneDay,
+  START_RESEARCH,
+} from "./research";
 import { lawBonusOf } from "./trade";
 
 /** What one nation has researched and how far along its focus tree it is. */
@@ -24,6 +30,12 @@ export const START_ADVANCEMENT: Advancement = {
   focuses: START_FOCUSES,
   research: START_RESEARCH,
 };
+
+/** Where a nation of `leaning` stands on the world's first day. */
+export const openingAdvancementOf = (leaning: Leaning): Advancement => ({
+  focuses: START_FOCUSES,
+  research: openingResearchOf(leaning),
+});
 
 /**
  * Everything the nation's technologies, its finished focuses and the trade

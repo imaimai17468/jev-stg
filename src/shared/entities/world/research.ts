@@ -1,4 +1,5 @@
 import { daysFromCivil } from "./calendar";
+import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
 import type { Bonus } from "./modifiers";
 import type { ShipUpgrade, TechCategory, TechId } from "./techs";
@@ -89,6 +90,27 @@ export const START_RESEARCH: Research = {
   studies: [],
   vouchers: [],
 };
+
+/**
+ * The technologies each leaning researched between the wars on top of what
+ * every nation has.
+ */
+const HEAD_STARTS = {
+  army: ["improved-infantry-equipment-1"],
+  industry: ["basic-machine-tools", "construction-1", "excavation-1"],
+  navy: [
+    "basic-light-battery",
+    "basic-medium-battery",
+    "basic-heavy-battery",
+    "magnetic-detonator",
+  ],
+} satisfies Readonly<Record<Leaning, readonly TechId[]>>;
+
+/** What a nation of `leaning` has researched on the world's first day. */
+export const openingResearchOf = (leaning: Leaning): Research => ({
+  ...START_RESEARCH,
+  researched: [...START_RESEARCH.researched, ...HEAD_STARTS[leaning]],
+});
 
 /** The years before `tech` becomes current on day `today`, none once it has. */
 const yearsAhead = (tech: TechId, today: number): number =>
