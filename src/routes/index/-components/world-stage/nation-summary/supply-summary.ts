@@ -4,8 +4,8 @@ import { isUndersupplied, postOf } from "@/shared/entities/world/army/supply";
 import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import { upkeepOf } from "@/shared/entities/world/economy/economy";
 import { MOST_INFRASTRUCTURE } from "@/shared/entities/world/geography/infrastructure";
-import { countLabel, percentLabel } from "./count-label";
-import type { Stat } from "./stat";
+import { countLabel, percentLabel } from "../count-label";
+import type { Stat } from "../stat";
 
 /**
  * What the nation panel says about one nation's supply: how many of its

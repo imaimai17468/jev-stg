@@ -7,8 +7,8 @@ import {
   warGoalStanding,
 } from "@/shared/entities/world/diplomacy/war-goals";
 import type { Focuses } from "@/shared/entities/world/research/focus";
-import { percentLabel } from "./count-label";
-import type { Stat } from "./stat";
+import { percentLabel } from "../count-label";
+import type { Stat } from "../stat";
 
 /** What the war goal row says about `goal` on `day`, with its target spelled out. */
 const goalLabel = (goal: WarGoal, day: number, target: string): string => {

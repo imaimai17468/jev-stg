@@ -2,9 +2,9 @@ import { describe, expect, it } from "vite-plus/test";
 import type { AirForce } from "@/shared/entities/world/air/air-force";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
+import { HELD_BY_TWO } from "../world-fixture";
 import type { Hangar } from "./air-summary";
 import { airSummaryOf } from "./air-summary";
-import { HELD_BY_TWO } from "./world-fixture";
 
 /**
  * Half way through a fighter on a fifth of its military factories, with 80

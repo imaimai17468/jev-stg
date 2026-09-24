@@ -14,14 +14,14 @@ import {
   intelOn,
 } from "@/shared/entities/world/intelligence/intel";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { percentLabel } from "./count-label";
+import { percentLabel } from "../count-label";
 import {
   destinationName,
   INTEL_KIND_NAMES,
   OPERATION_NAMES,
   projectName,
-} from "./intel-names";
-import type { Stat } from "./stat";
+} from "../intel-names";
+import type { Stat } from "../stat";
 
 /** What the nation panel reads about one nation's intelligence work. */
 export interface Bureau {
