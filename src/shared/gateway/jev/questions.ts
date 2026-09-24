@@ -843,6 +843,25 @@ export const evaluationFor = (consultation: Consultation): Evaluation => {
   return peaceEvaluation(consultation);
 };
 
+/**
+ * The consultations `consultation` is put to Jev as, one request each: a
+ * council government by government, each carrying its own numbers alone, and
+ * peace talks as they are. On 2026-09-24 Jev answered a request carrying one
+ * government's questions and refused with 503 every one carrying four
+ * governments' or more.
+ */
+export const partsOf = (
+  consultation: Consultation
+): readonly Consultation[] => {
+  if (consultation._tag === "council") {
+    return consultation.nations.map((brief) => ({
+      ...consultation,
+      nations: [brief],
+    }));
+  }
+  return [consultation];
+};
+
 /** One answer as `/v1/evaluate` returns it. */
 export interface ChoiceAnswer {
   readonly choice: string;

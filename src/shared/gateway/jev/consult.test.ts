@@ -1,10 +1,12 @@
 import { Effect, Layer, Option, Schema } from "effect";
+import type { Duration } from "effect";
 import { FetchHttpClient, HttpClient } from "effect/unstable/http";
 import { describe, expect, it, vi } from "vite-plus/test";
 import type { ErrorLogRecord } from "@/lib/report-error";
-import type { PeaceTalks } from "@/shared/entities/world/consultation";
+import type { Council, PeaceTalks } from "@/shared/entities/world/consultation";
 import { ConsultationSchema } from "@/shared/entities/world/consultation";
 import { DriverFailed } from "@/test/defect";
+import { BRIEF } from "./brief-fixture";
 import {
   ConsultationDeadline,
   consultJev,
@@ -105,12 +107,22 @@ const captureErrorReports = (): CapturedReport[] => {
   return reported;
 };
 
+/** A council of two governments, nations 1 and 2. */
+const COUNCIL: Council = {
+  _tag: "council",
+  date: "1936-03-01",
+  nations: [BRIEF, { ...BRIEF, nation: 2 }],
+};
+
 const consulting = (
   answer: JevEvaluations["Service"]["answer"],
-  allows: Effect.Effect<boolean, JevUnreachable>
+  allows: Effect.Effect<boolean, JevUnreachable>,
+  consultation: Council | PeaceTalks = TALKS,
+  deadline: Duration.Input = "10 seconds"
 ) =>
   Effect.runPromise(
-    consultJev(TALKS).pipe(
+    consultJev(consultation).pipe(
+      Effect.provideService(ConsultationDeadline, deadline),
       Effect.provide(
         Layer.mergeAll(
           Layer.succeed(JevEvaluations, JevEvaluations.of({ answer })),
@@ -136,6 +148,7 @@ describe(consultJev, () => {
     return consulting(answer, Effect.succeed(true)).then((reply) => {
       expect(reply).toStrictEqual({
         _tag: "answered",
+        unanswered: [],
         verdicts: [
           {
             choice: "puppet",
@@ -193,6 +206,84 @@ describe(consultJev, () => {
         reply: { _tag: "unavailable" },
         reported: [{ event: "jev.consult", message: "no limiter" }],
       });
+    });
+  });
+
+  it("should answer with the verdicts it got and name the governments left unanswered when only some of a council's requests fail", () => {
+    captureErrorReports();
+    const answer = vi
+      .fn<JevEvaluations["Service"]["answer"]>()
+      .mockImplementation((evaluation) => {
+        if (Object.hasOwn(evaluation.body.questions, "n2_plan")) {
+          return unreachable();
+        }
+        return Effect.succeed({
+          n1_plan: { choice: "civilian", probabilities: { civilian: 1 } },
+        });
+      });
+
+    return consulting(answer, Effect.succeed(true), COUNCIL).then((reply) => {
+      expect(reply).toStrictEqual({
+        _tag: "answered",
+        unanswered: [2],
+        verdicts: [
+          {
+            choice: "civilian",
+            nation: 1,
+            probability: 1,
+            question: "plan",
+            weights: [
+              { choice: "balanced", probability: 0 },
+              { choice: "civilian", probability: 1 },
+              { choice: "military", probability: 0 },
+              { choice: "total-war", probability: 0 },
+            ],
+          },
+        ],
+      });
+    });
+  });
+
+  it("should keep the answers it heard and name the rest unanswered when the council runs past its deadline", () => {
+    const reported = captureErrorReports();
+    const answer = vi
+      .fn<JevEvaluations["Service"]["answer"]>()
+      .mockImplementation((evaluation) => {
+        if (Object.hasOwn(evaluation.body.questions, "n2_plan")) {
+          return Effect.never;
+        }
+        return Effect.succeed({});
+      });
+
+    return consulting(answer, Effect.succeed(true), COUNCIL, "10 millis").then(
+      (reply) => {
+        expect({ reply, reported }).toStrictEqual({
+          reply: { _tag: "answered", unanswered: [2], verdicts: [] },
+          reported: [
+            {
+              event: "jev.consult",
+              message: "The consultation ran past its deadline.",
+            },
+          ],
+        });
+      }
+    );
+  });
+
+  it("should ask Jev about each government in a request of its own when a council meets", () => {
+    const answer = vi
+      .fn<JevEvaluations["Service"]["answer"]>()
+      .mockReturnValue(Effect.succeed({}));
+
+    return consulting(answer, Effect.succeed(true), COUNCIL).then(() => {
+      expect(
+        answer.mock.calls.map(([evaluation]) =>
+          Object.keys(evaluation.body.questions).map((key) => key.split("_")[0])
+        )
+      ).toStrictEqual([
+        Array.from({ length: 9 }, () => "n1"),
+        Array.from({ length: 9 }, () => "n2"),
+      ]);
     });
   });
 

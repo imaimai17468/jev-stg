@@ -75,6 +75,7 @@ describe(useJevCouncil, () => {
   it("should carry out Jev's verdicts on the month when Jev answers", () => {
     const consult = answering({
       _tag: "answered",
+      unanswered: [],
       verdicts: [
         {
           choice: "extensive",
@@ -128,7 +129,11 @@ describe(useJevCouncil, () => {
   });
 
   it("should ask about each surrender once when a second one opens", () => {
-    const consult = answering({ _tag: "answered", verdicts: [] });
+    const consult = answering({
+      _tag: "answered",
+      unanswered: [],
+      verdicts: [],
+    });
     const setSimulation = vi.fn<Dispatch<SetStateAction<Simulation>>>();
     onTestFinished(cleanup);
     const { rerender } = renderHook(
@@ -157,6 +162,7 @@ describe(useJevCouncil, () => {
   it("should sign the terms Jev names when it answers the talks", () => {
     const consult = answering({
       _tag: "answered",
+      unanswered: [],
       verdicts: [
         {
           choice: "puppet",

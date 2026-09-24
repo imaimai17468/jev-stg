@@ -1771,6 +1771,7 @@ describe(afterCouncil, () => {
   it("should carry out Jev's verdicts when Jev answered", () => {
     const after = afterCouncil(ROW_WORLD, atWar, convened, {
       _tag: "answered",
+      unanswered: [],
       verdicts: [
         verdict({ choice: "extensive", nation: 0, question: "conscription" }),
       ],
@@ -1786,6 +1787,28 @@ describe(afterCouncil, () => {
 
     expect(after.economies[0]?.conscription).toBe("limited");
   });
+
+  it("should decide a government by the rules when Jev answered the council but not for it", () => {
+    const after = afterCouncil(ROW_WORLD, atWar, convened, {
+      _tag: "answered",
+      unanswered: [0],
+      verdicts: [],
+    });
+
+    expect(after.economies[0]?.conscription).toBe("limited");
+  });
+
+  it("should leave a government's month to Jev's verdicts when Jev answered for it", () => {
+    const after = afterCouncil(ROW_WORLD, atWar, convened, {
+      _tag: "answered",
+      unanswered: [],
+      verdicts: [],
+    });
+
+    expect(after.economies[0]?.conscription).toBe(
+      atWar.economies[0]?.conscription
+    );
+  });
 });
 
 describe(afterTalks, () => {
@@ -1798,6 +1821,7 @@ describe(afterTalks, () => {
   it("should sign the terms Jev names when Jev answered", () => {
     const after = afterTalks(ROW_WORLD, HOLDING, NEGOTIATION, {
       _tag: "answered",
+      unanswered: [],
       verdicts: [verdict({ choice: "cede", question: "terms" })],
     });
 
@@ -1807,6 +1831,7 @@ describe(afterTalks, () => {
   it("should sign the rules' terms when Jev answered without naming any", () => {
     const after = afterTalks(ROW_WORLD, HOLDING, NEGOTIATION, {
       _tag: "answered",
+      unanswered: [],
       verdicts: [],
     });
 

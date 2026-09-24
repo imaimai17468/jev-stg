@@ -262,9 +262,13 @@ const VerdictSchema = Schema.Struct({
 
 export type Verdict = typeof VerdictSchema.Type;
 
-/** What a consultation came back with. */
+/**
+ * What a consultation came back with. An answered reply names the governments
+ * it carries no answer for, which the rules decide.
+ */
 const JevReplySchema = Schema.Union([
   Schema.TaggedStruct("answered", {
+    unanswered: Schema.Array(NationId).check(Schema.isMaxLength(MOST_NATIONS)),
     verdicts: Schema.Array(VerdictSchema),
   }),
   Schema.TaggedStruct("unavailable", {}),

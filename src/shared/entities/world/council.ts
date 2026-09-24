@@ -871,20 +871,21 @@ const allRuled = (
   return current;
 };
 
-/**
- * The month the council met on `councilDay`, decided by the rules for when Jev
- * cannot be asked. The governments decide in an order the month's draw
- * shuffles, so no nation always moves first, and each sees what the ones
- * before it decided.
- */
-export const ruledByRules = (
+/** The governments the rules decide for the council that met on `day`. */
+interface RulesCouncil {
+  readonly day: number;
+  readonly nations: readonly number[];
+}
+
+/** The month the council met on, its governments decided by the rules. */
+const ruledByRulesFor = (
   world: World,
   simulation: Simulation,
-  councilDay: number
+  { day, nations }: RulesCouncil
 ): Simulation => {
-  const random = drawsFor(world, councilDay);
+  const random = drawsFor(world, day);
   let current = simulation;
-  for (const nation of shuffled(governments(world, simulation), random)) {
+  for (const nation of shuffled(nations, random)) {
     const decided = allRuled(
       world,
       current,
@@ -914,6 +915,22 @@ export const ruledByRules = (
   }
   return current;
 };
+
+/**
+ * The month the council met on `councilDay`, decided by the rules for when Jev
+ * cannot be asked. The governments decide in an order the month's draw
+ * shuffles, so no nation always moves first, and each sees what the ones
+ * before it decided.
+ */
+export const ruledByRules = (
+  world: World,
+  simulation: Simulation,
+  councilDay: number
+): Simulation =>
+  ruledByRulesFor(world, simulation, {
+    day: councilDay,
+    nations: governments(world, simulation),
+  });
 
 /** `choice` read as one of `options`, where it names one. */
 const pickOf = <T extends string>(
@@ -1213,19 +1230,28 @@ const verdictsOf = (reply: JevReply): Option.Option<readonly Verdict[]> => {
 };
 
 /**
- * The month decided once the reply to a council is in: by Jev where it
- * answered, and by the rules where it could not.
+ * The month decided once the reply to a council is in: by Jev for the
+ * governments it answered for, and by the rules for the rest, after Jev's
+ * rulings so they see what Jev decided.
  */
 export const afterCouncil = (
   world: World,
   simulation: Simulation,
   convened: Convened,
   reply: JevReply
-): Simulation =>
-  Option.match(verdictsOf(reply), {
-    onNone: () => ruledByRules(world, simulation, convened.day),
-    onSome: (verdicts) => ruledByJev(world, simulation, convened, verdicts),
+): Simulation => {
+  if (reply._tag !== "answered") {
+    return ruledByRules(world, simulation, convened.day);
+  }
+  const unanswered = new Set(reply.unanswered);
+  const answered = ruledByJev(world, simulation, convened, reply.verdicts);
+  return ruledByRulesFor(world, answered, {
+    day: convened.day,
+    nations: governments(world, answered).filter((nation) =>
+      unanswered.has(nation)
+    ),
   });
+};
 
 /**
  * The talks over `negotiation` once the reply is in: signed on the terms Jev
