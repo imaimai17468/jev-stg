@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_OWNERS } from "./army-fixture";
-import { startCompliance } from "./economy/compliance";
-import { UNASSIGNED } from "./spread";
+import { LINE_OWNERS } from "../army-fixture";
+import { startCompliance } from "../economy/compliance";
+import { UNASSIGNED } from "../spread";
 import type { Unrest } from "./unrest";
 import {
   stirredBy,

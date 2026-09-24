@@ -1,4 +1,5 @@
 import { raisingNameOf } from "@/shared/entities/world/army/divisions";
+import type { Stance } from "@/shared/entities/world/army/stance";
 import { dateLabel } from "@/shared/entities/world/calendar";
 import type {
   Decision,
@@ -15,7 +16,6 @@ import { NO_NATION } from "@/shared/entities/world/geography/nations";
 import type { World } from "@/shared/entities/world/geography/world";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { focusOf } from "@/shared/entities/world/research/focus";
-import type { Stance } from "@/shared/entities/world/stance";
 import { techOf } from "@/shared/entities/world/techs";
 import { destinationName, OPERATION_NAMES, projectName } from "./intel-names";
 import {

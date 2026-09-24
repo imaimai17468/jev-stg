@@ -1,7 +1,26 @@
 import { Option } from "effect";
+import type { Decision } from "../chronicle";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { factionOf, standsAlone } from "../diplomacy/diplomacy";
+import type { Compliance } from "../economy/compliance";
+import type { NationEconomy } from "../economy/economy";
+import type { Build, Networks } from "../geography/networks";
+import { networkBuiltOneDay } from "../geography/networks";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import { isCoastal } from "../navy/seas";
+import type { ProvinceGraph } from "../provinces";
+import { isLand } from "../provinces";
+import type { Random } from "../random";
+import type { Advancement } from "../research/advancement";
+import { START_ADVANCEMENT } from "../research/advancement";
+import { operativeSlotsOf } from "../research/focus";
+import type { Research, Voucher } from "../research/research";
+import { bonusUsable, vouchersGranted } from "../research/research";
+import type { TechCategory } from "../techs";
+import { atWar, enemiesOf } from "../wars";
 import type { Agency } from "./agency";
 import { agencyModifiersOf, agencyWorkedOneDay, NO_AGENCY } from "./agency";
-import type { Decision } from "./chronicle";
 import type { Ciphers } from "./cipher";
 import {
   cipherCaptured,
@@ -11,17 +30,8 @@ import {
   noCiphers,
 } from "./cipher";
 import { countedDown } from "./countdown";
-import type { Diplomacy } from "./diplomacy/diplomacy";
-import { factionOf, standsAlone } from "./diplomacy/diplomacy";
-import type { Compliance } from "./economy/compliance";
-import type { NationEconomy } from "./economy/economy";
-import type { Build, Networks } from "./geography/networks";
-import { networkBuiltOneDay } from "./geography/networks";
-import { valueAt } from "./grid";
 import type { IntelKind } from "./intel";
 import { INTEL_KINDS } from "./intel";
-import { itemAt } from "./lookup";
-import { isCoastal } from "./navy/seas";
 import type { Operation, Prospect } from "./operations";
 import {
   BLUEPRINT_CATEGORIES,
@@ -29,18 +39,8 @@ import {
   operationTermsOf,
   operationWanted,
 } from "./operations";
-import type { ProvinceGraph } from "./provinces";
-import { isLand } from "./provinces";
-import type { Random } from "./random";
-import type { Advancement } from "./research/advancement";
-import { START_ADVANCEMENT } from "./research/advancement";
-import { operativeSlotsOf } from "./research/focus";
-import type { Research, Voucher } from "./research/research";
-import { bonusUsable, vouchersGranted } from "./research/research";
-import type { TechCategory } from "./techs";
 import type { Unrest, UnrestKind } from "./unrest";
 import { unrestAgainst, unrestOneDay, unrestStarted } from "./unrest";
-import { atWar, enemiesOf } from "./wars";
 
 /** The target of a nation that keeps its operatives at home on counter-intelligence. */
 export const HOME = -1;

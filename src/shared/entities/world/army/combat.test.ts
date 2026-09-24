@@ -8,8 +8,8 @@ import {
   LINE_OWNERS,
   LINE_WORLD,
 } from "../army-fixture";
-import type { Insight } from "../insight";
-import { NO_INSIGHT } from "../insight";
+import type { Insight } from "../intelligence/insight";
+import { NO_INSIGHT } from "../intelligence/insight";
 import { itemAt, replacedAt } from "../lookup";
 import { NO_MODIFIERS } from "../modifiers";
 import type { LandProvince } from "../provinces";

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { HOME } from "@/shared/entities/world/espionage";
+import { HOME } from "@/shared/entities/world/intelligence/espionage";
 import { destinationName, projectName } from "./intel-names";
 
 /** Each nation named after its id. */

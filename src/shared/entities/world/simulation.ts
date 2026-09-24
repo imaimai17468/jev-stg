@@ -1,4 +1,3 @@
-import { factoriesTiedUp } from "./agency";
 import { openingAirBases } from "./air/air-bases";
 import type { AirForce } from "./air/air-force";
 import { NO_AIR_FORCE, openingAirForce } from "./air/air-force";
@@ -13,6 +12,10 @@ import { fieldedBy } from "./army/divisions";
 import { musteredBy, musteringAt } from "./army/muster";
 import { groundOf, openingLevyIn } from "./army/opening-army";
 import { roadsBuiltOneDay } from "./army/roadworks";
+import type { Skies } from "./army/skies";
+import { skiesBelow } from "./army/skies";
+import type { Stance } from "./army/stance";
+import { START_STANCE } from "./army/stance";
 import type { Lines, SupplyNetwork } from "./army/supply";
 import { supplyNetwork } from "./army/supply";
 import { daysFromCivil } from "./calendar";
@@ -43,28 +46,31 @@ import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy/economy";
 import type { Estate, Plants } from "./economy/plants";
 import { countedFrom, openingPlants, placedGains } from "./economy/plants";
 import type { Deal } from "./economy/trade";
-import type { Service } from "./espionage";
-import {
-  heldCaptives,
-  openingServices,
-  plottedOneDay,
-  serviceFor,
-} from "./espionage";
 import { openingInfrastructure } from "./geography/infrastructure";
 import { initialOwners, NO_NATION } from "./geography/nations";
 import type { Networks } from "./geography/networks";
 import { noNetworks } from "./geography/networks";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
-import type { Espial } from "./insight";
-import { insightOf, intelOf } from "./insight";
-import type { Gleaned } from "./intel";
+import { factoriesTiedUp } from "./intelligence/agency";
+import type { Service } from "./intelligence/espionage";
+import {
+  heldCaptives,
+  openingServices,
+  plottedOneDay,
+  serviceFor,
+} from "./intelligence/espionage";
+import type { Espial } from "./intelligence/insight";
+import { insightOf, intelOf } from "./intelligence/insight";
+import type { Gleaned } from "./intelligence/intel";
 import {
   clashesOf,
   extractedOneDay,
   foughtOneDay as gleanedFromFighting,
   noGleaned,
-} from "./intel";
+} from "./intelligence/intel";
+import type { Stirred, Unrest } from "./intelligence/unrest";
+import { stirredBy } from "./intelligence/unrest";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import type { Invasion } from "./navy/invasion";
@@ -82,13 +88,7 @@ import {
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./research/advancement";
-import type { Skies } from "./skies";
-import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";
-import type { Stance } from "./stance";
-import { START_STANCE } from "./stance";
-import type { Stirred, Unrest } from "./unrest";
-import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";
 
 /** Everything about a world that the calendar moves. */

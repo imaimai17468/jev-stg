@@ -1,6 +1,6 @@
 import { Option } from "effect";
+import type { Random } from "../random";
 import type { IntelKind, IntelLevels } from "./intel";
-import type { Random } from "./random";
 
 /**
  * What a government believes another nation's forces come to: the sum of

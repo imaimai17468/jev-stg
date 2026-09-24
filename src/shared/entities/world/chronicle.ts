@@ -1,13 +1,13 @@
-import type { AgencyProject } from "./agency";
 import type { Aircraft, Aviation } from "./air/aircraft";
 import type { Raising } from "./army/divisions";
+import type { Stance } from "./army/stance";
 import type { Settlement } from "./diplomacy/peace";
 import type { ConscriptionLaw, IndustryPlan } from "./economy/economy";
 import type { TradeLaw } from "./economy/trade";
+import type { AgencyProject } from "./intelligence/agency";
+import type { Operation } from "./intelligence/operations";
 import type { ShipyardOrder } from "./navy/ships";
-import type { Operation } from "./operations";
 import type { FocusId } from "./research/focus";
-import type { Stance } from "./stance";
 import type { TechId } from "./techs";
 
 /** One thing a government decided. */

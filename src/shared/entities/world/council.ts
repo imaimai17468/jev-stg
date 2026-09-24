@@ -1,6 +1,4 @@
 import { Option } from "effect";
-import type { AgencyProject } from "./agency";
-import { AGENCY_UPGRADES, agencyOptions } from "./agency";
 import type { AirForce } from "./air/air-force";
 import { combatPlanesOf, NO_AIR_FORCE, planesOf } from "./air/air-force";
 import { transportsFor } from "./air/airborne";
@@ -9,6 +7,10 @@ import { AIRCRAFT, AVIATIONS } from "./air/aircraft";
 import { armouryOf } from "./armoury";
 import type { Raising } from "./army/divisions";
 import { menFor, MIXED } from "./army/divisions";
+import type { Skies } from "./army/skies";
+import { skyLostBy } from "./army/skies";
+import type { Stance } from "./army/stance";
+import { START_STANCE, STANCES } from "./army/stance";
 import type { SupplyNetwork } from "./army/supply";
 import { undersuppliedShare } from "./army/supply";
 import { dateLabel } from "./calendar";
@@ -64,15 +66,19 @@ import type { Estate } from "./economy/plants";
 import { siteOptionsOf } from "./economy/plants";
 import type { TradeLaw } from "./economy/trade";
 import { START_TRADE_LAW, TRADE_LAWS } from "./economy/trade";
-import type { Service } from "./espionage";
-import { HOME, NO_SERVICE } from "./espionage";
 import { FUEL_CAPACITY } from "./fuel";
 import type { Leaning } from "./geography/leaning";
 import { neighbouringNations, NO_NATION } from "./geography/nations";
 import type { World } from "./geography/world";
-import { intelOf } from "./insight";
-import type { IntelTable } from "./intel";
-import { INTEL_KINDS, intelOn } from "./intel";
+import type { AgencyProject } from "./intelligence/agency";
+import { AGENCY_UPGRADES, agencyOptions } from "./intelligence/agency";
+import type { Service } from "./intelligence/espionage";
+import { HOME, NO_SERVICE } from "./intelligence/espionage";
+import { intelOf } from "./intelligence/insight";
+import type { IntelTable } from "./intelligence/intel";
+import { INTEL_KINDS, intelOn } from "./intelligence/intel";
+import type { Forces, Sighting } from "./intelligence/sightings";
+import { sightingOf } from "./intelligence/sightings";
 import { itemAt } from "./lookup";
 import { CONVOYS_PER_DIVISION } from "./navy/invasion";
 import { overseasRivals } from "./navy/maritime";
@@ -88,8 +94,6 @@ import type { FocusId, Focuses } from "./research/focus";
 import { availableFocuses, focusOf } from "./research/focus";
 import { availableTechs, leadingTechs } from "./research/research";
 import { ruled } from "./rulings";
-import type { Forces, Sighting } from "./sightings";
-import { sightingOf } from "./sightings";
 import type { Simulation } from "./simulation";
 import {
   armouriesOf,
@@ -100,10 +104,6 @@ import {
   skiesOf,
   supplyOf,
 } from "./simulation";
-import type { Skies } from "./skies";
-import { skyLostBy } from "./skies";
-import type { Stance } from "./stance";
-import { START_STANCE, STANCES } from "./stance";
 import type { TechCategory, TechId } from "./techs";
 import { categoryOf, techOf } from "./techs";
 import { enemiesOf } from "./wars";

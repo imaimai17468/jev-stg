@@ -1,5 +1,6 @@
 import { NO_AIR_FORCE } from "./air/air-force";
 import { LINE_WORLD } from "./army-fixture";
+import { START_STANCE } from "./army/stance";
 import { START_CLOCK } from "./clock";
 import { noQuiet } from "./diplomacy/armistice";
 import type { Diplomacy } from "./diplomacy/diplomacy";
@@ -7,17 +8,16 @@ import { openingDiplomacy } from "./diplomacy/diplomacy";
 import { startCompliance } from "./economy/compliance";
 import { NO_ECONOMY } from "./economy/economy";
 import { openingPlants } from "./economy/plants";
-import { openingServices } from "./espionage";
 import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
 import { NO_NATION } from "./geography/nations";
 import { noNetworks } from "./geography/networks";
 import type { World } from "./geography/world";
-import { noGleaned } from "./intel";
+import { openingServices } from "./intelligence/espionage";
+import { noGleaned } from "./intelligence/intel";
 import { NO_NAVY } from "./navy/navy";
 import { START_ADVANCEMENT } from "./research/advancement";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
-import { START_STANCE } from "./stance";
 
 /**
  * The same four provinces in a row as the army's line, with one nation to a

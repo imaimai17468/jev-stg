@@ -1,5 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import type { AirForce } from "./air/air-force";
 import { NO_AIR_FORCE } from "./air/air-force";
 import { airspaceOf } from "./airspace";
@@ -17,9 +16,10 @@ import {
   warDeclared,
 } from "./diplomacy/diplomacy";
 import { NO_RESOURCES } from "./economy/resources";
-import { HOME, serviceFor } from "./espionage";
 import { NO_NATION } from "./geography/nations";
 import type { World } from "./geography/world";
+import { AGENCY_DAYS, NO_AGENCY } from "./intelligence/agency";
+import { HOME, serviceFor } from "./intelligence/espionage";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy/navy";
 import type { Province } from "./provinces";

@@ -1,7 +1,7 @@
 import "@tanstack/react-start/server-only";
 import { OPENING_ARMOURY } from "@/shared/entities/world/armoury";
 import type { NationBrief } from "@/shared/entities/world/consultation";
-import type { Sighting } from "@/shared/entities/world/sightings";
+import type { Sighting } from "@/shared/entities/world/intelligence/sightings";
 
 /** A figure the government sees exactly, with every nation behind it in view. */
 export const exactly = (estimate: number): Sighting => ({

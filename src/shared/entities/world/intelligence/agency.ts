@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
-import { itemAt } from "./lookup";
-import type { TechId } from "./techs";
+import { itemAt } from "../lookup";
+import type { TechId } from "../techs";
 
 /** Every upgrade an intelligence agency can buy, in the order its screen lists them. */
 const AgencyUpgradeSchema = Schema.Literals([

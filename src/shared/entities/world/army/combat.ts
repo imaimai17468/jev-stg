@@ -1,14 +1,13 @@
 import type { Armoury } from "../armoury";
 import { OPENING_ARMOURY } from "../armoury";
 import { valueAt } from "../grid";
-import type { Insight } from "../insight";
-import { edgeAgainst } from "../insight";
+import type { Insight } from "../intelligence/insight";
+import { edgeAgainst } from "../intelligence/insight";
 import { itemAt } from "../lookup";
 import type { Modifiers } from "../modifiers";
 import { NO_MODIFIERS } from "../modifiers";
 import type { LandProvince, ProvinceGraph } from "../provinces";
 import { isLand, neighboursOf } from "../provinces";
-import { combatKeptUnder } from "../skies";
 import { UNASSIGNED } from "../spread";
 import type { Wars } from "../wars";
 import { atWar } from "../wars";
@@ -23,6 +22,7 @@ import {
   terrainDefenceOf,
 } from "./divisions";
 import { combatWidth } from "./frontage";
+import { combatKeptUnder } from "./skies";
 import type { SupplyNetwork } from "./supply";
 import { postOf } from "./supply";
 

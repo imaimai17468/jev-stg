@@ -1,14 +1,5 @@
 import "@tanstack/react-start/server-only";
 import { Match, Option } from "effect";
-import type {
-  AgencyModifiers,
-  AgencyProject,
-} from "@/shared/entities/world/agency";
-import {
-  AGENCY_DAYS,
-  factoriesFor,
-  upgradeTermsOf,
-} from "@/shared/entities/world/agency";
 import {
   DROP_SUPERIORITY,
   TRANSPORTS_PER_DIVISION,
@@ -35,6 +26,7 @@ import {
   manpowerOf,
   MIXED,
 } from "@/shared/entities/world/army/divisions";
+import type { Stance } from "@/shared/entities/world/army/stance";
 import type {
   BuildSite,
   Consultation,
@@ -65,6 +57,16 @@ import type {
 import type { TradeLaw } from "@/shared/entities/world/economy/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/economy/trade";
 import { constructionSpeedAt } from "@/shared/entities/world/geography/infrastructure";
+import type {
+  AgencyModifiers,
+  AgencyProject,
+} from "@/shared/entities/world/intelligence/agency";
+import {
+  AGENCY_DAYS,
+  factoriesFor,
+  upgradeTermsOf,
+} from "@/shared/entities/world/intelligence/agency";
+import type { Sighting } from "@/shared/entities/world/intelligence/sightings";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
@@ -85,8 +87,6 @@ import {
   AHEAD_OF_TIME_PER_YEAR,
   daysOf,
 } from "@/shared/entities/world/research/research";
-import type { Sighting } from "@/shared/entities/world/sightings";
-import type { Stance } from "@/shared/entities/world/stance";
 import type {
   ShipUpgrade,
   ShipWeapon,

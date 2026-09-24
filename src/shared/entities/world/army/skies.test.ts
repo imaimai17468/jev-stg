@@ -1,7 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { AT_WAR, LINE_WORLD } from "./army-fixture";
-import type { Diplomacy } from "./diplomacy/diplomacy";
-import { openingDiplomacy } from "./diplomacy/diplomacy";
+import { AT_WAR, LINE_WORLD } from "../army-fixture";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { openingDiplomacy } from "../diplomacy/diplomacy";
+import { UNASSIGNED } from "../spread";
+import { declared, noWars } from "../wars";
 import type { Skies } from "./skies";
 import {
   combatKeptUnder,
@@ -10,8 +12,6 @@ import {
   skyLostBy,
   superiorityOf,
 } from "./skies";
-import { UNASSIGNED } from "./spread";
-import { declared, noWars } from "./wars";
 
 /** Nations 0 and 1 at war, and nation 2 at peace with both. */
 const TWO_AT_WAR_ONE_NEUTRAL: Diplomacy = {

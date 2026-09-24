@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
+import type { TechCategory } from "../techs";
 import type { IntelKind } from "./intel";
-import type { TechCategory } from "./techs";
 import type { UnrestKind } from "./unrest";
 
 /** Every operation an agency runs, in the order the rules weigh them. */
