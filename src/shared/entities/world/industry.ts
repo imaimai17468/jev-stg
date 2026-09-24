@@ -35,7 +35,7 @@ export const provincePeople = (province: LandProvince): number =>
   province.cells * TERRAIN_YIELD[province.terrain].people;
 
 /** The people a nation's land holds and the factories they run. */
-interface Industry {
+export interface Industry {
   readonly population: number;
   readonly factories: number;
   /** The share of those people living on a coast, from 0 to 1. */

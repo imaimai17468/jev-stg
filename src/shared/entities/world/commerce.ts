@@ -1,3 +1,4 @@
+import type { Option } from "effect";
 import { roomiestBase, stationedOf } from "./air-bases";
 import type { AirForce } from "./air-force";
 import { NO_AIR_FORCE, planesBuiltOneDay } from "./air-force";
@@ -9,15 +10,18 @@ import { FULL_REACH } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
-import { outputOf, producedOneDay } from "./economy";
+import { outputOf, producedOneDay, wantedKindOf } from "./economy";
 import { oilWanted, refined } from "./fuel";
 import type { World } from "./index";
+import type { Industry } from "./industry";
 import { industryByNation, NO_INDUSTRY } from "./industry";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 import type { Navy } from "./navy";
 import { builtOneDay, NO_NAVY } from "./navy";
+import type { Plants, Site } from "./plants";
+import { nextSiteOf } from "./plants";
 import type { ResourceNeed } from "./resources";
 import {
   extractedBy,
@@ -47,6 +51,10 @@ export interface Works {
   readonly airForces: readonly AirForce[];
   /** The level of the air base in each province, by province id. */
   readonly airBases: Uint8Array;
+  /** The factories and the dockyards standing in each province. */
+  readonly plants: Plants;
+  /** The level of the infrastructure in each province, by province id. */
+  readonly infrastructure: Uint8Array;
   /** Each nation's modifiers, by nation id. */
   readonly modifiers: readonly Modifiers[];
   /** What each nation's research arms it with, by nation id. */
@@ -62,6 +70,24 @@ export interface Works {
   /** The civilian factories each nation's intelligence agency ties up today, by nation id. */
   readonly tiedUp: readonly number[];
 }
+
+/** Where `nation` builds its next factory: what its plan wants, as far as it has a free slot for it. */
+const buildingSiteOf = (
+  works: Works,
+  economy: NationEconomy,
+  nation: number,
+  industry: readonly Industry[]
+): Option.Option<Site> =>
+  nextSiteOf(
+    {
+      infrastructure: works.infrastructure,
+      owners: works.owners,
+      plants: works.plants,
+      world: works.world,
+    },
+    nation,
+    wantedKindOf(economy, itemAt(industry, nation, NO_INDUSTRY).coastal)
+  );
 
 /** A day of trade and work: the economies, the navies, the air forces, and the trade struck. */
 export interface Exchange {
@@ -230,9 +256,9 @@ export const commerceOneDay = (works: Works): Exchange => {
     const footing = {
       airSupplied: supplied.aircraft,
       aviation: aviationShareOf(airForce.aviation),
-      coastal: itemAt(industry, nation, NO_INDUSTRY).coastal,
       modifiers: itemAt(works.modifiers, nation, NO_MODIFIERS),
       reach: itemAt(works.reach, nation, FULL_REACH),
+      site: buildingSiteOf(works, economy, nation, industry),
       supplied: supplied.arms,
       tiedUp: itemAt(works.tiedUp, nation, 0),
       traded: balance.factories,

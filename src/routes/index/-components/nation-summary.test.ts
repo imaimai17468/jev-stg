@@ -225,6 +225,7 @@ describe(summaryOf, () => {
       ],
       provinces: 3,
       puppets: [],
+      slots: { total: 1, used: 0 },
       standing: { kind: "independent" },
       supply: [
         { label: "補給が足りない師団", value: "0 / 1" },
@@ -267,6 +268,7 @@ describe(summaryOf, () => {
       occupation: [],
       provinces: 0,
       puppets: [],
+      slots: { total: 0, used: 0 },
       standing: { kind: "independent" },
       supply: [],
       terrain: [],

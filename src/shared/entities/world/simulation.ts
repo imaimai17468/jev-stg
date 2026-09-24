@@ -489,11 +489,13 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     diplomacy: simulation.diplomacy,
     economies: simulation.economies,
     homes,
+    infrastructure: simulation.infrastructure,
     landmasses,
     modifiers,
     musters,
     navies: simulation.navies,
     owners: simulation.owners,
+    plants: simulation.plants,
     reach: reachByNation(
       world.provinces,
       simulation.owners,
@@ -510,7 +512,12 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     world,
   });
   const builtPlants = placedGains(
-    { owners: simulation.owners, plants: simulation.plants, world },
+    {
+      infrastructure: simulation.infrastructure,
+      owners: simulation.owners,
+      plants: simulation.plants,
+      world,
+    },
     simulation.economies,
     exchange.economies
   );
@@ -622,7 +629,12 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     daysFromCivil(dateOf(clock))
   );
   const grantedPlants = placedGains(
-    { owners: armies.owners, plants: builtPlants, world },
+    {
+      infrastructure: roadworks.infrastructure,
+      owners: armies.owners,
+      plants: builtPlants,
+      world,
+    },
     armies.economies,
     advanced.economies
   );

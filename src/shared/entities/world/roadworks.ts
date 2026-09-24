@@ -1,6 +1,10 @@
 import type { NationEconomy } from "./economy";
 import { valueAt } from "./grid";
-import { INFRASTRUCTURE_COST, MOST_INFRASTRUCTURE } from "./infrastructure";
+import {
+  constructionSpeedAt,
+  INFRASTRUCTURE_COST,
+  MOST_INFRASTRUCTURE,
+} from "./infrastructure";
 import { UNASSIGNED } from "./spread";
 import type { SupplyNetwork } from "./supply";
 import { postOf } from "./supply";
@@ -65,6 +69,14 @@ export const roadsWanted = (site: Worksite, nation: number): number => {
 };
 
 /**
+ * What the roadworks put by pay for a level of infrastructure in `province`:
+ * less the higher the infrastructure already stands there, because the work
+ * goes up as much faster as it does.
+ */
+const costAt = (infrastructure: Uint8Array, province: number): number =>
+  INFRASTRUCTURE_COST / constructionSpeedAt(valueAt(infrastructure, province));
+
+/**
  * The infrastructure once every nation whose roadworks have gone far enough
  * to pay for a level has put one where its divisions go shortest of supply,
  * and the economies with that cost taken off and the province each nation
@@ -79,14 +91,15 @@ export const roadsBuiltOneDay = (
   const infrastructure = Uint8Array.from(site.infrastructure);
   const paid = economies.map((economy, nation) => {
     const wanted = roadsWanted(site, nation);
-    if (wanted === UNASSIGNED || economy.roadworks < INFRASTRUCTURE_COST) {
+    const cost = costAt(site.infrastructure, wanted);
+    if (wanted === UNASSIGNED || economy.roadworks < cost) {
       return { ...economy, roadSite: wanted };
     }
     infrastructure[wanted] = valueAt(infrastructure, wanted) + 1;
     return {
       ...economy,
       roadSite: wanted,
-      roadworks: economy.roadworks - INFRASTRUCTURE_COST,
+      roadworks: economy.roadworks - cost,
     };
   });
   return { economies: paid, infrastructure };
