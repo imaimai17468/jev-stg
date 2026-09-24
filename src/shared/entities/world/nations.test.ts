@@ -1,5 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LINE_WORLD } from "./army-fixture";
+import { drawnLeaning } from "./leaning";
+import { nationNames } from "./names";
 import {
   buildNations,
   growOwners,
@@ -146,6 +148,22 @@ describe(buildNations, () => {
     expect(
       buildNations([3, 7], randomFromSeed(5)).map((nation) => nation.id)
     ).toStrictEqual([0, 1]);
+  });
+
+  it("should draw the names first and each nation's leaning after every name when the nations are built", () => {
+    const random = randomFromSeed(5);
+    const names = nationNames(2, random);
+    const leanings = names.map(() => drawnLeaning(random));
+
+    expect(
+      buildNations([3, 7], randomFromSeed(5)).map((built) => ({
+        leaning: built.leaning,
+        name: built.name,
+      }))
+    ).toStrictEqual([
+      { leaning: leanings[0], name: names[0] },
+      { leaning: leanings[1], name: names[1] },
+    ]);
   });
 
   it("should name every nation when the capitals are listed", () => {

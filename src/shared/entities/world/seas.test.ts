@@ -25,6 +25,7 @@ const NOBODY: Nation = {
   capital: UNASSIGNED,
   colour: { blue: 0, green: 0, red: 0 },
   id: UNASSIGNED,
+  leaning: "army",
   name: "",
 };
 

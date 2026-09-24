@@ -1,4 +1,5 @@
 import { Option } from "effect";
+import type { Leaning } from "@/shared/entities/world/leaning";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { countLabel } from "./count-label";
 import type { NationSummary, StandingSummary } from "./nation-summary";
@@ -26,6 +27,16 @@ export const terrainOf = (summary: NationSummary): readonly Stat[] =>
     label: TERRAIN_LABELS[share.terrain],
     value: String(share.provinces),
   }));
+
+const LEANING_LABELS = {
+  army: "陸軍国",
+  industry: "工業国",
+  navy: "海軍国",
+} satisfies Readonly<Record<Leaning, string>>;
+
+/** How the panel words what a nation put its interwar years into. */
+export const leaningLabel = (leaning: Leaning): string =>
+  LEANING_LABELS[leaning];
 
 /** How the panel words a nation's standing. */
 export const standingLabel = (standing: StandingSummary): string => {

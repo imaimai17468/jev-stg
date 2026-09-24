@@ -22,6 +22,7 @@ import {
 } from "@/shared/entities/world/espionage";
 import { valueAt } from "@/shared/entities/world/grid";
 import { intelOf } from "@/shared/entities/world/insight";
+import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
@@ -74,6 +75,8 @@ export interface FactionSummary {
 export interface NationSummary {
   readonly id: number;
   readonly name: string;
+  /** What it put its interwar years into, which decided what it opened with. */
+  readonly leaning: Leaning;
   readonly provinces: number;
   /** The nation's area, in map cells. */
   readonly cells: number;
@@ -116,6 +119,7 @@ const EMPTY: NationSummary = {
   front: [],
   id: -1,
   intel: [],
+  leaning: NO_NATION.leaning,
   name: "",
   navy: [],
   neighbours: [],
@@ -257,6 +261,7 @@ export const summaryOf = (
     ),
     ...allegianceOf(diplomacy, nation, nameOf),
     id: nation,
+    leaning: named.leaning,
     name: named.name,
     navy: navySummaryOf(
       itemAt(simulation.navies, nation, NO_NAVY),

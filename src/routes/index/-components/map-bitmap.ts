@@ -5,6 +5,7 @@ import type { Grid } from "@/shared/entities/world/grid";
 import { cellX, cellY, valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Colour, Nation } from "@/shared/entities/world/nations";
+import { NO_NATION } from "@/shared/entities/world/nations";
 import type { LandProvince, Province } from "@/shared/entities/world/provinces";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
@@ -31,10 +32,8 @@ import { supplyLevelOf } from "./supply-level";
 
 /** Stands in for the nation an unowned land province would name. */
 const UNOWNED_NATION: Nation = {
-  capital: 0,
+  ...NO_NATION,
   colour: MAP_COLOURS.unowned,
-  id: -1,
-  name: "",
 };
 
 /** How much brighter the nation the viewer picked is drawn. */
