@@ -1,6 +1,4 @@
 import { Option } from "effect";
-import type { Advancement } from "./advancement";
-import { freeSlotsOf, START_ADVANCEMENT } from "./advancement";
 import { agencyStarted } from "./agency";
 import type { AirForce } from "./air/air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air/air-force";
@@ -29,7 +27,6 @@ import {
 } from "./economy/economy";
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
-import { availableFocuses, focusStarted } from "./focus";
 import { neighbouringNations } from "./geography/nations";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
@@ -37,7 +34,10 @@ import { itemAt, replacedAt } from "./lookup";
 import { overseasRivals } from "./navy/maritime";
 import type { Navy } from "./navy/navy";
 import { NO_NAVY, withOrder } from "./navy/navy";
-import { availableTechs, studyStarted } from "./research";
+import type { Advancement } from "./research/advancement";
+import { freeSlotsOf, START_ADVANCEMENT } from "./research/advancement";
+import { availableFocuses, focusStarted } from "./research/focus";
+import { availableTechs, studyStarted } from "./research/research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
 import { START_STANCE } from "./stance";

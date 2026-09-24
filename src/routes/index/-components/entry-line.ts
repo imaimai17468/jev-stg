@@ -10,11 +10,11 @@ import type {
   ConscriptionLaw,
   IndustryPlan,
 } from "@/shared/entities/world/economy/economy";
-import { focusOf } from "@/shared/entities/world/focus";
 import { NO_NATION } from "@/shared/entities/world/geography/nations";
 import type { World } from "@/shared/entities/world/geography/world";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
+import { focusOf } from "@/shared/entities/world/research/focus";
 import type { Stance } from "@/shared/entities/world/stance";
 import { techOf } from "@/shared/entities/world/techs";
 import { destinationName, OPERATION_NAMES, projectName } from "./intel-names";

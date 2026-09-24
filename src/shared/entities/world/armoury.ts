@@ -4,8 +4,8 @@ import type { DivisionKind, InfantryEquipment } from "./army/divisions";
 import { infantryEquipmentOf, unlockedKindsOf } from "./army/divisions";
 import type { ShipClass, ShipDesigns } from "./navy/ships";
 import { shipDesignsOf } from "./navy/ships";
-import type { Research } from "./research";
-import { shipUpgradesOf, START_RESEARCH } from "./research";
+import type { Research } from "./research/research";
+import { shipUpgradesOf, START_RESEARCH } from "./research/research";
 import type { ShipWeapon } from "./techs";
 
 /** The share a nation's technologies add to each weapon of one class of warship. */

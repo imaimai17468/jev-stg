@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Advancement } from "@/shared/entities/world/advancement";
-import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
-import { START_RESEARCH } from "@/shared/entities/world/research";
+import type { Advancement } from "@/shared/entities/world/research/advancement";
+import { START_ADVANCEMENT } from "@/shared/entities/world/research/advancement";
+import { START_RESEARCH } from "@/shared/entities/world/research/research";
 import { advancementTreeOf } from "./advancement-tree";
 
 /** Political effort finished, militarism ten days in, fuel refining half researched. */

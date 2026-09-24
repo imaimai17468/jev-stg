@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { NO_ECONOMY } from "./economy/economy";
+import { NO_ECONOMY } from "../economy/economy";
 import type { FocusId, Focuses } from "./focus";
 import {
   availableFocuses,

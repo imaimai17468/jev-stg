@@ -1,6 +1,5 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { START_ADVANCEMENT } from "./advancement";
 import type { Agency } from "./agency";
 import { NO_AGENCY } from "./agency";
 import { openingAirBases } from "./air/air-bases";
@@ -24,14 +23,19 @@ import { NO_ECONOMY } from "./economy/economy";
 import { openingPlants } from "./economy/plants";
 import type { Service } from "./espionage";
 import { openingServices, serviceFor } from "./espionage";
-import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
 import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
 import { noNetworks } from "./geography/networks";
 import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy/navy";
-import { openingResearchOf, START_RESEARCH, studyStarted } from "./research";
+import { START_ADVANCEMENT } from "./research/advancement";
+import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./research/focus";
+import {
+  openingResearchOf,
+  START_RESEARCH,
+  studyStarted,
+} from "./research/research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";
 import { UNASSIGNED } from "./spread";

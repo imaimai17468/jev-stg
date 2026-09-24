@@ -1,9 +1,9 @@
 import { Option } from "effect";
-import type { Advancement } from "@/shared/entities/world/advancement";
-import { freeSlotsOf } from "@/shared/entities/world/advancement";
-import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
-import type { Study } from "@/shared/entities/world/research";
-import { daysOf } from "@/shared/entities/world/research";
+import type { Advancement } from "@/shared/entities/world/research/advancement";
+import { freeSlotsOf } from "@/shared/entities/world/research/advancement";
+import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/research/focus";
+import type { Study } from "@/shared/entities/world/research/research";
+import { daysOf } from "@/shared/entities/world/research/research";
 import { techOf } from "@/shared/entities/world/techs";
 import type { Stat } from "./stat";
 

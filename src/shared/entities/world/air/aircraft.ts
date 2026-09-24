@@ -1,7 +1,7 @@
 import { Schema } from "effect";
 import type { ResourceNeed } from "../economy/resources";
 import { NO_RESOURCES } from "../economy/resources";
-import { newestPicker } from "../techs";
+import { newestPicker } from "../lookup";
 
 /** Every kind of plane the factories turn out. */
 const AircraftSchema = Schema.Literals([

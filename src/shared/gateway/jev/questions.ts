@@ -59,8 +59,6 @@ import type {
 } from "@/shared/entities/world/economy/economy";
 import type { TradeLaw } from "@/shared/entities/world/economy/trade";
 import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/economy/trade";
-import type { FocusId, Grants } from "@/shared/entities/world/focus";
-import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
 import { constructionSpeedAt } from "@/shared/entities/world/geography/infrastructure";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
@@ -77,10 +75,12 @@ import {
   SHIPYARD_ORDERS,
 } from "@/shared/entities/world/navy/ships";
 import type { PeaceTerms } from "@/shared/entities/world/peace";
+import type { FocusId, Grants } from "@/shared/entities/world/research/focus";
+import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/research/focus";
 import {
   AHEAD_OF_TIME_PER_YEAR,
   daysOf,
-} from "@/shared/entities/world/research";
+} from "@/shared/entities/world/research/research";
 import type { Sighting } from "@/shared/entities/world/sightings";
 import type { Stance } from "@/shared/entities/world/stance";
 import type {

@@ -17,7 +17,6 @@ import {
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";
 import { provincePeople } from "./economy/industry";
-import type { Focuses } from "./focus";
 import type { NationPair } from "./geography/nations";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
@@ -26,6 +25,7 @@ import type { Settled, Settlement } from "./peace";
 import { settled } from "./peace";
 import { landProvinces } from "./provinces";
 import type { Random } from "./random";
+import type { Focuses } from "./research/focus";
 import { mayJustifyAt } from "./tension";
 import { justifiedTarget, warGoalOf } from "./war-goals";
 import { enemiesOf } from "./wars";

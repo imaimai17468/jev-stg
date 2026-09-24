@@ -1,4 +1,3 @@
-import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
 import { noQuiet } from "@/shared/entities/world/armistice";
@@ -16,6 +15,7 @@ import type { World } from "@/shared/entities/world/geography/world";
 import { noGleaned } from "@/shared/entities/world/intel";
 import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import type { Province } from "@/shared/entities/world/provinces";
+import { START_ADVANCEMENT } from "@/shared/entities/world/research/advancement";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import { START_STANCE } from "@/shared/entities/world/stance";

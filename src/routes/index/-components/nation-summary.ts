@@ -1,5 +1,4 @@
 import { Option } from "effect";
-import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
 import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
@@ -35,6 +34,7 @@ import { intelOf } from "@/shared/entities/world/insight";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
+import { START_ADVANCEMENT } from "@/shared/entities/world/research/advancement";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import {
   armouriesOf,

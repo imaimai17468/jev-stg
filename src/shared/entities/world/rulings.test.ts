@@ -1,6 +1,4 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Advancement } from "./advancement";
-import { START_ADVANCEMENT } from "./advancement";
 import { AGENCY_DAYS, NO_AGENCY } from "./agency";
 import type { AirForce } from "./air/air-force";
 import { NO_AIR_FORCE } from "./air/air-force";
@@ -20,13 +18,15 @@ import {
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
 import { NO_RESOURCES } from "./economy/resources";
 import { HOME, serviceFor } from "./espionage";
-import { focusStarted, START_FOCUSES } from "./focus";
 import { NO_NATION } from "./geography/nations";
 import type { World } from "./geography/world";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy/navy";
 import type { Province } from "./provinces";
-import { START_RESEARCH } from "./research";
+import type { Advancement } from "./research/advancement";
+import { START_ADVANCEMENT } from "./research/advancement";
+import { focusStarted, START_FOCUSES } from "./research/focus";
+import { START_RESEARCH } from "./research/research";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";

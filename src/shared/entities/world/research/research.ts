@@ -1,9 +1,9 @@
-import { daysFromCivil } from "./calendar";
-import type { Leaning } from "./geography/leaning";
-import { itemAt } from "./lookup";
-import type { Bonus } from "./modifiers";
-import type { ShipUpgrade, TechCategory, TechId, TechLine } from "./techs";
-import { categoryOf, TECH_IDS, TECH_LINES, techOf } from "./techs";
+import { daysFromCivil } from "../calendar";
+import type { Leaning } from "../geography/leaning";
+import { itemAt } from "../lookup";
+import type { Bonus } from "../modifiers";
+import type { ShipUpgrade, TechCategory, TechId, TechLine } from "../techs";
+import { categoryOf, TECH_IDS, TECH_LINES, techOf } from "../techs";
 import type { TreeStanding } from "./tree-standing";
 
 /** The days a technology of cost 1 takes, after Hearts of Iron IV's `BASE_TECH_COST`. */

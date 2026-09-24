@@ -1,7 +1,5 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Advancement } from "./advancement";
-import { START_ADVANCEMENT } from "./advancement";
 import type { Agency, AgencyUpgrade } from "./agency";
 import { NO_AGENCY } from "./agency";
 import { AT_WAR, LINE_GRAPH, LINE_OWNERS } from "./army-fixture";
@@ -28,7 +26,9 @@ import { itemAt } from "./lookup";
 import type { Operation } from "./operations";
 import { operationTermsOf } from "./operations";
 import type { Random } from "./random";
-import { START_RESEARCH } from "./research";
+import type { Advancement } from "./research/advancement";
+import { START_ADVANCEMENT } from "./research/advancement";
+import { START_RESEARCH } from "./research/research";
 import type { Unrest } from "./unrest";
 
 const noBound = (): number => 0;
