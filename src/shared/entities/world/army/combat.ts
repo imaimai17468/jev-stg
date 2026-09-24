@@ -8,7 +8,6 @@ import type { Modifiers } from "../modifiers";
 import { NO_MODIFIERS } from "../modifiers";
 import type { LandProvince, ProvinceGraph } from "../provinces";
 import { isLand, neighboursOf } from "../provinces";
-import { combatKeptUnder } from "../skies";
 import { UNASSIGNED } from "../spread";
 import type { Wars } from "../wars";
 import { atWar } from "../wars";
@@ -23,6 +22,7 @@ import {
   terrainDefenceOf,
 } from "./divisions";
 import { combatWidth } from "./frontage";
+import { combatKeptUnder } from "./skies";
 import type { SupplyNetwork } from "./supply";
 import { postOf } from "./supply";
 

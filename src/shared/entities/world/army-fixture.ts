@@ -4,6 +4,7 @@ import { NO_AIR_COVER } from "./army/air-cover";
 import type { Command } from "./army/army";
 import type { Division } from "./army/divisions";
 import { raisedAt } from "./army/divisions";
+import { START_STANCE } from "./army/stance";
 import type { SupplyNetwork } from "./army/supply";
 import type { Plants } from "./economy/plants";
 import { NO_RESOURCES } from "./economy/resources";
@@ -14,7 +15,6 @@ import { NO_MODIFIERS } from "./modifiers";
 import type { Province, ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
-import { START_STANCE } from "./stance";
 import type { Wars } from "./wars";
 import { declared, noWars } from "./wars";
 

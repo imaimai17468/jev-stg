@@ -1,9 +1,9 @@
-import type { Airspace } from "./airspace";
-import { regionOfProvince } from "./airspace";
-import type { Diplomacy } from "./diplomacy/diplomacy";
-import { allied } from "./diplomacy/diplomacy";
-import { valueAt } from "./grid";
-import { atWar } from "./wars";
+import type { Airspace } from "../airspace";
+import { regionOfProvince } from "../airspace";
+import type { Diplomacy } from "../diplomacy/diplomacy";
+import { allied } from "../diplomacy/diplomacy";
+import { valueAt } from "../grid";
+import { atWar } from "../wars";
 
 /** The air power every nation flies over each region, and who is fighting whom there. */
 export interface Skies {

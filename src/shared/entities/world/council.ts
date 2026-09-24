@@ -7,6 +7,10 @@ import { AIRCRAFT, AVIATIONS } from "./air/aircraft";
 import { armouryOf } from "./armoury";
 import type { Raising } from "./army/divisions";
 import { menFor, MIXED } from "./army/divisions";
+import type { Skies } from "./army/skies";
+import { skyLostBy } from "./army/skies";
+import type { Stance } from "./army/stance";
+import { START_STANCE, STANCES } from "./army/stance";
 import type { SupplyNetwork } from "./army/supply";
 import { undersuppliedShare } from "./army/supply";
 import { dateLabel } from "./calendar";
@@ -100,10 +104,6 @@ import {
   skiesOf,
   supplyOf,
 } from "./simulation";
-import type { Skies } from "./skies";
-import { skyLostBy } from "./skies";
-import type { Stance } from "./stance";
-import { START_STANCE, STANCES } from "./stance";
 import type { TechCategory, TechId } from "./techs";
 import { categoryOf, techOf } from "./techs";
 import { enemiesOf } from "./wars";

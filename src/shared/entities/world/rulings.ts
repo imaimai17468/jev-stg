@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import type { AirForce } from "./air/air-force";
 import { airForceUnder, NO_AIR_FORCE } from "./air/air-force";
+import { START_STANCE } from "./army/stance";
 import type { Decision, Order, Ruling } from "./chronicle";
 import { chronicled } from "./chronicle";
 import type { Diplomacy } from "./diplomacy/diplomacy";
@@ -42,7 +43,6 @@ import { availableFocuses, focusStarted } from "./research/focus";
 import { availableTechs, studyStarted } from "./research/research";
 import type { Simulation } from "./simulation";
 import { fromRealm, realmOf } from "./simulation";
-import { START_STANCE } from "./stance";
 import { enemiesOf } from "./wars";
 
 /** A decision that turns one nation on another. */

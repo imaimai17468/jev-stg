@@ -12,6 +12,10 @@ import { fieldedBy } from "./army/divisions";
 import { musteredBy, musteringAt } from "./army/muster";
 import { groundOf, openingLevyIn } from "./army/opening-army";
 import { roadsBuiltOneDay } from "./army/roadworks";
+import type { Skies } from "./army/skies";
+import { skiesBelow } from "./army/skies";
+import type { Stance } from "./army/stance";
+import { START_STANCE } from "./army/stance";
 import type { Lines, SupplyNetwork } from "./army/supply";
 import { supplyNetwork } from "./army/supply";
 import { daysFromCivil } from "./calendar";
@@ -84,11 +88,7 @@ import {
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./research/advancement";
-import type { Skies } from "./skies";
-import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";
-import type { Stance } from "./stance";
-import { START_STANCE } from "./stance";
 import { peaceBetween } from "./wars";
 
 /** Everything about a world that the calendar moves. */

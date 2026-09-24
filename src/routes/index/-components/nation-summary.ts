@@ -2,6 +2,7 @@ import { Option } from "effect";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
 import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
+import { superiorityOf } from "@/shared/entities/world/army/skies";
 import type { SupplyNetwork } from "@/shared/entities/world/army/supply";
 import type {
   Diplomacy,
@@ -46,7 +47,6 @@ import {
   skiesOf,
   stirredIn,
 } from "@/shared/entities/world/simulation";
-import { superiorityOf } from "@/shared/entities/world/skies";
 import { enemiesOf } from "@/shared/entities/world/wars";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";

@@ -1,5 +1,6 @@
 import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
+import { START_STANCE } from "@/shared/entities/world/army/stance";
 import { START_CLOCK } from "@/shared/entities/world/clock";
 import { noQuiet } from "@/shared/entities/world/diplomacy/armistice";
 import { openingDiplomacy } from "@/shared/entities/world/diplomacy/diplomacy";
@@ -18,7 +19,6 @@ import type { Province } from "@/shared/entities/world/provinces";
 import { START_ADVANCEMENT } from "@/shared/entities/world/research/advancement";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
-import { START_STANCE } from "@/shared/entities/world/stance";
 
 const nation = (id: number, red: number): Nation => ({
   capital: id,

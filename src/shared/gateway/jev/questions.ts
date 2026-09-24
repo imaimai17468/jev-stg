@@ -26,6 +26,7 @@ import {
   manpowerOf,
   MIXED,
 } from "@/shared/entities/world/army/divisions";
+import type { Stance } from "@/shared/entities/world/army/stance";
 import type {
   BuildSite,
   Consultation,
@@ -86,7 +87,6 @@ import {
   AHEAD_OF_TIME_PER_YEAR,
   daysOf,
 } from "@/shared/entities/world/research/research";
-import type { Stance } from "@/shared/entities/world/stance";
 import type {
   ShipUpgrade,
   ShipWeapon,
