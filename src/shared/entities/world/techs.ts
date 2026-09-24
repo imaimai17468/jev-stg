@@ -299,24 +299,24 @@ const TECHS = {
   },
   "concentrated-industry-1": {
     ...step("集中工業I", "industry", 1936, 2, ["basic-machine-tools"]),
-    bonus: { dockyards: 0.1, production: 0.15 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
     excludes: ["dispersed-industry-1"],
   },
   "concentrated-industry-2": {
     ...step("集中工業II", "industry", 1937, 2, ["concentrated-industry-1"]),
-    bonus: { dockyards: 0.1, production: 0.15 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
   },
   "concentrated-industry-3": {
     ...step("集中工業III", "industry", 1939, 2, ["concentrated-industry-2"]),
-    bonus: { dockyards: 0.1, production: 0.15 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
   },
   "concentrated-industry-4": {
     ...step("集中工業IV", "industry", 1941, 2, ["concentrated-industry-3"]),
-    bonus: { dockyards: 0.1, production: 0.15 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
   },
   "concentrated-industry-5": {
     ...step("集中工業V", "industry", 1943, 2, ["concentrated-industry-4"]),
-    bonus: { dockyards: 0.1, production: 0.15 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.15 },
   },
   "construction-1": {
     ...step("建設I", "construction", 1936, 2, []),
@@ -344,24 +344,24 @@ const TECHS = {
   "destroyer-4": step("駆逐艦IV", "destroyers", 1944, 2, ["destroyer-3"]),
   "dispersed-industry-1": {
     ...step("分散工業I", "industry", 1936, 2, ["basic-machine-tools"]),
-    bonus: { dockyards: 0.1, production: 0.1 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
     excludes: ["concentrated-industry-1"],
   },
   "dispersed-industry-2": {
     ...step("分散工業II", "industry", 1937, 2, ["dispersed-industry-1"]),
-    bonus: { dockyards: 0.1, production: 0.1 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
   },
   "dispersed-industry-3": {
     ...step("分散工業III", "industry", 1939, 2, ["dispersed-industry-2"]),
-    bonus: { dockyards: 0.1, production: 0.1 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
   },
   "dispersed-industry-4": {
     ...step("分散工業IV", "industry", 1941, 2, ["dispersed-industry-3"]),
-    bonus: { dockyards: 0.1, production: 0.1 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
   },
   "dispersed-industry-5": {
     ...step("分散工業V", "industry", 1943, 2, ["dispersed-industry-4"]),
-    bonus: { dockyards: 0.1, production: 0.1 },
+    bonus: { buildingSlots: 0.2, dockyards: 0.1, production: 0.1 },
   },
   "electronic-mechanical-engineering": {
     ...step("電子機械工学", "electronics", 1936, 1, []),

@@ -122,6 +122,8 @@ export interface Simulation {
    * nation's economy counts at the end of every day over the ground it holds.
    */
   readonly plants: Plants;
+  /** The building slots focuses have added to each province, by province id. */
+  readonly grantedSlots: Uint8Array;
   /** The air power each nation flew over each region today, by nation id and then region id. */
   readonly airPower: readonly Float32Array[];
   /** One intelligence service per nation, by nation id. */
@@ -179,6 +181,7 @@ export const startSimulation = (world: World): Simulation => {
     divisions: armies.divisions,
     economies,
     gleaned: noGleaned(world.nations.length),
+    grantedSlots: new Uint8Array(world.provinces.length),
     infrastructure: openingInfrastructure(world),
     invasions: [],
     navies: economies.map((economy, nation) =>
@@ -488,6 +491,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     compliance: simulation.compliance,
     diplomacy: simulation.diplomacy,
     economies: simulation.economies,
+    grantedSlots: simulation.grantedSlots,
     homes,
     infrastructure: simulation.infrastructure,
     landmasses,
@@ -511,15 +515,17 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     ),
     world,
   });
-  const builtPlants = placedGains(
+  const built = placedGains(
     {
+      grantedSlots: simulation.grantedSlots,
       infrastructure: simulation.infrastructure,
+      modifiers,
       owners: simulation.owners,
       plants: simulation.plants,
       world,
     },
-    simulation.economies,
-    exchange.economies
+    "built",
+    { after: exchange.economies, before: simulation.economies }
   );
   const aloft = airWarOneDay(
     {
@@ -628,15 +634,17 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
     armies.economies,
     daysFromCivil(dateOf(clock))
   );
-  const grantedPlants = placedGains(
+  const granted = placedGains(
     {
+      grantedSlots: built.grantedSlots,
       infrastructure: roadworks.infrastructure,
+      modifiers,
       owners: armies.owners,
-      plants: builtPlants,
+      plants: built.plants,
       world,
     },
-    armies.economies,
-    advanced.economies
+    "granted",
+    { after: advanced.economies, before: armies.economies }
   );
   const settled = fromRealm(
     conductedOneDay(world, clock, {
@@ -647,7 +655,7 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
   const conducted = {
     ...settled,
     economies: countedFrom(
-      grantedPlants,
+      granted.plants,
       { owners: settled.owners, world },
       settled.economies
     ),
@@ -723,7 +731,8 @@ export const ranOneDay = (world: World, simulation: Simulation): Simulation => {
       done.owners,
       stirred.resistance
     ),
-    plants: grantedPlants,
+    grantedSlots: granted.grantedSlots,
+    plants: granted.plants,
   };
 };
 

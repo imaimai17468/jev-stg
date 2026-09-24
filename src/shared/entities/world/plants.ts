@@ -5,6 +5,8 @@ import { valueAt } from "./grid";
 import type { World } from "./index";
 import { holderSums, onTheCoast, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
+import type { Modifiers } from "./modifiers";
+import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
 
@@ -37,13 +39,18 @@ interface Holdings {
   readonly owners: Int32Array;
 }
 
-/**
- * What a placement reads: the world, who holds each province, what stands
- * there, and the level of the infrastructure in each province, by province id.
- */
-export interface Estate extends Holdings {
-  readonly plants: Plants;
+/** What a placement reads beyond a province's slots: the level of the infrastructure in each province, by province id. */
+export interface Estate extends Slotting {
   readonly infrastructure: Uint8Array;
+}
+
+/** What a province's building slots are read from, beyond its people. */
+interface Slotting extends Holdings {
+  readonly plants: Plants;
+  /** The building slots focuses have added to each province, by province id. */
+  readonly grantedSlots: Uint8Array;
+  /** Each nation's modifiers, by nation id, whose research grows its building slots. */
+  readonly modifiers: readonly Modifiers[];
 }
 
 /** The land provinces `nation` holds where a building of `kind` can stand: a dockyard needs a coast. */
@@ -117,8 +124,8 @@ const SLOTS_BY_PEOPLE: readonly {
 
 const MILLION = 1_000_000;
 
-/** The factories, dockyards and other shared buildings `province` has room for. */
-export const buildingSlotsOf = (province: LandProvince): number =>
+/** The shared building slots the category of `province`'s people gives it. */
+const categorySlotsOf = (province: LandProvince): number =>
   Math.max(
     0,
     ...SLOTS_BY_PEOPLE.filter(
@@ -132,27 +139,43 @@ export interface HeldSlots {
   readonly total: number;
 }
 
-/** The building slots over the ground `nation` holds in `estate`. */
-export const slotsHeldBy = (
-  { owners, plants, world }: Omit<Estate, "infrastructure">,
-  nation: number
-): HeldSlots => {
-  const held = sitesFor({ owners, world }, nation, "civilian");
+/**
+ * The factories, dockyards and other shared buildings `province` has room
+ * for: what its category gives, grown by the share its holder's research
+ * adds and rounded down, and the slots focuses have added to it.
+ */
+export const buildingSlotsOf = (
+  slotting: Slotting,
+  province: LandProvince
+): number =>
+  Math.floor(
+    categorySlotsOf(province) *
+      (1 +
+        itemAt(
+          slotting.modifiers,
+          valueAt(slotting.owners, province.id),
+          NO_MODIFIERS
+        ).buildingSlots)
+  ) + valueAt(slotting.grantedSlots, province.id);
+
+/** The building slots over the ground `nation` holds in `slotting`. */
+export const slotsHeldBy = (slotting: Slotting, nation: number): HeldSlots => {
+  const held = sitesFor(slotting, nation, "civilian");
   return {
     total: held.reduce(
-      (total, province) => total + buildingSlotsOf(province),
+      (total, province) => total + buildingSlotsOf(slotting, province),
       0
     ),
     used: held.reduce(
-      (used, province) => used + plantsIn(plants, province.id),
+      (used, province) => used + plantsIn(slotting.plants, province.id),
       0
     ),
   };
 };
 
 /** Whether `province` has room for one more building. */
-const hasRoom = (plants: Plants, province: LandProvince): boolean =>
-  plantsIn(plants, province.id) < buildingSlotsOf(province);
+const hasRoom = (slotting: Slotting, province: LandProvince): boolean =>
+  plantsIn(slotting.plants, province.id) < buildingSlotsOf(slotting, province);
 
 /** How many buildings stand in `province` for each person living there, one more counted. */
 const crowdingOf = (plants: Plants, province: LandProvince): number =>
@@ -198,7 +221,7 @@ const roomFor: SitePicker = (estate, nation, kind) =>
   bestOf(
     estate,
     sitesFor(estate, nation, kind).filter((province) =>
-      hasRoom(estate.plants, province)
+      hasRoom(estate, province)
     )
   );
 
@@ -226,51 +249,84 @@ export const nextSiteOf = (
 };
 
 /**
- * The province of its own `nation` puts a new building of `kind` in: the best
- * one with a free slot, or, where a focus hands it more than its slots have
- * room for, the best one it holds where the building can stand, a dockyard
- * going inland where it holds no coast. None where it holds no land at all.
+ * The best province `nation` holds where a building of `kind` can stand,
+ * whatever room it has, a dockyard going inland where it holds no coast. None
+ * where it holds no land at all.
  */
-const siteFor: SitePicker = (estate, nation, kind) =>
-  Option.orElse(roomFor(estate, nation, kind), () =>
-    Option.orElse(bestOf(estate, sitesFor(estate, nation, kind)), () =>
-      bestOf(estate, sitesFor(estate, nation, "civilian"))
-    )
+const anywhereFor: SitePicker = (estate, nation, kind) =>
+  Option.orElse(bestOf(estate, sitesFor(estate, nation, kind)), () =>
+    bestOf(estate, sitesFor(estate, nation, "civilian"))
   );
+
+/** How a nation came by the buildings it gained: finished on a site, or handed over by a focus. */
+export type Handover = "built" | "granted";
+
+/**
+ * Where a gained building goes. One finished on a site goes in the best
+ * province with a free slot, which is the one `nextSiteOf` had it built in as
+ * long as the estate is what the day's construction read. One a focus hands
+ * over goes in the best province the nation holds and brings a slot of its
+ * own, as Hearts of Iron IV's focuses add a building slot with each factory.
+ */
+const PLACEMENTS = {
+  built: (estate, nation, kind) =>
+    Option.orElse(roomFor(estate, nation, kind), () =>
+      anywhereFor(estate, nation, kind)
+    ),
+  granted: anywhereFor,
+} satisfies Readonly<Record<Handover, SitePicker>>;
+
+/** The buildings standing, and the building slots focuses have added, by province id. */
+export interface Placed {
+  readonly plants: Plants;
+  readonly grantedSlots: Uint8Array;
+}
 
 /**
  * The buildings once every building each nation's economy gained between
- * `before` and `after`, by finishing a construction site or by a focus
- * handing it factories, has been put in a province of its own. A finished
- * one lands where `nextSiteOf` had it built, as long as `estate` is what the
- * day's construction read. A nation that lost buildings between the two loses
- * none here, because what it held is counted again from the provinces.
+ * `before` and `after` by `handover` has been put in a province of its own,
+ * with the slot each one a focus handed over brought. A nation that lost
+ * buildings between the two loses none here, because what it held is counted
+ * again from the provinces.
  */
 export const placedGains = (
   estate: Estate,
-  before: readonly NationEconomy[],
-  after: readonly NationEconomy[]
-): Plants => {
-  const placed = {
+  handover: Handover,
+  {
+    after,
+    before,
+  }: {
+    readonly before: readonly NationEconomy[];
+    readonly after: readonly NationEconomy[];
+  }
+): Placed => {
+  const plants = {
     civilian: Uint16Array.from(estate.plants.civilian),
     dockyards: Uint16Array.from(estate.plants.dockyards),
     military: Uint16Array.from(estate.plants.military),
   } satisfies Plants;
+  const grantedSlots = Uint8Array.from(estate.grantedSlots);
+  const slotted = Number(handover === "granted");
   for (const [nation, economy] of after.entries()) {
     const earlier = itemAt(before, nation, economy);
     for (const kind of PLANT_KINDS) {
       const gained = countOf(economy, kind) - countOf(earlier, kind);
-      for (let built = 0; built < gained; built += 1) {
-        const site = siteFor({ ...estate, plants: placed }, nation, kind);
+      for (let placed = 0; placed < gained; placed += 1) {
+        const site = PLACEMENTS[handover](
+          { ...estate, grantedSlots, plants },
+          nation,
+          kind
+        );
         if (Option.isNone(site)) {
           break;
         }
         const { id } = site.value;
-        placed[kind][id] = valueAt(placed[kind], id) + 1;
+        plants[kind][id] = valueAt(plants[kind], id) + 1;
+        grantedSlots[id] = valueAt(grantedSlots, id) + slotted;
       }
     }
   }
-  return placed;
+  return { grantedSlots, plants };
 };
 
 /**

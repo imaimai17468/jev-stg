@@ -91,6 +91,7 @@ const WORKS: Works = {
   compliance: startCompliance(OWNERS),
   diplomacy: openingDiplomacy(OWNERS, 2, []),
   economies: ECONOMIES,
+  grantedSlots: new Uint8Array(3),
   homes: [2, 2],
   infrastructure: new Uint8Array(3),
   landmasses: Int32Array.from([0, 1, UNASSIGNED]),

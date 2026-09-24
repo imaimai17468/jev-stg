@@ -210,6 +210,7 @@ export const summaryOf = (
     return EMPTY;
   }
   const nameOf = (other: number) => itemAt(world.nations, other, named).name;
+  const modifiers = modifiersOfAll(simulation);
   const advancement = itemAt(
     simulation.advancements,
     nation,
@@ -301,7 +302,16 @@ export const summaryOf = (
       nation
     ),
     provinces,
-    slots: slotsHeldBy({ owners, plants: simulation.plants, world }, nation),
+    slots: slotsHeldBy(
+      {
+        grantedSlots: simulation.grantedSlots,
+        modifiers,
+        owners,
+        plants: simulation.plants,
+        world,
+      },
+      nation
+    ),
     supply: supplySummaryOf(
       supply,
       simulation.divisions,
@@ -316,7 +326,7 @@ export const summaryOf = (
         ledgersOf({
           ...simulation,
           armouries: armouriesOf(simulation),
-          modifiers: modifiersOfAll(simulation),
+          modifiers,
           world,
         }),
         nation,

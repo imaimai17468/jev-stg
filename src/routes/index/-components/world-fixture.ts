@@ -88,6 +88,7 @@ export const fixtureSimulation = (
   divisions: [],
   economies: [NO_ECONOMY, NO_ECONOMY],
   gleaned: noGleaned(2),
+  grantedSlots: new Uint8Array(3),
   invasions: [],
   navies: [NO_NAVY, NO_NAVY],
   negotiations: [],

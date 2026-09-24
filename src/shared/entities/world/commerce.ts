@@ -53,6 +53,8 @@ export interface Works {
   readonly airBases: Uint8Array;
   /** The factories and the dockyards standing in each province. */
   readonly plants: Plants;
+  /** The building slots focuses have added to each province, by province id. */
+  readonly grantedSlots: Uint8Array;
   /** The level of the infrastructure in each province, by province id. */
   readonly infrastructure: Uint8Array;
   /** Each nation's modifiers, by nation id. */
@@ -80,7 +82,9 @@ const buildingSiteOf = (
 ): Option.Option<Site> =>
   nextSiteOf(
     {
+      grantedSlots: works.grantedSlots,
       infrastructure: works.infrastructure,
+      modifiers: works.modifiers,
       owners: works.owners,
       plants: works.plants,
       world: works.world,

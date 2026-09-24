@@ -3,6 +3,7 @@ import { describe, expect, it } from "vite-plus/test";
 import { land, TWO_NATIONS, worldOf } from "./army-fixture";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import { NO_MODIFIERS } from "./modifiers";
 import type { Estate, Plants } from "./plants";
 import {
   countedFrom,
@@ -10,8 +11,10 @@ import {
   openingPlants,
   placedGains,
   plantsIn,
+  slotsHeldBy,
   buildingSlotsOf,
 } from "./plants";
+import type { LandProvince } from "./provinces";
 import { UNASSIGNED } from "./spread";
 
 /**
@@ -41,11 +44,15 @@ const plantsOf = (
 const NONE = plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 0, 0]);
 
 const ESTATE: Estate = {
+  grantedSlots: new Uint8Array(4),
   infrastructure: new Uint8Array(4),
+  modifiers: [NO_MODIFIERS, NO_MODIFIERS],
   owners: OWNERS,
   plants: NONE,
   world: WORLD,
 };
+
+const NO_GRANTS = new Uint8Array(4);
 
 /** Nation 0 counting `counts` of each kind, and nation 1 counting nothing. */
 const counting = (
@@ -79,14 +86,26 @@ describe(placedGains, () => {
     };
 
     expect(
-      placedGains(estate, counting(3, 0, 0), counting(4, 0, 0))
-    ).toStrictEqual(plantsOf([1, 2, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]));
+      placedGains(estate, "built", {
+        after: counting(4, 0, 0),
+        before: counting(3, 0, 0),
+      })
+    ).toStrictEqual({
+      grantedSlots: NO_GRANTS,
+      plants: plantsOf([1, 2, 1, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    });
   });
 
   it("should put a new dockyard on the coast when the nation holds one", () => {
     expect(
-      placedGains(ESTATE, counting(0, 0, 0), counting(0, 0, 1))
-    ).toStrictEqual(plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]));
+      placedGains(ESTATE, "built", {
+        after: counting(0, 0, 1),
+        before: counting(0, 0, 0),
+      })
+    ).toStrictEqual({
+      grantedSlots: NO_GRANTS,
+      plants: plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 0, 1, 0]),
+    });
   });
 
   it("should put a new dockyard inland when the nation holds no coast", () => {
@@ -96,29 +115,40 @@ describe(placedGains, () => {
     };
 
     expect(
-      placedGains(inland, counting(0, 0, 0), counting(0, 0, 1))
-    ).toStrictEqual(plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 0]));
+      placedGains(inland, "built", {
+        after: counting(0, 0, 1),
+        before: counting(0, 0, 0),
+      })
+    ).toStrictEqual({
+      grantedSlots: NO_GRANTS,
+      plants: plantsOf([0, 0, 0, 0], [0, 0, 0, 0], [0, 1, 0, 0]),
+    });
   });
 
-  it("should put a factory a focus hands over past the slots when every slot is taken", () => {
+  it("should put a factory a focus hands over in the best province and add a slot there when every slot is taken", () => {
     const estate = {
       ...ESTATE,
       plants: plantsOf([2, 4, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
     };
 
     expect(
-      placedGains(estate, counting(8, 0, 0), counting(9, 0, 0))
-    ).toStrictEqual(plantsOf([2, 5, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]));
+      placedGains(estate, "granted", {
+        after: counting(9, 0, 0),
+        before: counting(8, 0, 0),
+      })
+    ).toStrictEqual({
+      grantedSlots: Uint8Array.from([0, 1, 0, 0]),
+      plants: plantsOf([2, 5, 2, 0], [0, 0, 0, 0], [0, 0, 0, 0]),
+    });
   });
 
   it("should place nothing when the nation that gained a factory holds no ground", () => {
     expect(
-      placedGains(
-        ESTATE,
-        [NO_ECONOMY, NO_ECONOMY],
-        [NO_ECONOMY, { ...NO_ECONOMY, militaryFactories: 1 }]
-      )
-    ).toStrictEqual(NONE);
+      placedGains(ESTATE, "built", {
+        after: [NO_ECONOMY, { ...NO_ECONOMY, militaryFactories: 1 }],
+        before: [NO_ECONOMY, NO_ECONOMY],
+      })
+    ).toStrictEqual({ grantedSlots: NO_GRANTS, plants: NONE });
   });
 
   it("should take nothing down when the nation counts fewer factories than before", () => {
@@ -128,8 +158,11 @@ describe(placedGains, () => {
     };
 
     expect(
-      placedGains(estate, counting(3, 0, 0), counting(1, 0, 0))
-    ).toStrictEqual(estate.plants);
+      placedGains(estate, "built", {
+        after: counting(1, 0, 0),
+        before: counting(3, 0, 0),
+      })
+    ).toStrictEqual({ grantedSlots: NO_GRANTS, plants: estate.plants });
   });
 });
 
@@ -167,7 +200,7 @@ describe(buildingSlotsOf, () => {
     "should give $slots slots when a plains province is $cells cells across",
     ({ cells, slots }) => {
       expect(
-        buildingSlotsOf({
+        buildingSlotsOf(ESTATE, {
           ...land(0, []),
           cells,
           kind: "land",
@@ -176,6 +209,51 @@ describe(buildingSlotsOf, () => {
       ).toBe(slots);
     }
   );
+
+  /** Province 1 of the world, whose nine hundred thousand people give it four slots. */
+  const PROVINCE: LandProvince = {
+    cells: 30,
+    id: 1,
+    kind: "land",
+    neighbours: [0, 2],
+    terrain: "plains",
+    x: 1,
+    y: 0,
+  };
+
+  it.each([
+    { granted: 0, growth: 0.2, slots: 4 },
+    { granted: 0, growth: 1, slots: 8 },
+    { granted: 2, growth: 0, slots: 6 },
+  ])(
+    "should give $slots slots when its holder's research grows them by $growth and focuses added $granted",
+    ({ granted, growth, slots }) => {
+      expect(
+        buildingSlotsOf(
+          {
+            ...ESTATE,
+            grantedSlots: Uint8Array.from([0, granted, 0, 0]),
+            modifiers: [
+              { ...NO_MODIFIERS, buildingSlots: growth },
+              NO_MODIFIERS,
+            ],
+          },
+          PROVINCE
+        )
+      ).toBe(slots);
+    }
+  );
+});
+
+describe(slotsHeldBy, () => {
+  it("should add up the slots and the buildings over the ground the nation holds when it holds several provinces", () => {
+    const estate = {
+      ...ESTATE,
+      plants: plantsOf([1, 2, 0, 0], [0, 1, 0, 0], [0, 0, 1, 0]),
+    };
+
+    expect(slotsHeldBy(estate, 0)).toStrictEqual({ total: 8, used: 5 });
+  });
 });
 
 describe(nextSiteOf, () => {

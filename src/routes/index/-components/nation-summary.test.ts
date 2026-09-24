@@ -122,6 +122,7 @@ const SIMULATION: Simulation = {
   plants: openingPlants({ owners: OWNERS, world: WORLD }, ECONOMIES),
   diplomacy: warDeclared(openingDiplomacy(OWNERS, 2, [0]), 0, 1),
   gleaned: noGleaned(2),
+  grantedSlots: new Uint8Array(5),
   networks: noNetworks(2, 5),
   services: openingServices(2),
   unrest: [],
