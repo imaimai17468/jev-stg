@@ -6,7 +6,7 @@ import {
   HourglassIcon,
   LockIcon,
 } from "lucide-react";
-import type { TreeStanding } from "@/shared/entities/world/tree-standing";
+import type { TreeStanding } from "@/shared/entities/world/research/tree-standing";
 
 /** How the tree dialog marks a node that stands one way: its icon, its word, its surface. */
 interface StandingMark {

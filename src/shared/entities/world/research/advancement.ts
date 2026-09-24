@@ -1,6 +1,9 @@
 import { Option } from "effect";
-import type { NationEconomy } from "./economy/economy";
-import { lawBonusOf } from "./economy/trade";
+import type { NationEconomy } from "../economy/economy";
+import { lawBonusOf } from "../economy/trade";
+import type { Leaning } from "../geography/leaning";
+import type { Modifiers } from "../modifiers";
+import { summed } from "../modifiers";
 import type { Focuses } from "./focus";
 import {
   focusBonuses,
@@ -9,9 +12,6 @@ import {
   researchSlotsOf,
   START_FOCUSES,
 } from "./focus";
-import type { Leaning } from "./geography/leaning";
-import type { Modifiers } from "./modifiers";
-import { summed } from "./modifiers";
 import type { Research } from "./research";
 import {
   openingResearchOf,

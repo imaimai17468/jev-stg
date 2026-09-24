@@ -1,5 +1,5 @@
-import type { Focuses } from "./focus";
 import type { PeaceTerms } from "./peace";
+import type { Focuses } from "./research/focus";
 
 /**
  * What raises world tension. Hearts of Iron IV raises it for justifying a war

@@ -1,5 +1,5 @@
 import { Option } from "effect";
-import type { Focuses } from "@/shared/entities/world/focus";
+import type { Focuses } from "@/shared/entities/world/research/focus";
 import { justifyingThreshold } from "@/shared/entities/world/tension";
 import type { WarGoal } from "@/shared/entities/world/war-goals";
 import {

@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
-import { daysFromCivil } from "./calendar";
-import type { Leaning } from "./geography/leaning";
+import { daysFromCivil } from "../calendar";
+import type { Leaning } from "../geography/leaning";
+import type { TechId } from "../techs";
+import { techOf } from "../techs";
 import type { Research, Study, Voucher } from "./research";
 import {
   AHEAD_OF_TIME_PER_YEAR,
@@ -17,8 +19,6 @@ import {
   techStandingsOf,
   vouchersGranted,
 } from "./research";
-import type { TechId } from "./techs";
-import { techOf } from "./techs";
 import type { TreeStanding } from "./tree-standing";
 
 const NAVAL_VOUCHER: Voucher = { ahead: 1, categories: ["naval"], share: 0.5 };

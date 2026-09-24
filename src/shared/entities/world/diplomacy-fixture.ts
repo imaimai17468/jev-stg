@@ -1,4 +1,3 @@
-import { START_ADVANCEMENT } from "./advancement";
 import { NO_AIR_FORCE } from "./air/air-force";
 import { noQuiet } from "./armistice";
 import { LINE_WORLD } from "./army-fixture";
@@ -15,6 +14,7 @@ import { noNetworks } from "./geography/networks";
 import type { World } from "./geography/world";
 import { noGleaned } from "./intel";
 import { NO_NAVY } from "./navy/navy";
+import { START_ADVANCEMENT } from "./research/advancement";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";

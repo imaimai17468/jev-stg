@@ -16,12 +16,12 @@ import {
 import { ROW_OWNERS, ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";
-import type { Focuses } from "./focus";
-import { START_FOCUSES } from "./focus";
 import { neighbouringNations } from "./geography/nations";
 import type { World } from "./geography/world";
 import type { Province } from "./provinces";
 import type { Random } from "./random";
+import type { Focuses } from "./research/focus";
+import { START_FOCUSES } from "./research/focus";
 import { UNASSIGNED } from "./spread";
 import type { Realm } from "./statecraft";
 import {

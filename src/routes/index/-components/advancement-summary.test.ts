@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import type { Advancement } from "@/shared/entities/world/advancement";
-import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
-import type { Study } from "@/shared/entities/world/research";
+import type { Advancement } from "@/shared/entities/world/research/advancement";
+import { START_ADVANCEMENT } from "@/shared/entities/world/research/advancement";
+import type { Study } from "@/shared/entities/world/research/research";
 import type { TechId } from "@/shared/entities/world/techs";
 import { advancementSummaryOf } from "./advancement-summary";
 

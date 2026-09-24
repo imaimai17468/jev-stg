@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { armouryOf, OPENING_ARMOURY } from "./armoury";
-import { START_RESEARCH } from "./research";
+import { START_RESEARCH } from "./research/research";
 
 const UNARMED_SHARES = { heavy: 0, light: 0, torpedo: 0 };
 

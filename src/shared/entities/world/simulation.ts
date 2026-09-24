@@ -1,10 +1,3 @@
-import type { Advancement } from "./advancement";
-import {
-  modifiersOf,
-  openingAdvancementOf,
-  progressedOneDay,
-  START_ADVANCEMENT,
-} from "./advancement";
 import { factoriesTiedUp } from "./agency";
 import { openingAirBases } from "./air/air-bases";
 import type { AirForce } from "./air/air-force";
@@ -80,6 +73,13 @@ import { landmassesOf } from "./navy/seas";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
+import type { Advancement } from "./research/advancement";
+import {
+  modifiersOf,
+  openingAdvancementOf,
+  progressedOneDay,
+  START_ADVANCEMENT,
+} from "./research/advancement";
 import type { Skies } from "./skies";
 import { skiesBelow } from "./skies";
 import { UNASSIGNED } from "./spread";

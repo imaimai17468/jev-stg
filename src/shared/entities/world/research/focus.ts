@@ -1,6 +1,6 @@
 import { Option, Schema } from "effect";
-import type { NationEconomy } from "./economy/economy";
-import type { Bonus } from "./modifiers";
+import type { NationEconomy } from "../economy/economy";
+import type { Bonus } from "../modifiers";
 import type { TreeStanding } from "./tree-standing";
 
 /** The part of the national focus tree a focus sits in. */

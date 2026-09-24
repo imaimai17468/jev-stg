@@ -1,5 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import { daysFromCivil } from "../calendar";
+import { NO_ECONOMY, withTradeLaw } from "../economy/economy";
+import { NO_MODIFIERS } from "../modifiers";
 import type { Advancement } from "./advancement";
 import {
   progressedOneDay,
@@ -7,10 +10,7 @@ import {
   modifiersOf,
   START_ADVANCEMENT,
 } from "./advancement";
-import { daysFromCivil } from "./calendar";
-import { NO_ECONOMY, withTradeLaw } from "./economy/economy";
 import { FOCUS_DAYS } from "./focus";
-import { NO_MODIFIERS } from "./modifiers";
 
 /** Two technologies researched, one of them on research speed, one on a slot, and a focus a day from done. */
 const ADVANCED: Advancement = {

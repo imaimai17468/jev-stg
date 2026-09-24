@@ -1,15 +1,18 @@
 import { Option } from "effect";
-import type { Advancement } from "@/shared/entities/world/advancement";
-import type { FocusBranch, FocusId } from "@/shared/entities/world/focus";
+import type { Advancement } from "@/shared/entities/world/research/advancement";
+import type {
+  FocusBranch,
+  FocusId,
+} from "@/shared/entities/world/research/focus";
 import {
   FOCUS_IDS,
   focusOf,
   focusStandingsOf,
-} from "@/shared/entities/world/focus";
-import { techStandingsOf } from "@/shared/entities/world/research";
+} from "@/shared/entities/world/research/focus";
+import { techStandingsOf } from "@/shared/entities/world/research/research";
+import type { TreeStanding } from "@/shared/entities/world/research/tree-standing";
 import type { TechLine } from "@/shared/entities/world/techs";
 import { TECH_IDS, TECH_LINES, techOf } from "@/shared/entities/world/techs";
-import type { TreeStanding } from "@/shared/entities/world/tree-standing";
 import { daysLeft, percentDone } from "./advancement-summary";
 
 /** One focus or technology as the tree dialog draws it. */

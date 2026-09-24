@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { START_FOCUSES } from "@/shared/entities/world/focus";
+import { START_FOCUSES } from "@/shared/entities/world/research/focus";
 import type { WarGoal } from "@/shared/entities/world/war-goals";
 import { warGoalSummaryOf } from "./war-goal-summary";
 

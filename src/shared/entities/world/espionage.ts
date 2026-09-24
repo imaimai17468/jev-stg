@@ -1,6 +1,4 @@
 import { Option } from "effect";
-import type { Advancement } from "./advancement";
-import { START_ADVANCEMENT } from "./advancement";
 import type { Agency } from "./agency";
 import { agencyModifiersOf, agencyWorkedOneDay, NO_AGENCY } from "./agency";
 import type { Decision } from "./chronicle";
@@ -17,7 +15,6 @@ import type { Diplomacy } from "./diplomacy";
 import { factionOf, standsAlone } from "./diplomacy";
 import type { Compliance } from "./economy/compliance";
 import type { NationEconomy } from "./economy/economy";
-import { operativeSlotsOf } from "./focus";
 import type { Build, Networks } from "./geography/networks";
 import { networkBuiltOneDay } from "./geography/networks";
 import { valueAt } from "./grid";
@@ -35,8 +32,11 @@ import {
 import type { ProvinceGraph } from "./provinces";
 import { isLand } from "./provinces";
 import type { Random } from "./random";
-import type { Research, Voucher } from "./research";
-import { bonusUsable, vouchersGranted } from "./research";
+import type { Advancement } from "./research/advancement";
+import { START_ADVANCEMENT } from "./research/advancement";
+import { operativeSlotsOf } from "./research/focus";
+import type { Research, Voucher } from "./research/research";
+import { bonusUsable, vouchersGranted } from "./research/research";
 import type { TechCategory } from "./techs";
 import type { Unrest, UnrestKind } from "./unrest";
 import { unrestAgainst, unrestOneDay, unrestStarted } from "./unrest";
