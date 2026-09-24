@@ -14,18 +14,18 @@ import {
   supplyOf,
   withClock,
 } from "@/shared/entities/world/simulation";
-import { askJev } from "./ask-jev";
-import { entryLine } from "./entry-line";
-import { headlineOf } from "./headline";
-import { HudClockBar } from "./hud-clock-bar";
-import { HudDecisionFeed } from "./hud-decision-feed";
-import { HudNationPanel } from "./hud-nation-panel";
-import { HudTopBar } from "./hud-top-bar";
-import type { MapMode } from "./map-mode";
-import type { NationSummary } from "./nation-summary";
-import { summaryOf } from "./nation-summary";
-import { useJevCouncil } from "./use-jev-council";
-import { WorldMap } from "./world-map";
+import { askJev } from "./world-stage/ask-jev";
+import { entryLine } from "./world-stage/entry-line";
+import { headlineOf } from "./world-stage/headline";
+import { HudClockBar } from "./world-stage/hud-clock-bar";
+import { HudDecisionFeed } from "./world-stage/hud-decision-feed";
+import { HudNationPanel } from "./world-stage/hud-nation-panel";
+import { HudTopBar } from "./world-stage/hud-top-bar";
+import type { MapMode } from "./world-stage/map-mode";
+import type { NationSummary } from "./world-stage/nation-summary";
+import { summaryOf } from "./world-stage/nation-summary";
+import { useJevCouncil } from "./world-stage/use-jev-council";
+import { WorldMap } from "./world-stage/world-map";
 
 interface WorldStageProps {
   readonly seed: number;
