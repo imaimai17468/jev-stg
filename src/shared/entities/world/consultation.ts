@@ -3,7 +3,7 @@ import { AgencyProjectSchema } from "./agency";
 import { AirframeModelsSchema } from "./aircraft";
 import { DivisionKindSchema } from "./divisions";
 import { FocusIdSchema } from "./focus";
-import { MOST_INFRASTRUCTURE } from "./infrastructure";
+import { MOST_INFRASTRUCTURE } from "./geography/infrastructure";
 import { ShipDesignsSchema } from "./ships";
 import { TECH_IDS, TechIdSchema } from "./techs";
 

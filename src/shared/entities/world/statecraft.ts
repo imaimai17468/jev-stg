@@ -17,10 +17,11 @@ import { strengthOf } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Focuses } from "./focus";
+import type { NationPair } from "./geography/nations";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { provincePeople } from "./industry";
 import { itemAt } from "./lookup";
-import type { NationPair } from "./nations";
 import type { Settled, Settlement } from "./peace";
 import { settled } from "./peace";
 import { landProvinces } from "./provinces";
@@ -28,7 +29,6 @@ import type { Random } from "./random";
 import { mayJustifyAt } from "./tension";
 import { justifiedTarget, warGoalOf } from "./war-goals";
 import { enemiesOf } from "./wars";
-import type { World } from "./world";
 
 /** How many factions the world opens with. */
 const FOUNDING_FACTIONS = 3;

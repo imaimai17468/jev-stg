@@ -18,12 +18,12 @@ import type { Diplomacy } from "./diplomacy";
 import { factionOf, standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { operativeSlotsOf } from "./focus";
+import type { Build, Networks } from "./geography/networks";
+import { networkBuiltOneDay } from "./geography/networks";
 import { valueAt } from "./grid";
 import type { IntelKind } from "./intel";
 import { INTEL_KINDS } from "./intel";
 import { itemAt } from "./lookup";
-import type { Build, Networks } from "./networks";
-import { networkBuiltOneDay } from "./networks";
 import type { Operation, Prospect } from "./operations";
 import {
   BLUEPRINT_CATEGORIES,

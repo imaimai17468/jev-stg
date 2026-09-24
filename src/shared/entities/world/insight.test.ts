@@ -6,12 +6,12 @@ import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import type { Service } from "./espionage";
 import { openingServices, serviceFor } from "./espionage";
+import { noNetworks } from "./geography/networks";
 import { valueAt } from "./grid";
 import type { Espial, Insight } from "./insight";
 import { edgeAgainst, insightOf, intelOf } from "./insight";
 import type { IntelLevels, IntelTable } from "./intel";
 import { intelOn, NO_INTEL, noGleaned } from "./intel";
-import { noNetworks } from "./networks";
 
 /** An economy that lets nobody see into it. */
 const CLOSED: NationEconomy = { ...NO_ECONOMY, tradeLaw: "closed-economy" };

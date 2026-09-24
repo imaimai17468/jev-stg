@@ -1,14 +1,14 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Grid } from "./grid";
-import { cellX } from "./grid";
-import { randomFromSeed } from "./random";
+import type { Grid } from "../grid";
+import { cellX } from "../grid";
+import { randomFromSeed } from "../random";
+import { UNASSIGNED, unassignedBuffer } from "../spread";
 import {
   fillUnassigned,
   growRegions,
   latticeSeeds,
   sinkUnreached,
 } from "./regions";
-import { UNASSIGNED, unassignedBuffer } from "./spread";
 
 const GRID: Grid = { height: 4, width: 4 };
 

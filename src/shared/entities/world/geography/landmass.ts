@@ -1,12 +1,12 @@
-import type { Grid } from "./grid";
-import { cellCount, valueAt } from "./grid";
-import { itemAt } from "./lookup";
+import type { Grid } from "../grid";
+import { cellCount, valueAt } from "../grid";
+import { itemAt } from "../lookup";
 import {
   overTheGrid,
   spreadFrom,
   UNASSIGNED,
   unassignedBuffer,
-} from "./spread";
+} from "../spread";
 
 /** Which landmass each cell belongs to, and how large each of them is. */
 interface Landmasses {

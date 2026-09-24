@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import { itemAt } from "./lookup";
-import type { Random } from "./random";
+import { itemAt } from "../lookup";
+import type { Random } from "../random";
 
 /**
  * What a nation put its interwar years into, which decides the forces and

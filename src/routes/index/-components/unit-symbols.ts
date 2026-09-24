@@ -1,6 +1,6 @@
 import type { DivisionKind } from "@/shared/entities/world/divisions";
+import type { Colour } from "@/shared/entities/world/geography/nations";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Colour } from "@/shared/entities/world/nations";
 
 /**
  * The NATO (APP-6 / MIL-STD-2525) land unit icons the map tells divisions

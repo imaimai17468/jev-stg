@@ -1,5 +1,5 @@
-import { valueAt } from "./grid";
-import { landProvinces } from "./provinces";
+import { valueAt } from "../grid";
+import { landProvinces } from "../provinces";
 import type { Terrain } from "./terrain";
 import type { World } from "./world";
 

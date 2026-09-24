@@ -8,16 +8,16 @@ import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy } from "./diplomacy";
 import { NO_ECONOMY } from "./economy";
 import { openingServices } from "./espionage";
-import { FULL_SUPPLY_LEVEL } from "./infrastructure";
+import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
+import { NO_NATION } from "./geography/nations";
+import { noNetworks } from "./geography/networks";
+import type { World } from "./geography/world";
 import { noGleaned } from "./intel";
-import { NO_NATION } from "./nations";
 import { NO_NAVY } from "./navy";
-import { noNetworks } from "./networks";
 import { openingPlants } from "./plants";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";
-import type { World } from "./world";
 
 /**
  * The same four provinces in a row as the army's line, with one nation to a

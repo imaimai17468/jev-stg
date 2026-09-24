@@ -59,7 +59,7 @@ import type {
 } from "@/shared/entities/world/economy";
 import type { FocusId, Grants } from "@/shared/entities/world/focus";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
-import { constructionSpeedAt } from "@/shared/entities/world/infrastructure";
+import { constructionSpeedAt } from "@/shared/entities/world/geography/infrastructure";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";

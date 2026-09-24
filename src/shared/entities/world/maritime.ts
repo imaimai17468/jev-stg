@@ -10,13 +10,14 @@ import {
   makesWayOn,
   SHIP_FUEL_PER_DAY,
 } from "./fuel";
+import type { NationPair } from "./geography/nations";
+import { neighbouringNations } from "./geography/nations";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import type { Invasion, Muster } from "./invasion";
 import { invasionOutcome, invasionPlanned } from "./invasion";
 import { itemAt } from "./lookup";
 import { musteringAt, sentToMuster } from "./muster";
-import type { NationPair } from "./nations";
-import { neighbouringNations } from "./nations";
 import type { SeaBattles } from "./naval-combat";
 import { foughtAtSea, foughtToday } from "./naval-combat";
 import type { Navy, Station, TaskForce } from "./navy";
@@ -46,7 +47,6 @@ import type { Lines, SupplyReach } from "./supply";
 import { reachOf } from "./supply";
 import type { Deal } from "./trade";
 import { atWar } from "./wars";
-import type { World } from "./world";
 
 /** Everything at sea, and the divisions a landing takes aboard or puts ashore. */
 export interface Seas {

@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vite-plus/test";
-import { land, sea } from "./army-fixture";
+import { land, sea } from "../army-fixture";
+import { graphOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
 import type { Build } from "./networks";
 import { networkBuiltOneDay, noNetworks } from "./networks";
-import { graphOf } from "./provinces";
-import { UNASSIGNED } from "./spread";
 
 /**
  * Seven land provinces in a row with a sea zone off province 2. Nation 0

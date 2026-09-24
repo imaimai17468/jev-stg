@@ -7,13 +7,13 @@ import {
   dayDuration,
   togglePaused,
 } from "@/shared/entities/world/clock";
+import { generateWorld } from "@/shared/entities/world/geography/world";
 import {
   ranOneDay,
   startSimulation,
   supplyOf,
   withClock,
 } from "@/shared/entities/world/simulation";
-import { generateWorld } from "@/shared/entities/world/world";
 import { askJev } from "./ask-jev";
 import { entryLine } from "./entry-line";
 import { headlineOf } from "./headline";

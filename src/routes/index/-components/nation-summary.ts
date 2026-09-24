@@ -19,12 +19,17 @@ import {
   NO_SERVICE,
   slotsOf,
 } from "@/shared/entities/world/espionage";
+import { meanInfrastructureOf } from "@/shared/entities/world/geography/infrastructure";
+import type { Leaning } from "@/shared/entities/world/geography/leaning";
+import {
+  nationsBeside,
+  NO_NATION,
+} from "@/shared/entities/world/geography/nations";
+import type { Terrain } from "@/shared/entities/world/geography/terrain";
+import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
-import { meanInfrastructureOf } from "@/shared/entities/world/infrastructure";
 import { intelOf } from "@/shared/entities/world/insight";
-import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { nationsBeside, NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import type { HeldSlots } from "@/shared/entities/world/plants";
 import { slotsHeldBy } from "@/shared/entities/world/plants";
@@ -39,9 +44,7 @@ import {
 } from "@/shared/entities/world/simulation";
 import { superiorityOf } from "@/shared/entities/world/skies";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
-import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
-import type { World } from "@/shared/entities/world/world";
 import type { AdvancementSummary } from "./advancement-summary";
 import { advancementSummaryOf } from "./advancement-summary";
 import type { AdvancementTree } from "./advancement-tree";

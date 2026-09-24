@@ -1,6 +1,6 @@
-import { valueAt } from "./grid";
-import type { ProvinceGraph } from "./provinces";
-import { isLand, neighboursOf } from "./provinces";
+import { valueAt } from "../grid";
+import type { ProvinceGraph } from "../provinces";
+import { isLand, neighboursOf } from "../provinces";
 
 /**
  * How strong each nation's intelligence network is in each province, from 0

@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Grid } from "./grid";
+import type { Grid } from "../grid";
 import { sinkSmallIslands } from "./landmass";
 
 const GRID: Grid = { height: 4, width: 8 };

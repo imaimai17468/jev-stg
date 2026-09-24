@@ -1,6 +1,6 @@
 import { Option } from "effect";
-import type { Leaning } from "@/shared/entities/world/leaning";
-import type { Terrain } from "@/shared/entities/world/terrain";
+import type { Leaning } from "@/shared/entities/world/geography/leaning";
+import type { Terrain } from "@/shared/entities/world/geography/terrain";
 import { countLabel } from "./count-label";
 import type { NationSummary, StandingSummary } from "./nation-summary";
 import type { Stat } from "./stat";

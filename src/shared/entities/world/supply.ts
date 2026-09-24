@@ -2,13 +2,15 @@ import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
 import type { Division } from "./divisions";
 import { supplyUseOf } from "./divisions";
+import { infrastructureSupply } from "./geography/infrastructure";
+import { NO_NATION } from "./geography/nations";
+import type { Terrain } from "./geography/terrain";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
-import { infrastructureSupply } from "./infrastructure";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 import { musteringAt } from "./muster";
-import { NO_NATION } from "./nations";
 import type { ProvinceGraph } from "./provinces";
 import {
   isLand,
@@ -17,9 +19,7 @@ import {
   provinceTerrain,
 } from "./provinces";
 import { distanceFrom, UNASSIGNED } from "./spread";
-import type { Terrain } from "./terrain";
 import { atWar } from "./wars";
-import type { World } from "./world";
 
 /** The divisions the province a nation musters in can keep supplied. */
 const SOURCE_CAPACITY = 40;

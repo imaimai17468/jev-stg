@@ -1,8 +1,8 @@
 import { Option } from "effect";
+import type { Networks } from "@/shared/entities/world/geography/networks";
+import { NETWORK_FLOOR } from "@/shared/entities/world/geography/networks";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Networks } from "@/shared/entities/world/networks";
-import { NETWORK_FLOOR } from "@/shared/entities/world/networks";
 
 /**
  * How a province reads on the intelligence map: no network there, one still

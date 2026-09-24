@@ -4,7 +4,7 @@ import type { Division, DivisionKind, Task } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import type { Nation } from "./nations";
+import type { Nation } from "./geography/nations";
 import { groundOf, openingLevyIn, openingPostsOf } from "./opening-army";
 import { UNASSIGNED } from "./spread";
 

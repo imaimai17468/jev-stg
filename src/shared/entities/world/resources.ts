@@ -1,6 +1,8 @@
 import { Schema } from "effect";
 import type { Compliance } from "./compliance";
 import { occupancyOf, reachUnder } from "./compliance";
+import type { Terrain } from "./geography/terrain";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { holderSums } from "./industry";
 import { foldedWith, itemAt } from "./lookup";
@@ -9,8 +11,6 @@ import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince, Province } from "./provinces";
 import { landProvinces } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
-import type { Terrain } from "./terrain";
-import type { World } from "./world";
 
 /**
  * The resources the factories build with, which Hearts of Iron IV docks a

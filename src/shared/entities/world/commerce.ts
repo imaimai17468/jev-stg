@@ -12,6 +12,7 @@ import { standsAlone } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { outputOf, producedOneDay, wantedKindOf } from "./economy";
 import { oilWanted, refined } from "./fuel";
+import type { World } from "./geography/world";
 import type { Industry } from "./industry";
 import { industryByNation, NO_INDUSTRY } from "./industry";
 import { itemAt } from "./lookup";
@@ -38,7 +39,6 @@ import { UNASSIGNED } from "./spread";
 import type { Balance, Deal, Trader } from "./trade";
 import { balancesOf, marketCleared, NO_BALANCE, NO_TRADER } from "./trade";
 import { atWar } from "./wars";
-import type { World } from "./world";
 
 /** What a day of trade and work reads. */
 export interface Works {

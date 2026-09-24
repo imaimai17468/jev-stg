@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import { apportioned } from "./apportion";
 import type { NationEconomy } from "./economy";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { holderSums, onTheCoast, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
@@ -8,7 +9,6 @@ import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 import type { LandProvince } from "./provinces";
 import { landProvinces } from "./provinces";
-import type { World } from "./world";
 
 /** Every kind of building a nation's industry is counted in. */
 export type PlantKind = "civilian" | "military" | "dockyards";

@@ -2,15 +2,15 @@ import { Option } from "effect";
 import type { Reach } from "./compliance";
 import type { Raising } from "./divisions";
 import { FUEL_CAPACITY } from "./fuel";
+import { constructionSpeedAt } from "./geography/infrastructure";
+import type { World } from "./geography/world";
 import { industryByNation } from "./industry";
-import { constructionSpeedAt } from "./infrastructure";
 import { itemAt } from "./lookup";
 import type { Modifiers } from "./modifiers";
 import type { PlantKind, Site } from "./plants";
 import { UNASSIGNED } from "./spread";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW } from "./trade";
-import type { World } from "./world";
 
 /** How much of its people a nation may call up, set by its conscription law. */
 export type ConscriptionLaw =

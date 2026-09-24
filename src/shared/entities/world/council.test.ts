@@ -34,7 +34,8 @@ import { HOME, serviceFor } from "./espionage";
 import type { FocusId } from "./focus";
 import { START_FOCUSES } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
-import type { Leaning } from "./leaning";
+import type { Leaning } from "./geography/leaning";
+import type { World } from "./geography/world";
 import { replacedAt } from "./lookup";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, openingNavy } from "./navy";
@@ -44,7 +45,6 @@ import type { Sighting } from "./sightings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { enemiesOf } from "./wars";
-import type { World } from "./world";
 
 const withDiplomacy = (diplomacy: Diplomacy): Simulation => ({
   ...ROW_SIMULATION,

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { daysFromCivil } from "./calendar";
-import type { Leaning } from "./leaning";
+import type { Leaning } from "./geography/leaning";
 import type { Research, Study, Voucher } from "./research";
 import {
   AHEAD_OF_TIME_PER_YEAR,

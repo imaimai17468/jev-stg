@@ -19,10 +19,10 @@ import {
   withTradeLaw,
 } from "./economy";
 import { FUEL_CAPACITY } from "./fuel";
+import type { World } from "./geography/world";
 import { NO_MODIFIERS } from "./modifiers";
 import { NO_RESOURCES } from "./resources";
 import { UNASSIGNED } from "./spread";
-import type { World } from "./world";
 
 /** Thirty factories' worth of inland plains with nothing to dig, held by one nation. */
 const PROVINCES: World["provinces"] = [

@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
+import type { Nation } from "./geography/nations";
 import { itemAt } from "./lookup";
-import type { Nation } from "./nations";
 import { graphOf } from "./provinces";
 import { SEA_GRAPH, SEA_OWNERS, SEA_WORLD } from "./sea-fixture";
 import {

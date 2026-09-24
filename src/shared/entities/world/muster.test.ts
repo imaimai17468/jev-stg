@@ -6,8 +6,8 @@ import type { DivisionKind, Levy } from "./divisions";
 import { raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Nation } from "./geography/nations";
 import { musteredBy, sentHome } from "./muster";
-import type { Nation } from "./nations";
 import { UNASSIGNED } from "./spread";
 
 /** The line's two nations at peace, and the same two at war. */

@@ -1,17 +1,17 @@
-import { valueAt } from "./grid";
-import type { Leaning } from "./leaning";
-import { drawnLeaning } from "./leaning";
-import { itemAt } from "./lookup";
-import { nationNames } from "./names";
-import type { Province } from "./provinces";
+import { valueAt } from "../grid";
+import { itemAt } from "../lookup";
+import type { Province } from "../provinces";
 import {
   adjacencyOf,
   landFlags,
   landProvinces,
   overTheProvinces,
-} from "./provinces";
-import type { Random } from "./random";
-import { spreadFrom, UNASSIGNED } from "./spread";
+} from "../provinces";
+import type { Random } from "../random";
+import { spreadFrom, UNASSIGNED } from "../spread";
+import type { Leaning } from "./leaning";
+import { drawnLeaning } from "./leaning";
+import { nationNames } from "./names";
 import type { World } from "./world";
 
 /** A colour as the map paints it, each channel in [0, 255]. */

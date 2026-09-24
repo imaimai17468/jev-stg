@@ -1,7 +1,7 @@
+import type { Colour } from "@/shared/entities/world/geography/nations";
+import { NO_NATION } from "@/shared/entities/world/geography/nations";
+import type { World } from "@/shared/entities/world/geography/world";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Colour } from "@/shared/entities/world/nations";
-import { NO_NATION } from "@/shared/entities/world/nations";
-import type { World } from "@/shared/entities/world/world";
 
 /** One counter the map draws over a place for what one nation has there. */
 export interface CounterMark {

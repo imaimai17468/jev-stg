@@ -1,5 +1,5 @@
+import type { NationPair } from "./geography/nations";
 import { valueAt } from "./grid";
-import type { NationPair } from "./nations";
 
 /** Who each nation is fighting, as a square symmetric table of nation ids. */
 export interface Wars {

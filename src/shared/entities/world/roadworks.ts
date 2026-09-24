@@ -1,10 +1,10 @@
 import type { NationEconomy } from "./economy";
-import { valueAt } from "./grid";
 import {
   constructionSpeedAt,
   INFRASTRUCTURE_COST,
   MOST_INFRASTRUCTURE,
-} from "./infrastructure";
+} from "./geography/infrastructure";
+import { valueAt } from "./grid";
 import { UNASSIGNED } from "./spread";
 import type { SupplyNetwork } from "./supply";
 import { postOf } from "./supply";

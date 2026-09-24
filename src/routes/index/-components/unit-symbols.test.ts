@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { DivisionKind } from "@/shared/entities/world/divisions";
-import type { Colour } from "@/shared/entities/world/nations";
+import type { Colour } from "@/shared/entities/world/geography/nations";
 import type { Ink, UnitSymbol } from "./unit-symbols";
 import { dominantSymbol, inkOn } from "./unit-symbols";
 

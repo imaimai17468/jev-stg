@@ -1,5 +1,5 @@
-import type { Grid } from "./grid";
-import { cellCount, cellX, cellY, valueAt } from "./grid";
+import type { Grid } from "../grid";
+import { cellCount, cellX, cellY, valueAt } from "../grid";
 import { fractalNoise } from "./noise";
 
 /** What a land province is made of, which decides how hard it is to cross. */

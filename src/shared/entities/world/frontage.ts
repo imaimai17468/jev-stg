@@ -1,4 +1,4 @@
-import type { Terrain } from "./terrain";
+import type { Terrain } from "./geography/terrain";
 
 /**
  * How many divisions a side can put into one battle on each terrain when it

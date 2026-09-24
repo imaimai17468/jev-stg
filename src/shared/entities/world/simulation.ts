@@ -43,8 +43,12 @@ import {
   plottedOneDay,
   serviceFor,
 } from "./espionage";
+import { openingInfrastructure } from "./geography/infrastructure";
+import { initialOwners, NO_NATION } from "./geography/nations";
+import type { Networks } from "./geography/networks";
+import { noNetworks } from "./geography/networks";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
-import { openingInfrastructure } from "./infrastructure";
 import type { Espial } from "./insight";
 import { insightOf, intelOf } from "./insight";
 import type { Gleaned } from "./intel";
@@ -59,11 +63,8 @@ import { itemAt } from "./lookup";
 import { homeZonesOf, seafaredOneDay } from "./maritime";
 import type { Modifiers } from "./modifiers";
 import { musteredBy, musteringAt } from "./muster";
-import { initialOwners, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
-import type { Networks } from "./networks";
-import { noNetworks } from "./networks";
 import { groundOf, openingLevyIn } from "./opening-army";
 import type { Estate, Plants } from "./plants";
 import { countedFrom, openingPlants, placedGains } from "./plants";
@@ -85,7 +86,6 @@ import type { Deal } from "./trade";
 import type { Stirred, Unrest } from "./unrest";
 import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";
-import type { World } from "./world";
 
 /** Everything about a world that the calendar moves. */
 export interface Simulation {

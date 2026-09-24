@@ -1,4 +1,4 @@
-import type { Colour } from "@/shared/entities/world/nations";
+import type { Colour } from "@/shared/entities/world/geography/nations";
 import type { ComplianceLevel } from "./compliance-level";
 import { COMPLIANCE_LEVELS } from "./compliance-level";
 import type { MapMode } from "./map-mode";
