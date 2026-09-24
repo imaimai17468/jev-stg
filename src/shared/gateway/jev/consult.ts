@@ -35,14 +35,28 @@ import { evaluationFor, partsOf, verdictsFrom } from "./questions";
 const EVALUATE_URL = "https://ai-gateway.vercel.sh/v1/evaluate";
 
 /**
- * How long a consultation, and each request it makes, may run. A month of
- * game time passes in 2.5 seconds at the fastest speed, and a reply later
- * than a few months is of little use, so this stays short. A reference so a
- * test can wait for none.
+ * How long a consultation may run. Its requests go one at a time, each taking
+ * about 0.55 seconds and about four in ten refused and asked again, so 14
+ * governments take about 16 seconds when each attempt is refused on its own
+ * at that rate, and longer on a run of refusals. This sits about three
+ * standard deviations of that sum above it, and inside the 30 seconds a month
+ * of game time lasts at the opening speed. A reference so a test can wait for
+ * none.
  */
 export const ConsultationDeadline = Context.Reference<Duration.Input>(
   "app/gateways/jev/ConsultationDeadline",
-  { defaultValue: () => "10 seconds" }
+  { defaultValue: () => "25 seconds" }
+);
+
+/**
+ * How long one request may run with its retries: three attempts of about 0.55
+ * seconds and the two half-second waits between them come to about 2.65
+ * seconds, so a gateway that holds a request open costs the consultation this
+ * much rather than all of it. A reference so a test can wait for none.
+ */
+export const RequestDeadline = Context.Reference<Duration.Input>(
+  "app/gateways/jev/RequestDeadline",
+  { defaultValue: () => "4 seconds" }
 );
 
 /** The consultation ran past its deadline with some of its requests unanswered. */
@@ -148,7 +162,7 @@ export const evaluate = Effect.fn("evaluate")(function* evaluate(
     onSome: (value) => Effect.succeed(value),
   });
 
-  const deadline = yield* ConsultationDeadline;
+  const deadline = yield* RequestDeadline;
   const reply = yield* HttpClientRequest.post(EVALUATE_URL).pipe(
     HttpClientRequest.setHeader("Authorization", `Bearer ${key}`),
     HttpClientRequest.bodyJsonUnsafe(evaluation.body),
@@ -228,8 +242,13 @@ const UNAVAILABLE: JevReply = { _tag: "unavailable" };
 
 const RATE_LIMITED: JevReply = { _tag: "rate-limited" };
 
-/** How many of a consultation's requests are in flight at once. */
-const REQUESTS_IN_FLIGHT = 4;
+/**
+ * How many of a consultation's requests are in flight at once. Sending the 14
+ * governments of a generated world in five alternating rounds on 2026-09-24,
+ * Jev answered 82 of 140 requests one at a time, 28 of 70 two at a time and
+ * 23 of 70 four at a time, refusing the rest mostly with 429.
+ */
+const REQUESTS_IN_FLIGHT = 1;
 
 /** What one request of a consultation came back with. */
 type PartReply =
