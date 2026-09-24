@@ -1,4 +1,4 @@
-import { airframeOf } from "../aircraft";
+import { airframeOf } from "../air/aircraft";
 import type { Armoury } from "../armoury";
 import { OPENING_ARMOURY } from "../armoury";
 import { valueAt } from "../grid";

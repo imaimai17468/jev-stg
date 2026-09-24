@@ -1,4 +1,4 @@
-import type { Aircraft, Aviation } from "@/shared/entities/world/aircraft";
+import type { Aircraft, Aviation } from "@/shared/entities/world/air/aircraft";
 import type { TradeLaw } from "@/shared/entities/world/economy/trade";
 import type { ShipyardOrder } from "@/shared/entities/world/navy/ships";
 

@@ -1,3 +1,25 @@
+import type { Airspace } from "../airspace";
+import { provincesInRangeOf, regionOfProvince, withinRange } from "../airspace";
+import type { Armoury } from "../armoury";
+import { OPENING_ARMOURY } from "../armoury";
+import type { Diplomacy } from "../diplomacy";
+import { allied } from "../diplomacy";
+import type { NationEconomy } from "../economy/economy";
+import { burnt, NO_ECONOMY } from "../economy/economy";
+import { fuelShareOf, PLANE_FUEL_PER_DAY, planesKeptWith } from "../fuel";
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { itemAt, replacedAt } from "../lookup";
+import type { Invasion } from "../navy/invasion";
+import { afloatAfter } from "../navy/naval-combat";
+import type { Navy, TaskForce } from "../navy/navy";
+import { NO_NAVY } from "../navy/navy";
+import type { Ship, ShipRole } from "../navy/ships";
+import { classOf, hullOf, roleOf } from "../navy/ships";
+import { isLand, neighboursOf } from "../provinces";
+import type { ProvinceGraph } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { atWar, enemiesOf } from "../wars";
 import type { Basing } from "./air-bases";
 import {
   AIR_BASE_COST,
@@ -15,28 +37,6 @@ import type { AirForce, AirMission, Wing } from "./air-force";
 import { aircraftOf, flyingOf, WING_SIZE } from "./air-force";
 import type { Aircraft, AirframeModel, AirframeModels } from "./aircraft";
 import { airframeOf } from "./aircraft";
-import type { Airspace } from "./airspace";
-import { provincesInRangeOf, regionOfProvince, withinRange } from "./airspace";
-import type { Armoury } from "./armoury";
-import { OPENING_ARMOURY } from "./armoury";
-import type { Diplomacy } from "./diplomacy";
-import { allied } from "./diplomacy";
-import type { NationEconomy } from "./economy/economy";
-import { burnt, NO_ECONOMY } from "./economy/economy";
-import { fuelShareOf, PLANE_FUEL_PER_DAY, planesKeptWith } from "./fuel";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { itemAt, replacedAt } from "./lookup";
-import type { Invasion } from "./navy/invasion";
-import { afloatAfter } from "./navy/naval-combat";
-import type { Navy, TaskForce } from "./navy/navy";
-import { NO_NAVY } from "./navy/navy";
-import type { Ship, ShipRole } from "./navy/ships";
-import { classOf, hullOf, roleOf } from "./navy/ships";
-import { isLand, neighboursOf } from "./provinces";
-import type { ProvinceGraph } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import { atWar, enemiesOf } from "./wars";
 
 /** Everything in the air, the ships its planes fly from or strike, and what pays for both. */
 export interface Hangars {

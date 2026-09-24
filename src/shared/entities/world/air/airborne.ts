@@ -1,16 +1,16 @@
 import { Option } from "effect";
+import type { Airspace } from "../airspace";
+import { provincesInRangeOf, regionOfProvince } from "../airspace";
+import type { Division } from "../army/divisions";
+import { dropWornOff, paradropped } from "../army/divisions";
+import { enemyNeighbours } from "../army/front";
+import { valueAt } from "../grid";
+import type { ProvinceGraph } from "../provinces";
+import { isLand } from "../provinces";
+import type { Wars } from "../wars";
+import { atWar, enemiesOf } from "../wars";
 import type { AirForce } from "./air-force";
 import { aircraftOf } from "./air-force";
-import type { Airspace } from "./airspace";
-import { provincesInRangeOf, regionOfProvince } from "./airspace";
-import type { Division } from "./army/divisions";
-import { dropWornOff, paradropped } from "./army/divisions";
-import { enemyNeighbours } from "./army/front";
-import { valueAt } from "./grid";
-import type { ProvinceGraph } from "./provinces";
-import { isLand } from "./provinces";
-import type { Wars } from "./wars";
-import { atWar, enemiesOf } from "./wars";
 
 /**
  * The transport planes a paradrop takes for each division in it, and the

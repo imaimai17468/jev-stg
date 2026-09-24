@@ -1,14 +1,14 @@
+import type { Airspace } from "../airspace";
+import { land, nation, sea, worldOf } from "../army-fixture";
+import type { Diplomacy } from "../diplomacy";
+import { openingDiplomacy } from "../diplomacy";
+import type { World } from "../geography/world";
+import type { ProvinceGraph } from "../provinces";
+import { graphOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { declared } from "../wars";
 import type { AirForce, Wing } from "./air-force";
 import { NO_AIR_FORCE } from "./air-force";
-import type { Airspace } from "./airspace";
-import { land, nation, sea, worldOf } from "./army-fixture";
-import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy } from "./diplomacy";
-import type { World } from "./geography/world";
-import type { ProvinceGraph } from "./provinces";
-import { graphOf } from "./provinces";
-import { UNASSIGNED } from "./spread";
-import { declared } from "./wars";
 
 /**
  * Six regions, one to a province but for the fourth, which holds provinces 3

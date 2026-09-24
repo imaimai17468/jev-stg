@@ -12,20 +12,20 @@ import {
 import {
   DROP_SUPERIORITY,
   TRANSPORTS_PER_DIVISION,
-} from "@/shared/entities/world/airborne";
+} from "@/shared/entities/world/air/airborne";
 import type {
   Aircraft,
   AirframeModel,
   AirframeModels,
   Aviation,
-} from "@/shared/entities/world/aircraft";
+} from "@/shared/entities/world/air/aircraft";
 import {
   AIRCRAFT,
   AIRFRAME_MODELS,
   airframeOf,
   AVIATIONS,
   aviationShareOf,
-} from "@/shared/entities/world/aircraft";
+} from "@/shared/entities/world/air/aircraft";
 import type { DivisionKind } from "@/shared/entities/world/army/divisions";
 import {
   raisingNameOf,

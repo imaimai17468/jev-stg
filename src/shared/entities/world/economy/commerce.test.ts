@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { airForceUnder, NO_AIR_FORCE } from "../air-force";
+import { airForceUnder, NO_AIR_FORCE } from "../air/air-force";
 import { airspaceOf } from "../airspace";
 import { OPENING_ARMOURY } from "../armoury";
 import { openingDiplomacy } from "../diplomacy";

@@ -1,4 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
+import { UNASSIGNED } from "../spread";
 import type { AirForce, Wing } from "./air-force";
 import {
   aircraftOf,
@@ -11,7 +12,6 @@ import {
   planesOf,
 } from "./air-force";
 import type { AirframeModels } from "./aircraft";
-import { UNASSIGNED } from "./spread";
 
 /** The 1936 designs of every kind. */
 const MODELS: AirframeModels = {

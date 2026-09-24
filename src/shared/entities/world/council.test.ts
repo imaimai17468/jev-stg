@@ -4,7 +4,7 @@ import type { Advancement } from "./advancement";
 import { START_ADVANCEMENT } from "./advancement";
 import type { Agency } from "./agency";
 import { AGENCY_DAYS, NO_AGENCY } from "./agency";
-import { airForceOf, wing } from "./air-war-fixture";
+import { airForceOf, wing } from "./air/air-war-fixture";
 import { OPENING_ARMOURY } from "./armoury";
 import { division } from "./army-fixture";
 import type { Negotiation } from "./chronicle";

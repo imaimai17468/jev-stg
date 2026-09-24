@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
-import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
 import { battlePlanOf } from "@/shared/entities/world/army/battle-plan";
 import type { SupplyNetwork } from "@/shared/entities/world/army/supply";

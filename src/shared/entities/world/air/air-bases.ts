@@ -1,7 +1,7 @@
+import type { World } from "../geography/world";
+import { valueAt } from "../grid";
+import { UNASSIGNED } from "../spread";
 import type { Wing } from "./air-force";
-import type { World } from "./geography/world";
-import { valueAt } from "./grid";
-import { UNASSIGNED } from "./spread";
 
 /** The planes one level of an air base hosts, after Hearts of Iron IV. */
 const PLANES_PER_LEVEL = 200;

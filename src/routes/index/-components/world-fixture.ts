@@ -1,5 +1,5 @@
 import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
-import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
+import { NO_AIR_FORCE } from "@/shared/entities/world/air/air-force";
 import { airspaceOf } from "@/shared/entities/world/airspace";
 import { noQuiet } from "@/shared/entities/world/armistice";
 import { START_CLOCK } from "@/shared/entities/world/clock";

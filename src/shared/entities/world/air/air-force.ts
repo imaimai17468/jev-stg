@@ -1,3 +1,4 @@
+import { UNASSIGNED } from "../spread";
 import type {
   Aircraft,
   AirframeModel,
@@ -5,7 +6,6 @@ import type {
   Aviation,
 } from "./aircraft";
 import { AIRCRAFT, airframeOf } from "./aircraft";
-import { UNASSIGNED } from "./spread";
 
 /**
  * What an air wing is doing: fighting for the sky over a region, striking the
