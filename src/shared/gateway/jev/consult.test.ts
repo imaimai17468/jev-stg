@@ -360,7 +360,7 @@ describe(evaluate, () => {
   });
 
   it("should fail when the gateway rejects the request", () => {
-    const { fetchStub } = recordingFetch(new Response("no", { status: 429 }));
+    const { fetchStub } = recordingFetch(new Response("no", { status: 400 }));
 
     return Effect.runPromise(
       Effect.flip(asking(Option.some("key-1"), fetchStub))
@@ -372,6 +372,19 @@ describe(evaluate, () => {
   it("should ask again when the gateway answers with a server error first", () => {
     const { fetchStub } = answeringInTurn([
       new Response("busy", { status: 503 }),
+      Response.json({ answers: { n3_terms: TERMS_ANSWER } }),
+    ]);
+
+    return Effect.runPromise(asking(Option.some("key-1"), fetchStub)).then(
+      (answers) => {
+        expect(answers).toStrictEqual({ n3_terms: TERMS_ANSWER });
+      }
+    );
+  });
+
+  it("should ask again when the provider is too busy to answer first", () => {
+    const { fetchStub } = answeringInTurn([
+      new Response("high demand", { status: 429 }),
       Response.json({ answers: { n3_terms: TERMS_ANSWER } }),
     ]);
 

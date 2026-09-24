@@ -75,14 +75,20 @@ class GatewayRefused extends Schema.TaggedError<GatewayRefused>()(
 /** The first status that means the gateway's side failed rather than the request. */
 const SERVER_ERROR = 500;
 
+/** The status Jev's provider answers when it has more requests than it serves. */
+const TOO_MANY_REQUESTS = 429;
+
 /**
  * Whether a failure is the gateway's own and worth asking again. Jev answers
- * 503 on a share of requests that succeed when repeated a moment later, while
- * a refused key or a malformed body fails the same way every time.
+ * 503, and 429 when its provider is busy, on a share of requests that succeed
+ * when repeated a moment later, while a refused key or a malformed body fails
+ * the same way every time.
  */
 const worthRetrying = (
   error: GatewayRefused | HttpClientError.HttpClientError
-): boolean => error._tag === "GatewayRefused" && error.status >= SERVER_ERROR;
+): boolean =>
+  error._tag === "GatewayRefused" &&
+  (error.status >= SERVER_ERROR || error.status === TOO_MANY_REQUESTS);
 
 /**
  * The `choice` answers `/v1/evaluate` returns. The gateway's envelope also
