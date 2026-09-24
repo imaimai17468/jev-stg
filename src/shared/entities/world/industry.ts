@@ -50,7 +50,7 @@ export const NO_INDUSTRY: Industry = {
 };
 
 /** Whether the land province touches the sea. */
-const onTheCoast = (
+export const onTheCoast = (
   provinces: readonly Province[],
   province: LandProvince
 ): boolean =>

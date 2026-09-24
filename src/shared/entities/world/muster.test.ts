@@ -14,9 +14,11 @@ import { UNASSIGNED } from "./spread";
 const PEACE: Diplomacy = openingDiplomacy(LINE_OWNERS, 2, []);
 const WAR: Diplomacy = { ...PEACE, wars: AT_WAR };
 
-/** One division more than the nation's id, each counted as recruited. */
-const byId = (economy: NationEconomy, nation: Nation): Levy => ({
-  count: nation.id + 1,
+/** One division at home for each step of the nation's id and one more, each counted as recruited. */
+const byId = (economy: NationEconomy, nation: Nation, home: number): Levy => ({
+  divisions: Array.from({ length: nation.id + 1 }, () =>
+    raisedAt(nation.id, home)
+  ),
   economy: { ...economy, recruited: nation.id + 1 },
 });
 

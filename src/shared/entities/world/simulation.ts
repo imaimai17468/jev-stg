@@ -32,7 +32,7 @@ import { compliedOneDay, reachByNation, startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
-import { fieldedBy, openingLevy } from "./divisions";
+import { fieldedBy } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy";
 import type { Service } from "./espionage";
@@ -63,6 +63,7 @@ import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
 import type { Networks } from "./networks";
 import { noNetworks } from "./networks";
+import { groundOf, openingLevyIn } from "./opening-army";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
@@ -127,11 +128,12 @@ export interface Simulation {
 /** The world on its first day, before any of it has run. */
 export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
+  const opening = startEconomies(world, owners);
   const armies = musteredBy(
     world,
     owners,
-    startEconomies(world, owners),
-    openingLevy
+    opening,
+    openingLevyIn(groundOf(world, owners, opening))
   );
   const { economies } = armies;
   const homes = homeZonesOf(world, owners);

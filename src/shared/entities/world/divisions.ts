@@ -141,18 +141,31 @@ export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
   recruited: economy.recruited + TEMPLATES.infantry.manpower,
 });
 
-/** How many divisions a nation raises, and its economy after paying for them. */
+/** The divisions a nation raises, and its economy after paying for them. */
 export interface Levy {
-  readonly count: number;
+  readonly divisions: readonly Division[];
   readonly economy: NationEconomy;
 }
 
-/** A day of the depots: one division where the nation can afford it, none where it cannot. */
-export const dailyLevy = (economy: NationEconomy): Levy => {
+/** What a nation raises out of `economy` when it musters at `home`. */
+export type Levied = (
+  economy: NationEconomy,
+  nation: Nation,
+  home: number
+) => Levy;
+
+/**
+ * A day of the depots: one division standing at `home` where the nation can
+ * afford it, none where it cannot.
+ */
+export const dailyLevy: Levied = (economy, nation, home) => {
   if (!canRaise(economy)) {
-    return { count: 0, economy };
+    return { divisions: [], economy };
   }
-  return { count: 1, economy: paidForDivision(economy) };
+  return {
+    divisions: [raisedAt(nation.id, home)],
+    economy: paidForDivision(economy),
+  };
 };
 
 /**
@@ -165,25 +178,28 @@ const OPENING_ARMY_SHARE = {
   navy: 0.15,
 } satisfies Readonly<Record<Nation["leaning"], number>>;
 
-/**
- * The divisions a nation raised before the world opened, as many as its
- * manpower and its leaning give it, with their men called up. Their weapons
- * were built before the world opened, so they cost none of its equipment.
- */
-export const openingLevy = (economy: NationEconomy, nation: Nation): Levy => {
-  const count = Math.floor(
-    (economy.manpower * OPENING_ARMY_SHARE[nation.leaning]) /
-      TEMPLATES.infantry.manpower
+/** How many divisions a nation of `leaning` with `manpower` opens the world with. */
+export const openingDivisionCount = (
+  manpower: number,
+  leaning: Nation["leaning"]
+): number =>
+  Math.floor(
+    (manpower * OPENING_ARMY_SHARE[leaning]) / TEMPLATES.infantry.manpower
   );
-  return {
-    count,
-    economy: {
-      ...economy,
-      manpower: economy.manpower - menFor(count),
-      recruited: economy.recruited + menFor(count),
-    },
-  };
-};
+
+/**
+ * The economy with the men of `count` divisions raised before the world
+ * opened called up. Their weapons were built before the world opened, so
+ * they cost none of its equipment.
+ */
+export const calledUpFor = (
+  economy: NationEconomy,
+  count: number
+): NationEconomy => ({
+  ...economy,
+  manpower: economy.manpower - menFor(count),
+  recruited: economy.recruited + menFor(count),
+});
 
 /** The men in a set of divisions, all of them together. */
 export const strengthOf = (divisions: readonly Division[]): number =>
