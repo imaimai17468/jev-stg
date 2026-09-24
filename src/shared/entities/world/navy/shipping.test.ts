@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { itemAt } from "./lookup";
+import { itemAt } from "../lookup";
 import type { Navy } from "./navy";
 import { NO_NAVY } from "./navy";
 import { SEA_GRAPH, ZERO_FIGHTS_ONE } from "./sea-fixture";

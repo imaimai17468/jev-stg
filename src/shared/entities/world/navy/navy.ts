@@ -1,9 +1,11 @@
 import { Option } from "effect";
-import type { Diplomacy } from "./diplomacy";
-import { allied } from "./diplomacy";
-import { valueAt } from "./grid";
-import { itemAt, replacedAt } from "./lookup";
-import type { ProvinceGraph } from "./provinces";
+import type { Diplomacy } from "../diplomacy";
+import { allied } from "../diplomacy";
+import { valueAt } from "../grid";
+import { itemAt, replacedAt } from "../lookup";
+import type { ProvinceGraph } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { atWar } from "../wars";
 import { aroundZone, stepAtSea } from "./seas";
 import type { Ship, ShipClass, ShipDesigns, ShipyardOrder } from "./ships";
 import {
@@ -17,8 +19,6 @@ import {
   SHIP_CLASSES,
   supremacyOf,
 } from "./ships";
-import { UNASSIGNED } from "./spread";
-import { atWar } from "./wars";
 
 /**
  * The task forces every nation's navy is split into: the battle fleet, the

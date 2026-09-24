@@ -33,7 +33,7 @@ import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import { intelOf } from "@/shared/entities/world/insight";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { NO_NAVY } from "@/shared/entities/world/navy";
+import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import {

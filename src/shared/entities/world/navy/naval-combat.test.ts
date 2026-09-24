@@ -1,15 +1,15 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Armoury } from "./armoury";
-import { OPENING_ARMOURY } from "./armoury";
-import { itemAt } from "./lookup";
+import type { Armoury } from "../armoury";
+import { OPENING_ARMOURY } from "../armoury";
+import { itemAt } from "../lookup";
+import { UNASSIGNED } from "../spread";
+import { declared } from "../wars";
 import { afloatAfter, foughtAtSea, foughtToday } from "./naval-combat";
 import type { FleetRole, Navy, TaskForce } from "./navy";
 import { FLEET_ROLES, fleetOf, NO_NAVY } from "./navy";
 import { SHIPS_1936, ZERO_FIGHTS_ONE } from "./sea-fixture";
 import type { Ship, ShipClass } from "./ships";
 import { launched } from "./ships";
-import { UNASSIGNED } from "./spread";
-import { declared } from "./wars";
 
 /** The task forces each nation keeps, which is how a battle's places are counted. */
 const ROLES = FLEET_ROLES.length;

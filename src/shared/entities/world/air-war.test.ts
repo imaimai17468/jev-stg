@@ -18,12 +18,12 @@ import type { Armoury } from "./armoury";
 import { OPENING_ARMOURY } from "./armoury";
 import type { NationEconomy } from "./economy/economy";
 import { NO_ECONOMY } from "./economy/economy";
-import type { Invasion } from "./invasion";
 import { replacedAt } from "./lookup";
-import type { Mission, Navy, TaskForce } from "./navy";
-import { NO_NAVY } from "./navy";
-import type { Ship } from "./ships";
-import { launched } from "./ships";
+import type { Invasion } from "./navy/invasion";
+import type { Mission, Navy, TaskForce } from "./navy/navy";
+import { NO_NAVY } from "./navy/navy";
+import type { Ship } from "./navy/ships";
+import { launched } from "./navy/ships";
 import { UNASSIGNED } from "./spread";
 import { declared } from "./wars";
 

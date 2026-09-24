@@ -24,6 +24,7 @@ import { valueAt } from "./grid";
 import type { IntelKind } from "./intel";
 import { INTEL_KINDS } from "./intel";
 import { itemAt } from "./lookup";
+import { isCoastal } from "./navy/seas";
 import type { Operation, Prospect } from "./operations";
 import {
   BLUEPRINT_CATEGORIES,
@@ -36,7 +37,6 @@ import { isLand } from "./provinces";
 import type { Random } from "./random";
 import type { Research, Voucher } from "./research";
 import { bonusUsable, vouchersGranted } from "./research";
-import { isCoastal } from "./seas";
 import type { TechCategory } from "./techs";
 import type { Unrest, UnrestKind } from "./unrest";
 import { unrestAgainst, unrestOneDay, unrestStarted } from "./unrest";

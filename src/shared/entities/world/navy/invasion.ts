@@ -1,13 +1,13 @@
 import { Option } from "effect";
-import type { Arrival, Division } from "./army/divisions";
-import type { Diplomacy } from "./diplomacy";
-import { allied } from "./diplomacy";
-import { valueAt } from "./grid";
-import type { ProvinceGraph } from "./provinces";
-import { isLand } from "./provinces";
+import type { Arrival, Division } from "../army/divisions";
+import type { Diplomacy } from "../diplomacy";
+import { allied } from "../diplomacy";
+import { valueAt } from "../grid";
+import type { ProvinceGraph } from "../provinces";
+import { isLand } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { atWar, enemiesOf } from "../wars";
 import { coastOf, laneBetween, seaDistanceFrom } from "./seas";
-import { UNASSIGNED } from "./spread";
-import { atWar, enemiesOf } from "./wars";
 
 /**
  * What a crossing is for: a landing on an enemy coast, or a transfer to a

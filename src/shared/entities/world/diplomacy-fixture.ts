@@ -14,7 +14,7 @@ import { NO_NATION } from "./geography/nations";
 import { noNetworks } from "./geography/networks";
 import type { World } from "./geography/world";
 import { noGleaned } from "./intel";
-import { NO_NAVY } from "./navy";
+import { NO_NAVY } from "./navy/navy";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";
 import { START_STANCE } from "./stance";

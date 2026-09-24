@@ -1,7 +1,7 @@
 import { Schema } from "effect";
-import type { ResourceNeed } from "./economy/resources";
-import { NO_RESOURCES } from "./economy/resources";
-import { newestPicker } from "./techs";
+import type { ResourceNeed } from "../economy/resources";
+import { NO_RESOURCES } from "../economy/resources";
+import { newestPicker } from "../techs";
 
 /** Every class of warship a dockyard lays down. */
 const ShipClassSchema = Schema.Literals([

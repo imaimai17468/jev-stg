@@ -24,7 +24,7 @@ import { focusStarted, START_FOCUSES } from "./focus";
 import { NO_NATION } from "./geography/nations";
 import type { World } from "./geography/world";
 import { replacedAt } from "./lookup";
-import { NO_NAVY, openingNavy } from "./navy";
+import { NO_NAVY, openingNavy } from "./navy/navy";
 import type { Province } from "./provinces";
 import { START_RESEARCH } from "./research";
 import { ruled } from "./rulings";

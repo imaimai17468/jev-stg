@@ -20,7 +20,7 @@ import { FULL_SUPPLY_LEVEL } from "@/shared/entities/world/geography/infrastruct
 import { noNetworks } from "@/shared/entities/world/geography/networks";
 import type { World } from "@/shared/entities/world/geography/world";
 import { noGleaned } from "@/shared/entities/world/intel";
-import { NO_NAVY } from "@/shared/entities/world/navy";
+import { NO_NAVY } from "@/shared/entities/world/navy/navy";
 import type { Province } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import { supplyOf } from "@/shared/entities/world/simulation";

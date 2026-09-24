@@ -1,16 +1,17 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
-import { musteringAt } from "./army/muster";
-import type { Diplomacy } from "./diplomacy";
-import { joined, openingDiplomacy } from "./diplomacy";
-import type { Deal } from "./economy/trade";
-import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "./fuel";
-import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
+import { division } from "../army-fixture";
+import { musteringAt } from "../army/muster";
+import type { Diplomacy } from "../diplomacy";
+import { joined, openingDiplomacy } from "../diplomacy";
+import type { Deal } from "../economy/trade";
+import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "../fuel";
+import { FULL_SUPPLY_LEVEL } from "../geography/infrastructure";
+import { itemAt } from "../lookup";
+import { NO_MODIFIERS } from "../modifiers";
+import { UNASSIGNED } from "../spread";
 import type { Invasion } from "./invasion";
-import { itemAt } from "./lookup";
 import type { Coasts, Seas } from "./maritime";
 import { homeZonesOf, overseasRivals, seafaredOneDay } from "./maritime";
-import { NO_MODIFIERS } from "./modifiers";
 import type { FleetRole, Lane, Navy, TaskForce } from "./navy";
 import { NO_NAVY } from "./navy";
 import {
@@ -24,7 +25,6 @@ import {
 import { landmassesOf } from "./seas";
 import type { ShipClass } from "./ships";
 import { hullOf, launched } from "./ships";
-import { UNASSIGNED } from "./spread";
 
 /** A patrolling task force of `role` in `zone` with one fresh 1936 ship of `shipClass`. */
 const force = (

@@ -4,7 +4,7 @@ import { AirframeModelsSchema } from "./aircraft";
 import { DivisionKindSchema } from "./army/divisions";
 import { FocusIdSchema } from "./focus";
 import { MOST_INFRASTRUCTURE } from "./geography/infrastructure";
-import { ShipDesignsSchema } from "./ships";
+import { ShipDesignsSchema } from "./navy/ships";
 import { TECH_IDS, TechIdSchema } from "./techs";
 
 /**

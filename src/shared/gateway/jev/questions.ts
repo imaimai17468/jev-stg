@@ -65,22 +65,22 @@ import { constructionSpeedAt } from "@/shared/entities/world/geography/infrastru
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Bonus, Modifier } from "@/shared/entities/world/modifiers";
 import { MODIFIERS, shareOf } from "@/shared/entities/world/modifiers";
-import type { PeaceTerms } from "@/shared/entities/world/peace";
-import {
-  AHEAD_OF_TIME_PER_YEAR,
-  daysOf,
-} from "@/shared/entities/world/research";
 import type {
   ShipClass,
   ShipDesigns,
   ShipyardOrder,
-} from "@/shared/entities/world/ships";
+} from "@/shared/entities/world/navy/ships";
 import {
   hullOf,
   orderOf,
   SHIP_DESIGNS,
   SHIPYARD_ORDERS,
-} from "@/shared/entities/world/ships";
+} from "@/shared/entities/world/navy/ships";
+import type { PeaceTerms } from "@/shared/entities/world/peace";
+import {
+  AHEAD_OF_TIME_PER_YEAR,
+  daysOf,
+} from "@/shared/entities/world/research";
 import type { Sighting } from "@/shared/entities/world/sightings";
 import type { Stance } from "@/shared/entities/world/stance";
 import type {

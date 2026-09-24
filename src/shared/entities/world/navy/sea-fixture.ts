@@ -1,12 +1,12 @@
-import { land, nation, sea, TWO_NATIONS, worldOf } from "./army-fixture";
-import type { Diplomacy } from "./diplomacy";
-import { openingDiplomacy } from "./diplomacy";
-import type { World } from "./geography/world";
-import type { Province, ProvinceGraph } from "./provinces";
-import { graphOf } from "./provinces";
+import { land, nation, sea, TWO_NATIONS, worldOf } from "../army-fixture";
+import type { Diplomacy } from "../diplomacy";
+import { openingDiplomacy } from "../diplomacy";
+import type { World } from "../geography/world";
+import type { Province, ProvinceGraph } from "../provinces";
+import { graphOf } from "../provinces";
+import { UNASSIGNED } from "../spread";
+import { declared, noWars } from "../wars";
 import type { ShipDesigns } from "./ships";
-import { UNASSIGNED } from "./spread";
-import { declared, noWars } from "./wars";
 
 /**
  * Two islands across a strait of three sea zones, with a lake on the second.
