@@ -393,15 +393,6 @@ export default defineConfig({
         files: ["src/**/*.test.ts", "src/**/*.test.tsx"],
         rules: { "vitest/prefer-import-in-mock": "off" },
       },
-      {
-        files: ["src/routes/index/-components/code-block.tsx"],
-        rules: {
-          "jsx-a11y/no-noninteractive-tabindex": [
-            "error",
-            { tags: ["section"] },
-          ],
-        },
-      },
     ],
   },
   fmt: {
