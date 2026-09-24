@@ -1,5 +1,5 @@
 import { daysFromCivil } from "./calendar";
-import type { Leaning } from "./leaning";
+import type { Leaning } from "./geography/leaning";
 import { itemAt } from "./lookup";
 import type { Bonus } from "./modifiers";
 import type { ShipUpgrade, TechCategory, TechId, TechLine } from "./techs";

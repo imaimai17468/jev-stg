@@ -1,7 +1,8 @@
 import { Option } from "effect";
+import type { Nation } from "./geography/nations";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { itemAt } from "./lookup";
-import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
 import {
   distanceOver,
@@ -15,7 +16,6 @@ import {
   UNASSIGNED,
   unassignedBuffer,
 } from "./spread";
-import type { World } from "./world";
 
 /** The sea zones touching `province`, by province id. */
 export const coastOf = (

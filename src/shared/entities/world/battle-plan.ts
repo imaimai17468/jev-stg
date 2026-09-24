@@ -5,8 +5,8 @@ import {
   heldGroundDistance,
   stepToward,
 } from "./front";
+import type { Nation } from "./geography/nations";
 import { valueAt } from "./grid";
-import type { Nation } from "./nations";
 import type { Province, ProvinceGraph } from "./provinces";
 import { neighboursOf } from "./provinces";
 import { UNASSIGNED } from "./spread";

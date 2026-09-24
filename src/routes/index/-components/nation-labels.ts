@@ -1,5 +1,5 @@
+import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
-import type { World } from "@/shared/entities/world/world";
 
 /** A nation's name and where the map writes it, in grid cells. */
 export interface NationLabel {

@@ -8,7 +8,7 @@ import {
   researchSlotsOf,
   START_FOCUSES,
 } from "./focus";
-import type { Leaning } from "./leaning";
+import type { Leaning } from "./geography/leaning";
 import type { Modifiers } from "./modifiers";
 import { summed } from "./modifiers";
 import type { Research } from "./research";

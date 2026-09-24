@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Random } from "../random";
 import type { Leaning } from "./leaning";
 import { drawnLeaning } from "./leaning";
-import type { Random } from "./random";
 
 /** A source whose every integer draw is `index`. */
 const always = (index: number): Random => ({

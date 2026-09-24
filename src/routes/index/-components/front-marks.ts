@@ -1,6 +1,7 @@
 import { Option } from "effect";
 import type { BattlePlan } from "@/shared/entities/world/battle-plan";
 import { battlePlansOf, NO_PLAN } from "@/shared/entities/world/battle-plan";
+import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
 import type { Province } from "@/shared/entities/world/provinces";
@@ -8,7 +9,6 @@ import { graphOf } from "@/shared/entities/world/provinces";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { Wars } from "@/shared/entities/world/wars";
 import { atWar } from "@/shared/entities/world/wars";
-import type { World } from "@/shared/entities/world/world";
 
 /**
  * One straight run of cell edges, in cell coordinates, with the direction

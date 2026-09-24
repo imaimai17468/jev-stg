@@ -24,6 +24,7 @@ import { allied } from "./diplomacy";
 import type { NationEconomy } from "./economy";
 import { burnt, NO_ECONOMY } from "./economy";
 import { fuelShareOf, PLANE_FUEL_PER_DAY, planesKeptWith } from "./fuel";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import type { Invasion } from "./invasion";
 import { itemAt, replacedAt } from "./lookup";
@@ -36,7 +37,6 @@ import type { Ship, ShipRole } from "./ships";
 import { classOf, hullOf, roleOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 import { atWar, enemiesOf } from "./wars";
-import type { World } from "./world";
 
 /** Everything in the air, the ships its planes fly from or strike, and what pays for both. */
 export interface Hangars {

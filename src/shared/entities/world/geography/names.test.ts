@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
+import { randomFromSeed } from "../random";
 import { nationNames } from "./names";
-import { randomFromSeed } from "./random";
 
 describe(nationNames, () => {
   it("should give as many names as asked when the count fits the pool", () => {

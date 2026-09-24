@@ -27,12 +27,12 @@ import {
 } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import type { Leaning } from "./leaning";
+import type { Leaning } from "./geography/leaning";
+import type { Terrain } from "./geography/terrain";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 import type { TechId } from "./techs";
 import { TECH_IDS } from "./techs";
-import type { Terrain } from "./terrain";
 
 const ARMED: NationEconomy = {
   ...NO_ECONOMY,

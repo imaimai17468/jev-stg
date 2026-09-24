@@ -1,5 +1,5 @@
-import { itemAt } from "./lookup";
-import type { Random } from "./random";
+import { itemAt } from "../lookup";
+import type { Random } from "../random";
 
 /**
  * The stems a nation's name is drawn from.

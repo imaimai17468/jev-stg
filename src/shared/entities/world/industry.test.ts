@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
+import type { Terrain } from "./geography/terrain";
 import { industryByNation } from "./industry";
 import type { Province } from "./provinces";
 import { UNASSIGNED } from "./spread";
-import type { Terrain } from "./terrain";
 
 const land = (
   id: number,

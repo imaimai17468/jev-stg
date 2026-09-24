@@ -3,7 +3,7 @@ import { division } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
 import { FUEL_CAPACITY, SHIP_FUEL_PER_DAY } from "./fuel";
-import { FULL_SUPPLY_LEVEL } from "./infrastructure";
+import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
 import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import type { Coasts, Seas } from "./maritime";

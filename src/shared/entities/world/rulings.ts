@@ -30,10 +30,11 @@ import {
 import type { Service } from "./espionage";
 import { HOME, NO_SERVICE } from "./espionage";
 import { availableFocuses, focusStarted } from "./focus";
+import { neighbouringNations } from "./geography/nations";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { itemAt, replacedAt } from "./lookup";
 import { overseasRivals } from "./maritime";
-import { neighbouringNations } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, withOrder } from "./navy";
 import { availableTechs, studyStarted } from "./research";
@@ -43,7 +44,6 @@ import { START_STANCE } from "./stance";
 import { mayStartJustifying, peaceSigned } from "./statecraft";
 import { justifiedTarget } from "./war-goals";
 import { enemiesOf } from "./wars";
-import type { World } from "./world";
 
 /** A decision that turns one nation on another. */
 type Hostility = Extract<Order, { kind: "justify" | "declare" }>;

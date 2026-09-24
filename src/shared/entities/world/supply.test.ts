@@ -8,7 +8,8 @@ import {
 } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { joined, openingDiplomacy } from "./diplomacy";
-import { FULL_SUPPLY_LEVEL } from "./infrastructure";
+import { FULL_SUPPLY_LEVEL } from "./geography/infrastructure";
+import type { World } from "./geography/world";
 import { NO_MODIFIERS } from "./modifiers";
 import { graphOf } from "./provinces";
 import { UNASSIGNED } from "./spread";
@@ -20,7 +21,6 @@ import {
   supplyStateOf,
   undersuppliedShare,
 } from "./supply";
-import type { World } from "./world";
 
 /** Nation 0 holds the capital's two provinces and the far coast, with nation 1 between them. */
 const CUT_OFF_OWNERS = Int32Array.from([0, 0, 1, 0, UNASSIGNED]);

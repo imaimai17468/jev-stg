@@ -1,8 +1,8 @@
+import type { Terrain } from "./geography/terrain";
 import type { Grid } from "./grid";
 import { cellX, cellY, valueAt, visitNeighbours } from "./grid";
 import { itemAt } from "./lookup";
 import { distanceFrom } from "./spread";
-import type { Terrain } from "./terrain";
 
 /** One land province: the smallest piece of ground an army can hold. */
 export interface LandProvince {

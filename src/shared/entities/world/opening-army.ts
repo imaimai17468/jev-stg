@@ -4,16 +4,16 @@ import { calledUpFor, openingKindsOf, raisedAt } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
 import { fieldFrom } from "./front";
+import type { Leaning } from "./geography/leaning";
+import type { Nation } from "./geography/nations";
+import { nationsBeside } from "./geography/nations";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { onTheCoast, provincePeople } from "./industry";
-import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
-import type { Nation } from "./nations";
-import { nationsBeside } from "./nations";
 import type { LandProvince, ProvinceGraph } from "./provinces";
 import { graphOf, landProvinces } from "./provinces";
 import { UNASSIGNED } from "./spread";
-import type { World } from "./world";
 
 /**
  * What an opening division is posted to do: guard the capital, stand on the

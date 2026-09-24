@@ -47,14 +47,15 @@ import { HOME, NO_SERVICE } from "./espionage";
 import type { FocusId, Focuses } from "./focus";
 import { availableFocuses, focusOf } from "./focus";
 import { FUEL_CAPACITY } from "./fuel";
+import type { Leaning } from "./geography/leaning";
+import { neighbouringNations, NO_NATION } from "./geography/nations";
+import type { World } from "./geography/world";
 import { intelOf } from "./insight";
 import type { IntelTable } from "./intel";
 import { INTEL_KINDS, intelOn } from "./intel";
 import { CONVOYS_PER_DIVISION } from "./invasion";
-import type { Leaning } from "./leaning";
 import { itemAt } from "./lookup";
 import { overseasRivals } from "./maritime";
-import { neighbouringNations, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { fleetStrength, NO_NAVY, orderByRules } from "./navy";
 import { PEACE_TERMS } from "./peace";
@@ -102,7 +103,6 @@ import { categoryOf, techOf } from "./techs";
 import type { TradeLaw } from "./trade";
 import { START_TRADE_LAW, TRADE_LAWS } from "./trade";
 import { enemiesOf } from "./wars";
-import type { World } from "./world";
 
 /**
  * The draws for the month the council met on `councilDay`. They belong to the

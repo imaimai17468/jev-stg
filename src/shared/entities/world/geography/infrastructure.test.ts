@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_WORLD } from "./army-fixture";
+import { LINE_WORLD } from "../army-fixture";
 import {
   infrastructureSupply,
   meanInfrastructureOf,

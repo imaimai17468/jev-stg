@@ -1,6 +1,6 @@
-import type { Grid } from "./grid";
-import type { Random } from "./random";
-import { overTheGrid, spreadFrom, UNASSIGNED } from "./spread";
+import type { Grid } from "../grid";
+import type { Random } from "../random";
+import { overTheGrid, spreadFrom, UNASSIGNED } from "../spread";
 
 /**
  * Grows one region per seed outwards at equal speed, so each cell joins the

@@ -13,8 +13,8 @@ import {
   councilOf,
   peaceTalksOf,
 } from "@/shared/entities/world/council";
+import type { World } from "@/shared/entities/world/geography/world";
 import type { Simulation } from "@/shared/entities/world/simulation";
-import type { World } from "@/shared/entities/world/world";
 
 /** Asks Jev about one consultation. */
 export type Consult = (consultation: Consultation) => Promise<JevReply>;

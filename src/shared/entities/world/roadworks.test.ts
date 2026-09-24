@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import { INFRASTRUCTURE_COST } from "./infrastructure";
+import { INFRASTRUCTURE_COST } from "./geography/infrastructure";
 import type { Worksite } from "./roadworks";
 import { roadsBuiltOneDay, roadsWanted } from "./roadworks";
 import { UNASSIGNED } from "./spread";

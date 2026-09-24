@@ -1,5 +1,8 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_WORLD } from "./army-fixture";
+import { LINE_WORLD } from "../army-fixture";
+import type { Province } from "../provinces";
+import { randomFromSeed } from "../random";
+import { UNASSIGNED } from "../spread";
 import { drawnLeaning } from "./leaning";
 import { nationNames } from "./names";
 import {
@@ -10,9 +13,6 @@ import {
   neighbouringNations,
   pickCapitals,
 } from "./nations";
-import type { Province } from "./provinces";
-import { randomFromSeed } from "./random";
-import { UNASSIGNED } from "./spread";
 
 const land = (
   id: number,

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
 import { LINE_GRAPH, LINE_WORLD } from "./army-fixture";
+import type { Terrain } from "./geography/terrain";
 import type { Grid } from "./grid";
 import {
   buildProvinces,
@@ -8,7 +9,6 @@ import {
   neighboursOf,
   provinceTerrain,
 } from "./provinces";
-import type { Terrain } from "./terrain";
 
 const GRID: Grid = { height: 4, width: 4 };
 

@@ -1,4 +1,4 @@
-import type { Terrain } from "./terrain";
+import type { Terrain } from "./geography/terrain";
 
 /** Every line battalion a division is built from, after Hearts of Iron IV's. */
 export type Battalion =

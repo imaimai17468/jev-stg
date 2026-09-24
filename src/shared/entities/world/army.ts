@@ -21,6 +21,7 @@ import { shareTransferred } from "./economy";
 import { deploymentOf, enemyNeighbours, frontField, stepToward } from "./front";
 import type { Deployment } from "./front";
 import { combatWidth } from "./frontage";
+import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
@@ -37,7 +38,6 @@ import type { Post, SupplyNetwork } from "./supply";
 import { postOf, stackKey } from "./supply";
 import type { Wars } from "./wars";
 import { atWar } from "./wars";
-import type { World } from "./world";
 
 /** The armies of a world, the ground they hold, and what it all costs. */
 export interface Armies {

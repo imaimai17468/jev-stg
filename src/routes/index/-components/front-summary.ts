@@ -1,7 +1,7 @@
 import type { BattlePlan } from "@/shared/entities/world/battle-plan";
 import { onItsFront } from "@/shared/entities/world/battle-plan";
 import type { Division } from "@/shared/entities/world/divisions";
-import type { Nation } from "@/shared/entities/world/nations";
+import type { Nation } from "@/shared/entities/world/geography/nations";
 import { MOST_ENTRENCHMENT } from "@/shared/entities/world/preparation";
 import { averageLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";

@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { airspaceOf } from "./airspace";
+import { airspaceOf } from "../airspace";
+import { UNASSIGNED } from "../spread";
 import { initialOwners } from "./nations";
-import { UNASSIGNED } from "./spread";
 import { generateWorld, NATION_COUNT } from "./world";
 
 /**

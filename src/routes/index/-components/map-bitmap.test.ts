@@ -1,7 +1,7 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { startCompliance } from "@/shared/entities/world/compliance";
-import type { Colour } from "@/shared/entities/world/nations";
+import type { Colour } from "@/shared/entities/world/geography/nations";
 import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { paintWorld } from "./map-bitmap";
 import { airTintOf } from "./map-mode";
