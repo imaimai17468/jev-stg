@@ -2,6 +2,7 @@ import { AdvancementDialog } from "./advancement-dialog";
 import { NationList } from "./nation-list";
 import {
   factionListing,
+  leaningLabel,
   standingLabel,
   terrainOf,
   territoryOf,
@@ -20,6 +21,9 @@ export const NationDetail = ({ summary }: NationDetailProps) => {
     <div className="flex flex-col gap-6">
       <PanelSection title="領土">
         <StatRows layout="column" stats={territoryOf(summary)} />
+      </PanelSection>
+      <PanelSection title="国柄">
+        <p className="text-sm">{leaningLabel(summary.leaning)}</p>
       </PanelSection>
       <PanelSection title="立場">
         <p className="text-sm">{standingLabel(summary.standing)}</p>

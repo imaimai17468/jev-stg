@@ -6,9 +6,8 @@ import type { Theatre } from "./combat";
 import { foughtOneDay, withdrawn } from "./combat";
 import type { Division } from "./divisions";
 import {
-  canRaise,
+  dailyLevy,
   marchDaysFor,
-  paidForDivision,
   raisedAt,
   regroupedEnough,
   strengthOf,
@@ -16,7 +15,7 @@ import {
   worn,
 } from "./divisions";
 import type { NationEconomy } from "./economy";
-import { NO_ECONOMY, shareTransferred } from "./economy";
+import { shareTransferred } from "./economy";
 import { deploymentOf, enemyNeighbours, frontField, stepToward } from "./front";
 import type { Deployment } from "./front";
 import { combatWidth } from "./frontage";
@@ -24,7 +23,7 @@ import { valueAt } from "./grid";
 import type { World } from "./index";
 import { industryByNation, provincePeople } from "./industry";
 import { itemAt } from "./lookup";
-import { musteringAt } from "./muster";
+import { musteredBy } from "./muster";
 import type { Activity } from "./preparation";
 import { prepared } from "./preparation";
 import type { LandProvince, ProvinceGraph } from "./provinces";
@@ -53,31 +52,6 @@ const NO_FIELDS: Fields = {
   line: NO_FIELD,
   open: { field: NO_FIELD, room: "full" },
   plan: NO_PLAN,
-};
-
-/** What one day of the depots produced and what it cost. */
-interface Raised {
-  readonly divisions: readonly Division[];
-  readonly economies: readonly NationEconomy[];
-}
-
-/** One day of the depots: every nation that can afford a division raises one. */
-const raisedOneDay = (
-  world: World,
-  owners: Int32Array,
-  economies: readonly NationEconomy[]
-): Raised => {
-  const added: Division[] = [];
-  const paid = world.nations.map((nation) => {
-    const economy = itemAt(economies, nation.id, NO_ECONOMY);
-    const province = musteringAt(world, owners, nation);
-    if (province === UNASSIGNED || !canRaise(economy)) {
-      return economy;
-    }
-    added.push(raisedAt(nation.id, province));
-    return paidForDivision(economy);
-  });
-  return { divisions: added, economies: paid };
 };
 
 /** The divisions standing in each province, by province id. */
@@ -616,6 +590,14 @@ const marchedEverywhere = (
       ];
     })
   );
+  preparedAfter(
+    free.flatMap((division): readonly Order[] => {
+      if (division.task !== "garrison") {
+        return [];
+      }
+      return [{ after: division, before: division }];
+    })
+  );
   for (const stack of stacksOf(
     free.filter((division) => division.task === "line"),
     world.nations.length
@@ -669,7 +651,7 @@ export const armiesAfterOneDay = (
   armies: Armies
 ): Armies => {
   const graph = graphOf(world.provinces);
-  const raised = raisedOneDay(world, armies.owners, armies.economies);
+  const raised = musteredBy(world, armies.owners, armies.economies, dailyLevy);
   const fought = foughtEverywhere(
     world,
     {

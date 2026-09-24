@@ -22,6 +22,7 @@ const nation = (id: number, red: number): Nation => ({
   capital: id,
   colour: { blue: 0, green: 0, red },
   id,
+  leaning: "army",
   name: `国${id}`,
 });
 

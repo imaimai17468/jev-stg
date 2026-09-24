@@ -2,6 +2,7 @@ import { Schema } from "effect";
 import type { NationEconomy } from "./economy";
 import { lastWhere } from "./lookup";
 import type { Modifiers } from "./modifiers";
+import type { Nation } from "./nations";
 import { entrenchedShare } from "./preparation";
 import type { Terrain } from "./terrain";
 
@@ -39,10 +40,13 @@ const TEMPLATES = {
 export type Arrival = "march" | "landing";
 
 /**
- * What a division is doing: standing to the orders of its nation's line, or
- * falling back to the fallback line after it broke, to regroup there.
+ * What a division is doing: standing to the orders of its nation's line,
+ * falling back to the fallback line after it broke, to regroup there, or
+ * holding the province it guards, which the line never calls away. A
+ * garrison that breaks regroups like any other division and then answers to
+ * the line.
  */
-export type Task = "line" | "regroup";
+export type Task = "line" | "regroup" | "garrison";
 
 /** One division: where it stands, what is left of it, and where it is walking. */
 export interface Division {
@@ -135,6 +139,66 @@ export const paidForDivision = (economy: NationEconomy): NationEconomy => ({
   equipment: economy.equipment - TEMPLATES.infantry.equipment,
   manpower: economy.manpower - TEMPLATES.infantry.manpower,
   recruited: economy.recruited + TEMPLATES.infantry.manpower,
+});
+
+/** The divisions a nation raises, and its economy after paying for them. */
+export interface Levy {
+  readonly divisions: readonly Division[];
+  readonly economy: NationEconomy;
+}
+
+/** What a nation raises out of `economy` when it musters at `home`. */
+export type Levied = (
+  economy: NationEconomy,
+  nation: Nation,
+  home: number
+) => Levy;
+
+/**
+ * A day of the depots: one division standing at `home` where the nation can
+ * afford it, none where it cannot.
+ */
+export const dailyLevy: Levied = (economy, nation, home) => {
+  if (!canRaise(economy)) {
+    return { divisions: [], economy };
+  }
+  return {
+    divisions: [raisedAt(nation.id, home)],
+    economy: paidForDivision(economy),
+  };
+};
+
+/**
+ * The share of its manpower a nation of each leaning already has under arms
+ * when the world opens. The shares are this game's own.
+ */
+const OPENING_ARMY_SHARE = {
+  army: 0.25,
+  industry: 0.15,
+  navy: 0.15,
+} satisfies Readonly<Record<Nation["leaning"], number>>;
+
+/** How many divisions a nation of `leaning` with `manpower` opens the world with. */
+export const openingDivisionCount = (
+  manpower: number,
+  leaning: Nation["leaning"]
+): number =>
+  Math.floor(
+    (manpower * OPENING_ARMY_SHARE[leaning]) / TEMPLATES.infantry.manpower
+  );
+
+/**
+ * The economy with the men of `count` divisions raised before the world
+ * opened called up. Their weapons were built before the world opened, so
+ * they cost none of its equipment.
+ */
+export const calledUpFor = (
+  economy: NationEconomy,
+  count: number
+): NationEconomy => ({
+  ...economy,
+  manpower: economy.manpower - menFor(count),
+  recruited: economy.recruited + menFor(count),
 });
 
 /** The men in a set of divisions, all of them together. */

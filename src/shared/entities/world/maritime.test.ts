@@ -204,6 +204,22 @@ describe(seafaredOneDay, () => {
     ]);
   });
 
+  it("should leave a garrison ashore when a new landing takes the nation's spare divisions", () => {
+    const seas: Seas = {
+      ...QUIET_SEAS,
+      divisions: [
+        division({ nation: 0, province: 0, task: "garrison" }),
+        division({ nation: 0, province: 1 }),
+        division({ nation: 1, province: 3 }),
+      ],
+    };
+
+    expect(seafaredOneDay(seas, AT_WAR).divisions).toStrictEqual([
+      division({ nation: 0, province: 0, task: "garrison" }),
+      division({ nation: 1, province: 3 }),
+    ]);
+  });
+
   it("should prepare no landing when the nation's ground borders its enemy over land", () => {
     const seas: Seas = {
       ...QUIET_SEAS,

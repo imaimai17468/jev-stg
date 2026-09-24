@@ -1,5 +1,8 @@
 import { valueAt } from "./grid";
 import type { World } from "./index";
+import type { Leaning } from "./leaning";
+import { drawnLeaning } from "./leaning";
+import { itemAt } from "./lookup";
 import { nationNames } from "./names";
 import type { Province } from "./provinces";
 import {
@@ -25,6 +28,7 @@ export interface Nation {
   readonly colour: Colour;
   /** The land province the nation is named from and grows out of. */
   readonly capital: number;
+  readonly leaning: Leaning;
 }
 
 /** Stands in for a nation the world does not hold, which its id gives away. */
@@ -32,6 +36,7 @@ export const NO_NATION: Nation = {
   capital: 0,
   colour: { blue: 0, green: 0, red: 0 },
   id: -1,
+  leaning: "army",
   name: "",
 };
 
@@ -201,18 +206,42 @@ export const initialOwners = (
     nations.map((nation) => nation.capital)
   );
 
-/** The nations of a world, named and coloured, one per capital. */
+/**
+ * The nations of a world, named, coloured and given a leaning, one per
+ * capital. The leanings are drawn after every name, so the names a seed drew
+ * before nations had leanings stay the names it draws.
+ */
 export const buildNations = (
   capitals: readonly number[],
   random: Random
 ): readonly Nation[] => {
   const capitalCells = Int32Array.from(capitals);
-  return nationNames(capitals.length, random).map((name, id) => ({
+  const names = nationNames(capitals.length, random);
+  const leanings = names.map(() => drawnLeaning(random));
+  return names.map((name, id) => ({
     capital: valueAt(capitalCells, id),
     colour: nationColour(id),
     id,
+    leaning: itemAt(leanings, id, NO_NATION.leaning),
     name,
   }));
+};
+
+/** The nations other than `nation` holding a province beside `province`. */
+export const nationsBeside = (
+  owners: Int32Array,
+  province: Province,
+  nation: number
+): ReadonlySet<number> => {
+  const beside = new Set<number>();
+  for (const neighbour of province.neighbours) {
+    const owner = valueAt(owners, neighbour);
+    if (owner === nation || owner === UNASSIGNED) {
+      continue;
+    }
+    beside.add(owner);
+  }
+  return beside;
 };
 
 /** Two nations whose land touches, the lower id first. */

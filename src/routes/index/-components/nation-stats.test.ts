@@ -1,8 +1,10 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
 import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import type { Leaning } from "@/shared/entities/world/leaning";
 import {
   factionListing,
+  leaningLabel,
   standingLabel,
   terrainOf,
   territoryOf,
@@ -25,6 +27,7 @@ const SUMMARY: NationSummary = {
   front: [],
   id: 0,
   intel: [],
+  leaning: "army",
   name: "国0",
   navy: [],
   neighbours: ["国1"],
@@ -58,6 +61,19 @@ describe(terrainOf, () => {
       { label: "ツンドラ", value: "14" },
     ]);
   });
+});
+
+describe(leaningLabel, () => {
+  it.each([
+    ["陸軍国", "army"],
+    ["海軍国", "navy"],
+    ["工業国", "industry"],
+  ] satisfies readonly (readonly [string, Leaning])[])(
+    "should read %s when the nation leans toward %s",
+    (label, leaning) => {
+      expect(leaningLabel(leaning)).toBe(label);
+    }
+  );
 });
 
 describe(standingLabel, () => {

@@ -1,6 +1,7 @@
 import type { Advancement } from "./advancement";
 import {
   modifiersOf,
+  openingAdvancementOf,
   progressedOneDay,
   START_ADVANCEMENT,
 } from "./advancement";
@@ -56,12 +57,13 @@ import type { Invasion } from "./invasion";
 import { itemAt } from "./lookup";
 import { homeZonesOf, seafaredOneDay } from "./maritime";
 import type { Modifiers } from "./modifiers";
-import { musteringAt } from "./muster";
+import { musteredBy, musteringAt } from "./muster";
 import { initialOwners, NO_NATION } from "./nations";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
 import type { Networks } from "./networks";
 import { noNetworks } from "./networks";
+import { groundOf, openingLevyIn } from "./opening-army";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
@@ -126,16 +128,29 @@ export interface Simulation {
 /** The world on its first day, before any of it has run. */
 export const startSimulation = (world: World): Simulation => {
   const owners = initialOwners(world.provinces, world.nations);
-  const economies = startEconomies(world, owners);
+  const opening = startEconomies(world, owners);
+  const armies = musteredBy(
+    world,
+    owners,
+    opening,
+    openingLevyIn(groundOf(world, owners, opening))
+  );
+  const { economies } = armies;
   const homes = homeZonesOf(world, owners);
+  const advancements = world.nations.map((nation) =>
+    openingAdvancementOf(nation.leaning)
+  );
+  const armouries = advancements.map((advancement) =>
+    armouryOf(advancement.research)
+  );
   return {
-    advancements: world.nations.map(() => START_ADVANCEMENT),
+    advancements,
     airBases: openingAirBases(world),
     airForces: economies.map((economy, nation) =>
       openingAirForce(
         economy.militaryFactories,
         itemAt(world.nations, nation, NO_NATION).capital,
-        OPENING_ARMOURY.planes
+        itemAt(armouries, nation, OPENING_ARMOURY).planes
       )
     ),
     airPower: world.nations.map(
@@ -150,7 +165,7 @@ export const startSimulation = (world: World): Simulation => {
       world.nations.length,
       factionFounders(economies)
     ),
-    divisions: [],
+    divisions: armies.divisions,
     economies,
     gleaned: noGleaned(world.nations.length),
     invasions: [],
@@ -158,7 +173,7 @@ export const startSimulation = (world: World): Simulation => {
       openingNavy(
         economy.dockyards,
         itemAt(homes, nation, UNASSIGNED),
-        OPENING_ARMOURY.ships
+        itemAt(armouries, nation, OPENING_ARMOURY).ships
       )
     ),
     negotiations: [],

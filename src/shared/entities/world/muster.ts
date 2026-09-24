@@ -1,6 +1,8 @@
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
-import type { Division } from "./divisions";
+import type { Division, Levied } from "./divisions";
+import type { NationEconomy } from "./economy";
+import { NO_ECONOMY } from "./economy";
 import { valueAt } from "./grid";
 import type { World } from "./index";
 import { itemAt } from "./lookup";
@@ -26,6 +28,37 @@ export const musteringAt = (
     (province) => valueAt(owners, province.id) === nation.id
   );
   return held?.id ?? UNASSIGNED;
+};
+
+/** What every nation raised where it musters, and its economy afterwards. */
+export interface Mustered {
+  readonly divisions: readonly Division[];
+  readonly economies: readonly NationEconomy[];
+}
+
+/**
+ * Every nation's levy, which `levied` decides from the nation's economy, the
+ * nation and the province it musters at: none for a nation with no ground,
+ * whose economy stays as it was.
+ */
+export const musteredBy = (
+  world: World,
+  owners: Int32Array,
+  economies: readonly NationEconomy[],
+  levied: Levied
+): Mustered => {
+  const divisions: Division[] = [];
+  const paid = world.nations.map((nation) => {
+    const economy = itemAt(economies, nation.id, NO_ECONOMY);
+    const province = musteringAt(world, owners, nation);
+    if (province === UNASSIGNED) {
+      return economy;
+    }
+    const levy = levied(economy, nation, province);
+    divisions.push(...levy.divisions);
+    return levy.economy;
+  });
+  return { divisions, economies: paid };
 };
 
 /**

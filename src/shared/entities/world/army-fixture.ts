@@ -22,6 +22,7 @@ export const nation = (id: number, capital: number): Nation => ({
   capital,
   colour: { blue: 0, green: 0, red: 0 },
   id,
+  leaning: "army",
   name: `国${id}`,
 });
 

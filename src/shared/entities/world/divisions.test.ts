@@ -1,14 +1,17 @@
 import { describe, expect, it } from "vite-plus/test";
-import { division } from "./army-fixture";
+import { division, nation } from "./army-fixture";
 import type { Backing } from "./divisions";
 import {
   attackOf,
+  calledUpFor,
   canRaise,
+  dailyLevy,
   defenceOf,
   fieldedBy,
   infantryEquipmentOf,
   marchDaysFor,
   menFor,
+  openingDivisionCount,
   paidForDivision,
   raisedAt,
   regroupedEnough,
@@ -18,6 +21,7 @@ import {
 } from "./divisions";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
+import type { Leaning } from "./leaning";
 import type { Modifiers } from "./modifiers";
 import { NO_MODIFIERS } from "./modifiers";
 
@@ -264,6 +268,47 @@ describe(fieldedBy, () => {
 describe(menFor, () => {
   it("should call up a full division's men for each division when several are raised", () => {
     expect(menFor(3)).toBe(60_000);
+  });
+});
+
+describe(dailyLevy, () => {
+  it("should raise one division at home and pay for it when the nation can afford one", () => {
+    expect(dailyLevy(ARMED, nation(2, 7), 7)).toStrictEqual({
+      divisions: [raisedAt(2, 7)],
+      economy: paidForDivision(ARMED),
+    });
+  });
+
+  it("should raise nothing and leave the economy alone when the nation cannot afford a division", () => {
+    const short = { ...ARMED, equipment: 999 };
+
+    expect(dailyLevy(short, nation(2, 7), 7)).toStrictEqual({
+      divisions: [],
+      economy: short,
+    });
+  });
+});
+
+describe(openingDivisionCount, () => {
+  it.each([
+    ["army", 5],
+    ["navy", 3],
+    ["industry", 3],
+  ] satisfies readonly (readonly [Leaning, number])[])(
+    "should put a %s nation's share of 400,000 men into %i divisions when the world opens",
+    (leaning, count) => {
+      expect(openingDivisionCount(400_000, leaning)).toBe(count);
+    }
+  );
+});
+
+describe(calledUpFor, () => {
+  it("should move each division's men from the pool to the recruited without spending weapons when opening divisions are called up", () => {
+    expect(calledUpFor(ARMED, 1)).toStrictEqual({
+      ...ARMED,
+      manpower: 0,
+      recruited: 20_000,
+    });
   });
 });
 

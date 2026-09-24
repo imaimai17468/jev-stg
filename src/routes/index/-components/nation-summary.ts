@@ -22,8 +22,9 @@ import {
 } from "@/shared/entities/world/espionage";
 import { valueAt } from "@/shared/entities/world/grid";
 import { intelOf } from "@/shared/entities/world/insight";
+import type { Leaning } from "@/shared/entities/world/leaning";
 import { itemAt } from "@/shared/entities/world/lookup";
-import { NO_NATION } from "@/shared/entities/world/nations";
+import { nationsBeside, NO_NATION } from "@/shared/entities/world/nations";
 import { NO_NAVY } from "@/shared/entities/world/navy";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
@@ -35,7 +36,6 @@ import {
   stirredIn,
 } from "@/shared/entities/world/simulation";
 import { superiorityOf } from "@/shared/entities/world/skies";
-import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { SupplyNetwork } from "@/shared/entities/world/supply";
 import type { Terrain } from "@/shared/entities/world/terrain";
 import { enemiesOf } from "@/shared/entities/world/wars";
@@ -74,6 +74,8 @@ export interface FactionSummary {
 export interface NationSummary {
   readonly id: number;
   readonly name: string;
+  /** What it put its interwar years into, which decided what it opened with. */
+  readonly leaning: Leaning;
   readonly provinces: number;
   /** The nation's area, in map cells. */
   readonly cells: number;
@@ -116,6 +118,7 @@ const EMPTY: NationSummary = {
   front: [],
   id: -1,
   intel: [],
+  leaning: NO_NATION.leaning,
   name: "",
   navy: [],
   neighbours: [],
@@ -217,11 +220,7 @@ export const summaryOf = (
     provinces += 1;
     cells += province.cells;
     counts.set(province.terrain, (counts.get(province.terrain) ?? 0) + 1);
-    for (const beside of province.neighbours) {
-      const owner = valueAt(owners, beside);
-      if (owner === nation || owner === UNASSIGNED) {
-        continue;
-      }
+    for (const owner of nationsBeside(owners, province, nation)) {
       neighbours.add(owner);
     }
   }
@@ -257,6 +256,7 @@ export const summaryOf = (
     ),
     ...allegianceOf(diplomacy, nation, nameOf),
     id: nation,
+    leaning: named.leaning,
     name: named.name,
     navy: navySummaryOf(
       itemAt(simulation.navies, nation, NO_NAVY),

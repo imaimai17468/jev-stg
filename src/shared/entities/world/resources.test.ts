@@ -59,8 +59,20 @@ const WORLD: World = {
   deposits: [MINE, MINE, MINE, NO_RESOURCES],
   grid: { height: 1, width: 4 },
   nations: [
-    { capital: 0, colour: { blue: 0, green: 0, red: 0 }, id: 0, name: "国0" },
-    { capital: 1, colour: { blue: 0, green: 0, red: 0 }, id: 1, name: "国1" },
+    {
+      capital: 0,
+      colour: { blue: 0, green: 0, red: 0 },
+      id: 0,
+      leaning: "army",
+      name: "国0",
+    },
+    {
+      capital: 1,
+      colour: { blue: 0, green: 0, red: 0 },
+      id: 1,
+      leaning: "army",
+      name: "国1",
+    },
   ],
   provinces: PROVINCES,
   seed: 1,
