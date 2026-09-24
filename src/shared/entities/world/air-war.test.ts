@@ -16,8 +16,8 @@ import {
 } from "./air-war-fixture";
 import type { Armoury } from "./armoury";
 import { OPENING_ARMOURY } from "./armoury";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Invasion } from "./invasion";
 import { replacedAt } from "./lookup";
 import type { Mission, Navy, TaskForce } from "./navy";

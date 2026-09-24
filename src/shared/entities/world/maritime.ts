@@ -2,6 +2,7 @@ import { Option } from "effect";
 import type { Armoury } from "./armoury";
 import type { Diplomacy } from "./diplomacy";
 import type { Division } from "./divisions";
+import type { Deal } from "./economy/trade";
 import {
   COMBAT_FUEL_MULTIPLE,
   enginesKeptWith,
@@ -45,7 +46,6 @@ import { hullOf } from "./ships";
 import { UNASSIGNED } from "./spread";
 import type { Lines, SupplyReach } from "./supply";
 import { reachOf } from "./supply";
-import type { Deal } from "./trade";
 import { atWar } from "./wars";
 
 /** Everything at sea, and the divisions a landing takes aboard or puts ashore. */

@@ -18,6 +18,7 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
+import { NO_RESOURCES } from "./economy/resources";
 import { HOME, serviceFor } from "./espionage";
 import { focusStarted, START_FOCUSES } from "./focus";
 import { NO_NATION } from "./geography/nations";
@@ -26,7 +27,6 @@ import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
 import type { Province } from "./provinces";
 import { START_RESEARCH } from "./research";
-import { NO_RESOURCES } from "./resources";
 import { ruled } from "./rulings";
 import type { Simulation } from "./simulation";
 import { UNASSIGNED } from "./spread";

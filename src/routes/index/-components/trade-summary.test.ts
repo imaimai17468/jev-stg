@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
-import { NO_LEDGER } from "@/shared/entities/world/commerce";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
+import { NO_LEDGER } from "@/shared/entities/world/economy/commerce";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import { tradeSummaryOf } from "./trade-summary";
 
 describe(tradeSummaryOf, () => {

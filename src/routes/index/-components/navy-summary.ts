@@ -1,4 +1,4 @@
-import type { NationEconomy } from "@/shared/entities/world/economy";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
 import type { Invasion } from "@/shared/entities/world/invasion";
 import type { Navy } from "@/shared/entities/world/navy";
 import type { ShipClass, ShipDesigns } from "@/shared/entities/world/ships";

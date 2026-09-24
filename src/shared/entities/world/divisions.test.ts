@@ -25,8 +25,8 @@ import {
   unlockedKindsOf,
   worn,
 } from "./divisions";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Leaning } from "./geography/leaning";
 import type { Terrain } from "./geography/terrain";
 import type { Modifiers } from "./modifiers";

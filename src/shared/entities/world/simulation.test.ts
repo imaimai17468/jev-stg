@@ -17,10 +17,11 @@ import {
   worldOf,
 } from "./army-fixture";
 import { START_CLOCK } from "./clock";
-import { startCompliance } from "./compliance";
 import { INDEPENDENT, openingDiplomacy } from "./diplomacy";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import { startCompliance } from "./economy/compliance";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
+import { openingPlants } from "./economy/plants";
 import type { Service } from "./espionage";
 import { openingServices, serviceFor } from "./espionage";
 import { FOCUS_DAYS, focusStarted, START_FOCUSES } from "./focus";
@@ -30,7 +31,6 @@ import { noNetworks } from "./geography/networks";
 import { noGleaned } from "./intel";
 import { replacedAt } from "./lookup";
 import { NO_NAVY, openingNavy } from "./navy";
-import { openingPlants } from "./plants";
 import { openingResearchOf, START_RESEARCH, studyStarted } from "./research";
 import type { Simulation } from "./simulation";
 import { ranOneDay, skiesOf, startSimulation, withClock } from "./simulation";

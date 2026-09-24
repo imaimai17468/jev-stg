@@ -3,7 +3,7 @@ import { division } from "./army-fixture";
 import type { Diplomacy } from "./diplomacy";
 import { INDEPENDENT, standingOf, warDeclared } from "./diplomacy";
 import { ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
-import { NO_ECONOMY } from "./economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { PeaceTerms, Settled } from "./peace";
 import { settled } from "./peace";
 import { UNASSIGNED } from "./spread";

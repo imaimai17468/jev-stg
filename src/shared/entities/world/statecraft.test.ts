@@ -14,8 +14,8 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_PEACE, ROW_WORLD } from "./diplomacy-fixture";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Focuses } from "./focus";
 import { START_FOCUSES } from "./focus";
 import { neighbouringNations } from "./geography/nations";

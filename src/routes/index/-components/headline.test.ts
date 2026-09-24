@@ -5,8 +5,8 @@ import {
   openingDiplomacy,
   warDeclared,
 } from "@/shared/entities/world/diplomacy";
-import type { NationEconomy } from "@/shared/entities/world/economy";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import { supplyOf } from "@/shared/entities/world/simulation";
 import { headlineOf } from "./headline";
 import { summaryOf } from "./nation-summary";

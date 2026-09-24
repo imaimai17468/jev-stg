@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import { LINE_OWNERS, LINE_PLANTS, LINE_WORLD } from "./army-fixture";
+import { LINE_OWNERS, LINE_PLANTS, LINE_WORLD } from "../army-fixture";
+import { UNASSIGNED } from "../spread";
 import type { Compliance } from "./compliance";
 import {
   compliedOneDay,
@@ -9,7 +10,6 @@ import {
   reachByNation,
   startCompliance,
 } from "./compliance";
-import { UNASSIGNED } from "./spread";
 
 /** The line as it opened: provinces 0 and 1 are nation 0's, 2 and 3 nation 1's. */
 const OPENED = startCompliance(LINE_OWNERS);

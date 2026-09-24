@@ -28,7 +28,7 @@ import {
   warDeclared,
 } from "./diplomacy";
 import { ROW_OWNERS, ROW_SIMULATION, ROW_WORLD } from "./diplomacy-fixture";
-import { NO_ECONOMY } from "./economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Service } from "./espionage";
 import { HOME, serviceFor } from "./espionage";
 import type { FocusId } from "./focus";

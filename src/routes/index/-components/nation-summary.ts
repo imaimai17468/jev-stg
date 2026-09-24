@@ -3,7 +3,6 @@ import { START_ADVANCEMENT } from "@/shared/entities/world/advancement";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
 import { armouryOf } from "@/shared/entities/world/armoury";
 import { battlePlanOf } from "@/shared/entities/world/battle-plan";
-import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/commerce";
 import type { Diplomacy, Standing } from "@/shared/entities/world/diplomacy";
 import {
   factionOf,
@@ -12,8 +11,11 @@ import {
   sideOf,
   standingOf,
 } from "@/shared/entities/world/diplomacy";
-import type { NationEconomy } from "@/shared/entities/world/economy";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { ledgersOf, NO_LEDGER } from "@/shared/entities/world/economy/commerce";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
+import type { HeldSlots } from "@/shared/entities/world/economy/plants";
+import { slotsHeldBy } from "@/shared/entities/world/economy/plants";
 import {
   counterIntelligenceOf,
   NO_SERVICE,
@@ -31,8 +33,6 @@ import { valueAt } from "@/shared/entities/world/grid";
 import { intelOf } from "@/shared/entities/world/insight";
 import { itemAt } from "@/shared/entities/world/lookup";
 import { NO_NAVY } from "@/shared/entities/world/navy";
-import type { HeldSlots } from "@/shared/entities/world/plants";
-import { slotsHeldBy } from "@/shared/entities/world/plants";
 import { graphOf } from "@/shared/entities/world/provinces";
 import type { Simulation } from "@/shared/entities/world/simulation";
 import {

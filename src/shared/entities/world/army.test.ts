@@ -11,8 +11,8 @@ import {
   WAR_COMMAND,
   worldOf,
 } from "./army-fixture";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
 import { itemAt } from "./lookup";
 import { noWars } from "./wars";
 

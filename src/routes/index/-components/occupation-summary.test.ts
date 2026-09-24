@@ -4,8 +4,8 @@ import {
   LINE_PLANTS,
   LINE_WORLD,
 } from "@/shared/entities/world/army-fixture";
-import type { Compliance } from "@/shared/entities/world/compliance";
-import { startCompliance } from "@/shared/entities/world/compliance";
+import type { Compliance } from "@/shared/entities/world/economy/compliance";
+import { startCompliance } from "@/shared/entities/world/economy/compliance";
 import { UNASSIGNED } from "@/shared/entities/world/spread";
 import type { Stirred } from "@/shared/entities/world/unrest";
 import type { Occupation } from "./occupation-summary";

@@ -1,13 +1,13 @@
-import type { Compliance } from "@/shared/entities/world/compliance";
+import type { Compliance } from "@/shared/entities/world/economy/compliance";
 import {
   FULL_REACH,
   occupancyOf,
   reachByNation,
-} from "@/shared/entities/world/compliance";
+} from "@/shared/entities/world/economy/compliance";
+import type { Plants } from "@/shared/entities/world/economy/plants";
 import type { World } from "@/shared/entities/world/geography/world";
 import { valueAt } from "@/shared/entities/world/grid";
 import { itemAt } from "@/shared/entities/world/lookup";
-import type { Plants } from "@/shared/entities/world/plants";
 import type { Stirred } from "@/shared/entities/world/unrest";
 import { averageLabel, percentLabel } from "./count-label";
 import type { Stat } from "./stat";

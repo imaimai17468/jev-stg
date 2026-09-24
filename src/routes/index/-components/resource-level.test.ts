@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import { richestResourceOf } from "./resource-level";
 
 /** A world digging ten times as much steel as tungsten and twice as much tungsten as chromium. */

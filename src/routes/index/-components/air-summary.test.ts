@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vite-plus/test";
 import type { AirForce } from "@/shared/entities/world/air-force";
 import { NO_AIR_FORCE } from "@/shared/entities/world/air-force";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import type { Hangar } from "./air-summary";
 import { airSummaryOf } from "./air-summary";
 import { HELD_BY_TWO } from "./world-fixture";

@@ -1,8 +1,8 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { startCompliance } from "@/shared/entities/world/compliance";
+import { startCompliance } from "@/shared/entities/world/economy/compliance";
+import { NO_RESOURCES } from "@/shared/entities/world/economy/resources";
 import type { Colour } from "@/shared/entities/world/geography/nations";
-import { NO_RESOURCES } from "@/shared/entities/world/resources";
 import { paintWorld } from "./map-bitmap";
 import { airTintOf } from "./map-mode";
 import type { Tint } from "./map-mode";

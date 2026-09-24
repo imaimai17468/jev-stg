@@ -27,15 +27,22 @@ import type { Decision, Entry, Negotiation } from "./chronicle";
 import { BY_RULES, chronicled } from "./chronicle";
 import type { Clock } from "./clock";
 import { dateOf, advancedOneDay as nextClock, START_CLOCK } from "./clock";
-import { commerceOneDay } from "./commerce";
-import type { Compliance } from "./compliance";
-import { compliedOneDay, reachByNation, startCompliance } from "./compliance";
 import type { Diplomacy } from "./diplomacy";
 import { openingDiplomacy, standsAlone } from "./diplomacy";
 import type { Division } from "./divisions";
 import { fieldedBy } from "./divisions";
-import type { NationEconomy } from "./economy";
-import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy";
+import { commerceOneDay } from "./economy/commerce";
+import type { Compliance } from "./economy/compliance";
+import {
+  compliedOneDay,
+  reachByNation,
+  startCompliance,
+} from "./economy/compliance";
+import type { NationEconomy } from "./economy/economy";
+import { burnt, NO_ECONOMY, startEconomies, upkept } from "./economy/economy";
+import type { Estate, Plants } from "./economy/plants";
+import { countedFrom, openingPlants, placedGains } from "./economy/plants";
+import type { Deal } from "./economy/trade";
 import type { Service } from "./espionage";
 import {
   heldCaptives,
@@ -66,8 +73,6 @@ import { musteredBy, musteringAt } from "./muster";
 import type { Navy } from "./navy";
 import { NO_NAVY, openingNavy } from "./navy";
 import { groundOf, openingLevyIn } from "./opening-army";
-import type { Estate, Plants } from "./plants";
-import { countedFrom, openingPlants, placedGains } from "./plants";
 import type { ProvinceGraph } from "./provinces";
 import { graphOf } from "./provinces";
 import { randomFromSeed, streamSeed } from "./random";
@@ -82,7 +87,6 @@ import type { Realm } from "./statecraft";
 import { conductedOneDay, factionFounders } from "./statecraft";
 import type { Lines, SupplyNetwork } from "./supply";
 import { supplyNetwork } from "./supply";
-import type { Deal } from "./trade";
 import type { Stirred, Unrest } from "./unrest";
 import { stirredBy } from "./unrest";
 import { peaceBetween } from "./wars";

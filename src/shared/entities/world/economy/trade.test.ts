@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { Bonus } from "./modifiers";
+import type { Bonus } from "../modifiers";
 import { NO_RESOURCES } from "./resources";
 import type { Deal, Terms, TradeLaw, Trader } from "./trade";
 import { balancesOf, lawBonusOf, marketCleared, NO_TRADER } from "./trade";

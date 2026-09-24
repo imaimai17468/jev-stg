@@ -12,11 +12,11 @@ import {
   decrypts,
   noCiphers,
 } from "./cipher";
-import type { Compliance } from "./compliance";
 import { countedDown } from "./countdown";
 import type { Diplomacy } from "./diplomacy";
 import { factionOf, standsAlone } from "./diplomacy";
-import type { NationEconomy } from "./economy";
+import type { Compliance } from "./economy/compliance";
+import type { NationEconomy } from "./economy/economy";
 import { operativeSlotsOf } from "./focus";
 import type { Build, Networks } from "./geography/networks";
 import { networkBuiltOneDay } from "./geography/networks";

@@ -1,6 +1,6 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { NO_ECONOMY } from "@/shared/entities/world/economy";
+import { NO_ECONOMY } from "@/shared/entities/world/economy/economy";
 import type { Leaning } from "@/shared/entities/world/geography/leaning";
 import {
   factionListing,

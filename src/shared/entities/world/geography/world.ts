@@ -1,13 +1,13 @@
 import type { Airspace } from "../airspace";
 import { airspaceOf } from "../airspace";
+import type { ResourceNeed } from "../economy/resources";
+import { depositsOf } from "../economy/resources";
 import type { Grid } from "../grid";
 import { cellCount, valueAt } from "../grid";
 import type { Province } from "../provinces";
 import { buildProvinces } from "../provinces";
 import type { Random } from "../random";
 import { randomFromSeed } from "../random";
-import type { ResourceNeed } from "../resources";
-import { depositsOf } from "../resources";
 import { unassignedBuffer } from "../spread";
 import { sinkSmallIslands } from "./landmass";
 import type { Nation } from "./nations";

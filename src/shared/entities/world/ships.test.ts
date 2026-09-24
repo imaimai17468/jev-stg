@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vite-plus/test";
-import type { ResourceNeed } from "./resources";
-import { NO_RESOURCES } from "./resources";
+import type { ResourceNeed } from "./economy/resources";
+import { NO_RESOURCES } from "./economy/resources";
 import type {
   Ship,
   ShipClass,

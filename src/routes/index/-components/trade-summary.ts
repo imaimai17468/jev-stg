@@ -1,7 +1,7 @@
-import type { Ledger } from "@/shared/entities/world/commerce";
-import type { NationEconomy } from "@/shared/entities/world/economy";
-import type { Resource } from "@/shared/entities/world/resources";
-import { RESOURCES } from "@/shared/entities/world/resources";
+import type { Ledger } from "@/shared/entities/world/economy/commerce";
+import type { NationEconomy } from "@/shared/entities/world/economy/economy";
+import type { Resource } from "@/shared/entities/world/economy/resources";
+import { RESOURCES } from "@/shared/entities/world/economy/resources";
 import { percentLabel } from "./count-label";
 import { TRADE_LAW_NAMES } from "./naval-names";
 import type { Stat } from "./stat";

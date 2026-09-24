@@ -1,5 +1,5 @@
-import type { Compliance } from "./compliance";
 import { countedDown } from "./countdown";
+import type { Compliance } from "./economy/compliance";
 import type { Networks } from "./geography/networks";
 import { NETWORK_FLOOR } from "./geography/networks";
 import { valueAt } from "./grid";

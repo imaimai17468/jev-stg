@@ -1,9 +1,11 @@
 import { Option } from "effect";
 import { describe, expect, it } from "vite-plus/test";
-import { land, TWO_NATIONS, worldOf } from "./army-fixture";
+import { land, TWO_NATIONS, worldOf } from "../army-fixture";
+import { NO_MODIFIERS } from "../modifiers";
+import type { LandProvince } from "../provinces";
+import { UNASSIGNED } from "../spread";
 import type { NationEconomy } from "./economy";
 import { NO_ECONOMY } from "./economy";
-import { NO_MODIFIERS } from "./modifiers";
 import type { Estate, Plants } from "./plants";
 import {
   countedFrom,
@@ -15,8 +17,6 @@ import {
   slotsHeldBy,
   buildingSlotsOf,
 } from "./plants";
-import type { LandProvince } from "./provinces";
-import { UNASSIGNED } from "./spread";
 
 /**
  * Nation 0's inland province of ten cells, its inland province of thirty, and

@@ -8,7 +8,7 @@ import {
   START_ADVANCEMENT,
 } from "./advancement";
 import { daysFromCivil } from "./calendar";
-import { NO_ECONOMY, withTradeLaw } from "./economy";
+import { NO_ECONOMY, withTradeLaw } from "./economy/economy";
 import { FOCUS_DAYS } from "./focus";
 import { NO_MODIFIERS } from "./modifiers";
 

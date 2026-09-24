@@ -1,8 +1,8 @@
 import type { Diplomacy } from "./diplomacy";
 import { allied } from "./diplomacy";
 import type { Division, DivisionKind, Levied } from "./divisions";
-import type { NationEconomy } from "./economy";
-import { NO_ECONOMY } from "./economy";
+import type { NationEconomy } from "./economy/economy";
+import { NO_ECONOMY } from "./economy/economy";
 import type { Nation } from "./geography/nations";
 import { NO_NATION } from "./geography/nations";
 import type { World } from "./geography/world";

@@ -7,8 +7,8 @@ import type {
 } from "react";
 import { memo, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { AirForce } from "@/shared/entities/world/air-force";
-import type { Compliance } from "@/shared/entities/world/compliance";
 import type { Division } from "@/shared/entities/world/divisions";
+import type { Compliance } from "@/shared/entities/world/economy/compliance";
 import type { Colour } from "@/shared/entities/world/geography/nations";
 import type { Networks } from "@/shared/entities/world/geography/networks";
 import type { World } from "@/shared/entities/world/geography/world";

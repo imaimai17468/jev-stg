@@ -1,4 +1,4 @@
-import type { Occupancy } from "@/shared/entities/world/compliance";
+import type { Occupancy } from "@/shared/entities/world/economy/compliance";
 
 /**
  * How a province reads on the compliance map, from its holder's side: the

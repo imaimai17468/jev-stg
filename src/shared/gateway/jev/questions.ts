@@ -56,7 +56,9 @@ import {
 import type {
   ConscriptionLaw,
   IndustryPlan,
-} from "@/shared/entities/world/economy";
+} from "@/shared/entities/world/economy/economy";
+import type { TradeLaw } from "@/shared/entities/world/economy/trade";
+import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/economy/trade";
 import type { FocusId, Grants } from "@/shared/entities/world/focus";
 import { FOCUS_DAYS, focusOf } from "@/shared/entities/world/focus";
 import { constructionSpeedAt } from "@/shared/entities/world/geography/infrastructure";
@@ -87,8 +89,6 @@ import type {
   TechId,
 } from "@/shared/entities/world/techs";
 import { techOf } from "@/shared/entities/world/techs";
-import type { TradeLaw } from "@/shared/entities/world/trade";
-import { lawTermsOf, TRADE_LAWS } from "@/shared/entities/world/trade";
 import {
   JUSTIFIED_DAYS,
   justifyingDays,

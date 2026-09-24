@@ -7,7 +7,7 @@ import {
   puppetsOf,
   tensionFrom,
 } from "./diplomacy";
-import { shareTransferred } from "./economy";
+import { shareTransferred } from "./economy/economy";
 import type { World } from "./geography/world";
 import { valueAt } from "./grid";
 import { sentHome } from "./muster";

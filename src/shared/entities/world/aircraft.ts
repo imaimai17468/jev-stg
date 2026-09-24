@@ -1,6 +1,6 @@
 import { Schema } from "effect";
-import type { ResourceNeed } from "./resources";
-import { NO_RESOURCES } from "./resources";
+import type { ResourceNeed } from "./economy/resources";
+import { NO_RESOURCES } from "./economy/resources";
 import { newestPicker } from "./techs";
 
 /** Every kind of plane the factories turn out. */
